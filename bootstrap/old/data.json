@@ -1,0 +1,115 @@
+[
+    {
+        "pages": {
+            "removed": {
+                "/processwire/dbmigrations/": []
+            }
+        }
+    },
+
+    {
+        "templates": {
+            "removed": {
+                "DbMigrations": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "DbMigration": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateActions": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateControl": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateSnippets": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "repeater_dbMigrateSnippets": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateRestrictFields": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateAdditionalDetails": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateSummary": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateItem": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "repeater_dbMigrateItem": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateOldName": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateName": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateAction": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateType": []
+            }
+        }
+    }
+]

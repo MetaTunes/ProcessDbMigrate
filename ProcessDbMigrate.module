@@ -1,0 +1,706 @@
+<?php namespace ProcessWire;
+
+/**
+ * Class ProcessDbMigrate
+ * @package ProcessWire
+ *
+ * @property object $migrations The parent page for migration pages
+ * @property object $migrationTemplate The template for migration pages
+ * @property object $migrationsTemplate The template for the parent page
+ * @property string $migrationsPath Path to the folder holding the migrations .json files
+ * @property string $bootstrapPath Path to the folder holding the original bootstrap data (it is copied to migrationsPath on installation)
+ * @property DbMigrationPage $bootstrap
+ * @property string $adminPath Path to the admin root (page id = 2)
+ * @property string $runtimePath
+ *
+ */
+
+class ProcessDbMigrate extends Process implements Module, ConfigurableModule
+{
+
+    public static function getModuleinfo() {
+        return [
+            'permanent' => false, 		// true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
+            'title' => 'ProcessDbMigrate',
+            'summary' => 'Maintain migration data',
+            'comments' => 'N.B. This module also requires classes DefaultPage and DbMigrationPage',
+            'author' => 'Mark Evens',
+            'version' => "0.0.1",
+            'autoload' => true,
+            'singular' => true,
+            'page' => array( 			// optionally install/uninstall a page for this process automatically
+                'name' => 'dbmigrations', 	// name of page to create
+                'parent' => 'setup', 	// parent name (under admin) or omit or blank to assume admin root
+                'title' => 'Database Migrations', 	// title of page, or omit to use the title already specified above
+            ),
+            'icon' => 'upload',
+            'requires' => ['ProcessWire>=3.0.148','FieldtypeRuntimeOnly'],
+            'installs' => [],
+            'permission' => 'admin-dbMigrate',         // ToDo tighten permissions?
+        ];
+    }
+
+
+    const MIGRATION_TEMPLATE = 'DbMigration';
+    const MIGRATION_PARENT_TEMPLATE = 'DbMigrations';
+    const MIGRATION_PARENT = 'dbmigrations/';
+    const MIGRATION_PATH = 'DbMigrate/migrations/';
+    const BOOTSTRAP_PATH = 'ProcessDbMigrate/bootstrap';
+    const RUNTIME_PATH = 'ProcessDbMigrate/RuntimeOnly';
+
+
+    public function __construct() {
+
+    }
+
+    /*
+     * API available here
+     */
+    public function init() {
+        require_once('DbMigrationPage.class.php');
+        // Set properties
+        $this->set('adminPath',  wire('pages')->get(2)->path);
+        $this->set('migrations', wire('pages')->get($this->adminPath . self::MIGRATION_PARENT));
+        $this->set('migrationTemplate', wire('templates')->get(self::MIGRATION_TEMPLATE));
+        $this->set('migrationsTemplate', wire('templates')->get(self::MIGRATION_PARENT_TEMPLATE));
+        $this->set('migrationsPath', wire('config')->paths->templates . self::MIGRATION_PATH);
+        $this->set('bootstrapPath', wire('config')->paths->siteModules . self::BOOTSTRAP_PATH);
+        $this->set('bootstrap', wire()->pages->get("parent=$this->migrations, template=$this->migrationTemplate, name=bootstrap"));
+        $this->set('runtimePath', wire('config')->paths->siteModules . self::RUNTIME_PATH);
+        // Need custom uninstall to uninstall bootstrap before uninstalling the module
+        $this->addHookBefore("Modules::uninstall", $this, "customUninstall");
+        // trigger init in Page class as it is not auto
+        if (class_exists('DbMigrationPage')) {
+            $p = new DbMigrationPage();
+            $p->init();
+        }
+        //bd('INIT DONE');
+    }
+
+
+    /*
+     * API and page available here
+     */
+public function ready() {
+// trigger ready() in the Page Class
+    // Not sure this one works
+//    if (class_exists('DbMigrationPage')) {
+//        $p = new DbMigrationPage();
+//        $p->ready();
+//    }
+    // alternative - to trigger all page classes
+        $page = $this->wire()->page;
+        if ($page and $page->template == 'admin') {
+            $pId = $this->wire()->input->get->int('id');
+            $p = $this->wire('pages')->get($pId);
+        }
+        if (isset($p) and $p and $p->id and method_exists($p,'ready')) $p->ready();
+}
+
+
+
+    public function ___install() {
+        //bd('install');
+        $this->init();  // Need the properties to be loaded for the bootstrap, but init() is not called before install()
+        $doBootstrap = false;
+        // First check if all the templates and pages exist
+        if (!$this->migrations or !$this->migrations->id or !$this->migrationsTemplate or !$this->migrationTemplate) {
+            $doBootstrap = true;
+        }
+        // Then check for a json file
+        $migrationFile = (file_exists($this->bootstrapPath . 'new/migration.json')) ? file_get_contents($this->bootstrapPath . 'new/migration.json') : null;
+        if (!$migrationFile) {
+            $doBootstrap = true;  // bootstrap() will reject the install attempt
+        } else {
+            // see whether all the fields in the migration.json for bootstrap exist - if not we can't run a 'compare' so need to re-bootstrap
+            $migrationArray = wireDecodeJSON($migrationFile);
+            unset($migrationArray['parent']);
+            unset($migrationArray['template']);
+            unset($migrationArray['status']);
+            foreach ($migrationArray as $k => $v) {
+                $f = $this->wire()->fields->get($k);
+                if (!$f) $doBootstrap = true;
+                break;
+            }
+            if (!$doBootstrap) {
+                if ($this->bootstrap and $this->bootstrap->id) {
+                    try {
+                        $installed = $this->bootstrap->exportData('compare')['installed'];
+                    } catch (WireException $e) {
+                        $installed = false;
+                    }
+                    $doBootstrap = !$installed;
+                }
+            }
+        }
+        if ($doBootstrap) {
+            // No migrations parent page or templates, or bootstrap has changed
+            $this->bootstrap();
+            $this->init();  // re-initialise now everything should be there
+            if (!$this->migrations or !$this->migrations->id) {
+                $this->wire->session->error('Bootstrap failed');
+                return;
+            }
+        }
+        // Create the admin page
+        $p = new Page();
+        $p->template = 'admin';
+        $p->name = self::getModuleinfo()['page']['name'];
+        $p->parent = $this->adminPath . self::getModuleinfo()['page']['parent'] . '/';
+        $p->title = self::getModuleinfo()['page']['title'];
+        $p->process = str_replace(__NAMESPACE__ . '\\', '', get_class());
+        $p->save();
+    }
+
+
+    /**
+     * Install the bootstrap page
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    protected function bootstrap() {
+        // copy the bootstrap files to templates
+        if (!is_dir($this->migrationsPath . 'bootstrap/')) if (!wireMkdir($this->migrationsPath . 'bootstrap/', true)) {
+            throw new WireException("Unable to create migration directory: {$this->migrationsPath}bootstrap/");
+        }
+        $this->wire()->files->copy($this->bootstrapPath, $this->migrationsPath . 'bootstrap/');
+        // also copy the RuntimeOnly files to templates
+        if (!is_dir($this->wire('config')->paths->templates . 'RuntimeOnly/')) if (!wireMkdir($this->wire('config')->paths->templates . 'RuntimeOnly/', true)) {
+            throw new WireException("Unable to create RuntimeOnly directory: {$this->wire('config')->paths->templates}RuntimeOnly/");
+        }
+        $this->wire()->files->copy($this->runtimePath, $this->wire('config')->paths->templates . 'RuntimeOnly/');
+
+        // Before we are able to use the copied .json files, we need to check and amend the admin root in use as it may differ in the target system
+        if ($this->adminPath != '/processwire/') {
+            $jsonFiles = ['/new/data.json', '/new/migration.json', '/old/data.json', '/old/migration.json'];
+            foreach ($jsonFiles as $jsonFile) {
+                $json = (file_exists($this->migrationsPath . 'bootstrap'. $jsonFile)) ? file_get_contents($this->migrationsPath . 'bootstrap' . $jsonFile) : null;
+                if ($json) {
+                    $json = str_replace('/processwire/', $this->adminPath, $json);
+                    file_put_contents($this->migrationsPath . 'bootstrap'. $jsonFile, $json);
+                }
+            }
+        }
+        // Now run the bootstrap using the copied/amended files
+        $className = 'ProcessWire\\' . self::MIGRATION_TEMPLATE . 'Page';
+        $dummyBootstrap = new $className();  // dummy migration
+        // NB we cannot assign a template to dummy-bootstrap as we need to run it to create the template!!
+        $dummyBootstrap->name = 'dummy-bootstrap';
+        $dummyBootstrap->installMigration('new');
+    }
+
+
+    /**
+     * Custom uninstall routine
+     *
+     * @param HookEvent $event
+     */
+    public function customUninstall($event) {
+        $class = $event->arguments(0);
+        if(__NAMESPACE__ . '\\' . $class != __CLASS__) return;
+        bd ('IN CUSTOM UNINSTALL - uninstalling....');
+        $abort = false;
+
+        // check 1
+        $setupPage = $this->wire()->pages->get($this->adminPath . 'setup/dbmigrations/');
+        if ($setupPage and $setupPage->id) {
+            if (!$this->bootstrap or !$this->bootstrap->id) {
+                $this->error("uninstall of bootstrap failed.\n No bootstrap page  - try going to setup page and refreshing before uninstalling");
+                $abort = true;
+            }
+        } else {
+            //bd('NO SETUP PAGE');
+            $event->return;
+            return;
+        }
+        // unset system flags on templates
+        $t = $this->wire('templates')->get(self::MIGRATION_TEMPLATE);
+        $t->flags = Template::flagSystemOverride;
+        $t->flags = 0;
+        foreach ($t->fieldgroup as $f) {
+            $f->flags = Field::flagSystemOverride;
+            $f->flags = 0;
+        }
+        $t = $this->wire('templates')->get(self::MIGRATION_PARENT_TEMPLATE);
+        $t->flags = Template::flagSystemOverride;
+        $t->flags = 0;
+        // check2
+        if (!$abort) {
+            $this->bootstrap->ready();  // Need the properties to be loaded for the uninstall, but ready() is not called before uninstall()
+            try {
+                //bd('uninstalling bootstrap');
+                $this->bootstrap->installMigration('old');
+            } catch (WireException $e) {
+                //bd($e, 'WireException');
+                $msg = $e->getMessage();
+                $this->error("uninstall of bootstrap failed or incomplete.\n $msg. \nRe-install the module and fix the cause of the problem before uninstalling again.");
+                $abort = false; //allow uninstall to complete as re-installation of bootstrap may be required to enable proper uninstallation
+            }
+        }
+
+        // check3
+//        if($this->check2() == false) {
+//            $this->error('check3 failed');
+//            $abort = true;
+//        }
+
+        // uninstall?
+        if($abort) {
+            //bd('ABORTING UNINSTALL');
+            // there were some non-critical errors
+            // close without uninstalling module -
+            $event->replace = true; // prevents original uninstall
+            $this->session->redirect("./edit?name=$class"); // prevent "module uninstalled" message
+        }
+    }
+
+    /**
+     * Remove unused fields or templates
+     * @return void
+     */
+    public function cleanup() {
+    // Not currently used
+    }
+
+
+    /**
+     * Main admin page - list migrations & allows creation of new migration
+     * @return array|string
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___execute() {
+        $pageEdit = $this->wire('urls')->admin . 'page/edit/?id=';
+        $currentUser = wire('user'); // For future usage? Currently access is just via permissions
+        $table = $this->wire('modules')->get("MarkupAdminDataTable");
+        $table->headerRow(['Name', 'Type', 'Status', 'Title', 'Summary', 'Items', 'Created']);
+        $table->setSortable(true);
+        $table->setEncodeEntities(false);
+//        $migrations = $this->wire('pages')->get('/dbmigrations/');
+        $this->moduleRefresh();
+//        /* @var $migrations DbMigrationsPage */
+        $migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-created, include=hidden");
+        foreach ($migrationPages as $migrationPage) {
+            /* @var $migrationPage DbMigrationPage */
+            if ($migrationPage->meta('installable')) {
+                $status = $migrationPage->exportData('compare')['status'];
+                $statusColour = ($status == 'installed') ? 'lightgreen' : (($status == 'uninstalled') ? 'salmon' : 'orange');
+            } else {
+                $status = ($migrationPage->exportData('compare')['status'] == 'installed') ? 'exported' : 'pending';
+                $statusColour = ($status == 'exported') ? 'lightgreen' : 'salmon';
+            }
+            $lockIcon = ($migrationPage->meta('locked')) ? '<i class="fa fa-lock"></i>' : '<i class="fa fa-unlock"></i>';
+            $itemList = [];
+            foreach ($migrationPage->dbMigrateItem as $migrateItem) {
+                /* @var $migrateItem RepeaterDbMigrateItemPage */
+                $oldName = ($migrateItem->dbMigrateOldName) ? '|' . $migrateItem->dbMigrateOldName : '';
+                $itemList[] = '<em>' . $migrateItem->dbMigrateAction->title . ' ' . $migrateItem->dbMigrateType->title . '</em>: ' . $migrateItem->dbMigrateName . $oldName;
+            }
+            $itemsString = implode("    ", $itemList);
+            $data = array(
+                // Values with a string key are converter to a link: title => link
+                $migrationPage->name => $pageEdit . $migrationPage->id,
+                ($migrationPage->meta('installable')) ? '<span class="fa fa-arrow-down"></span>' : '<span class="fa fa-arrow-up"></span>',
+                $lockIcon . ' <span style="background:' . $statusColour . '">' . $status . '</span>',
+                $migrationPage->title,
+                $migrationPage->dbMigrateSummary,
+                $itemsString,
+                date('Y-m-d', $migrationPage->created),
+            );
+            $table->row($data);
+
+        }
+        $this->wire('modules')->get('JqueryUI')->use('modal');
+        $out = '<div><h3>Existing migrations are listed below. Go to the specific migration page for any actions.</h3>
+                <p>Exportable migrations - <span class="fa fa-arrow-up"></span> - originated in this database, can be edited here and are a source of a migration to be installed elsewhere.</p>' .
+            '<p>Installable migrations - <span class="fa fa-arrow-down"></span> - originated from another database and can be installed/uninstalled here' .
+            ' (except that "bootstrap" cannot be uninstalled). They cannot be changed except in the original database.</p><p>Locked migrations - <span class="fa fa-lock"></span> - can no longer be changed or actioned.</p></div><div>';
+        $out .= $table->render();
+            $btnAddNew = $this->createNewButton($this->migrationTemplate, $this->migrations); //createNewButton also allows title and values to be set, but not used here
+            $out .= $btnAddNew->render();
+            $btn = $this->wire('modules')->get("InputfieldButton");
+            $btn->attr('href', './get-migrations/');
+            $btn->attr('id', "get_migrations");
+            $btn->attr('value', "Refresh");
+            $btn->showInHeader();
+            $out .= $btn->render();
+        return $out;
+    }
+
+
+    /**
+     * @param $tpl
+     * @param $page
+     * @param null $title
+     * @param array $values
+     * @return array|array[]|\array[][]|bool|float|int|int[]|mixed|null[]|\null[][]|object|_Module|Field|Fieldtype|Module|NullPage|Page|PageArray|Pages|Permission|Role|SessionCSRF|Template|User|Wire|WireArray|WireData|WireDataDB|WireInputData|string|string[]|\string[][]|null
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function createNewButton($tpl, $page, $title=null, $values=[]) {
+        $template = wire()->templates->get($tpl);
+        $valuesStr = urlencode(serialize($values));
+        $titleStr = urlencode($title);
+        $btnAddNew = wire('modules')->get("InputfieldButton");
+        $btnAddNew->attr('href', "./new-page/?template=" . $template->name . "&parent=" . $page->id . "&title=" . $titleStr . "&values=" . $valuesStr);
+        $btnAddNew->attr('id', "AddPage_" . $template);
+        $btnAddNew->attr('value', "Add New " . $template);
+        $btnAddNew->showInHeader();
+        return $btnAddNew;
+    }
+
+
+    /**
+     * @throws WireException
+     */
+    public function ___executeNewPage() {
+        $templateName = $this->wire()->input->get->text("template");
+        $template = wire()->templates->get($templateName);  //name
+        $parent = $this->wire()->input->get->int("parent");  //id
+//        $parentPage = wire()->pages->get("id=$parent");
+        $title = urldecode($this->wire()->input->get->text('title'));  //string
+        $values = unserialize(urldecode($this->wire()->input->get->text('values'))); //array
+        $className = $template . 'Page';
+        $url = './';
+        echo('<script>confirm("Create new ' . $template . '?")</script>');
+        if (!$title) {
+            $url = wire('config')->urls->admin . "page/add/?parent_id=" . $parent . "&template_id=" . $template->id;
+        } else {
+            $newPage = new $className();
+            $newPage->of(false);
+            $newPage->title = $title;
+            $newPage->save();
+            $newPage->setAndSave($values);
+        }
+        return wire()->session->redirect($url);
+    }
+
+    /**
+     * Refresh all migration pages - called by executeGetMigrations
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function moduleRefresh() {
+        //bd('in module refresh');
+        $migrationPath = $this->migrationsPath;
+        $migrationFiles = $this->wire('files')->find($migrationPath);
+        $migrationFiles = array_filter($migrationFiles, function($e) {
+            return (basename($e, '.json') == 'migration' and basename(pathinfo($e)['dirname']) == 'new');
+        });
+        //bd($migrationFiles, 'migration files');
+//        $migrations = $this->wire('pages')->get('/dbmigrations/');
+
+        if (!$this->migrations or !$this->migrations->id or !$this->wire()->templates->get('DbMigrations') or !$this->wire()->templates->get('DbMigration')) {
+            $this->wire()->session->error('No DbMigrations page');
+            $this->wire()->session->redirect('../');
+            return;
+        }
+        $migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-modified, include=hidden");
+        $alreadyFound = [];
+        foreach ($migrationPages as $migrationPage) {
+            /* @var $migrationPage DbMigrationPage */
+            $migrationDirectory = $migrationPath . $migrationPage->name . '/new/';
+            $foundFiles = $this->wire('files')->find($migrationDirectory);
+            foreach ($foundFiles as $foundFile) {
+                if (basename($foundFile, '.json') == 'migration') $alreadyFound[$migrationPage->name] = $foundFile;
+            }
+        }
+        $wantedFiles = array_diff($migrationFiles, array_values($alreadyFound));
+        //bd($alreadyFound, '$alreadyFound');
+        //bd($wantedFiles, 'wanted files');
+        foreach ($wantedFiles as $file) {
+            //Retrieve the data from our text file.
+            $fileContents = wireDecodeJSON(file_get_contents($file));
+            //bd($fileContents, 'wanted file contents');
+            foreach ($fileContents as $content) {
+                //bd($content, 'content item');
+                // There should only be one item - Todo: check this
+                foreach ($content as $line) {
+                    foreach ($line as $pathName => $values) {
+                        $pageName = $values['name'];
+                        $className = 'ProcessWire\\' . self::MIGRATION_TEMPLATE . 'Page';
+                        $newMigration = new $className();
+                        $newMigration->of(false);
+                        $newMigration->name = $pageName;
+                        $newMigration->parent = $this->migrations;
+                        $newMigration->status = $values['status'];
+                        //bd($values, 'in module refresh with $values');
+                        $newMigration->save();
+                        unset($values['parent']);
+                        unset($values['template']);
+                        unset($values['status']);
+                        // split out repeaters from values
+                        $r = $newMigration->getRepeaters($values);
+                        $repeaters = $r['repeaters'];
+                        $values = $r['values'];  // values has repeaters removed
+                        //
+                        //bd($values, 'wanted values');
+                        $newMigration->setAndSave($values);
+                        $newMigration->setAndSaveRepeaters($repeaters);
+                    }
+                }
+            }
+            // To prevent re-saving, show 'Install' and 'Uninstall' buttons and remove 'Export Data' button - implicitly by setting meta('installable'):
+            if (isset($newMigration) and $newMigration and $newMigration->id) $newMigration->meta('installable', true);
+        }
+        foreach ($alreadyFound as $pName => $found) {
+            $migrationPage = $this->migrations->get("name=$pName");
+            $migrationPage->ready(); // Need to trigger it as not auto
+            $migrationPage->refresh($found);
+        }
+    }
+
+
+    /**
+     * Execute method for refresh Linked by Refresh button on this page
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___executeGetMigrations() {
+        $this->moduleRefresh();
+        $this->wire()->session->redirect('../');
+    }
+
+    /**
+     * Execute method for export - linked by button in runtime_markup_migrationActions
+     * @throws WireException
+     */
+    public function ___executeExportData() {
+        $pageId = $this->wire()->input->get->int('id');
+        $migrationPage = $this->wire()->pages->get($pageId);
+        /* @var $migrationPage DbMigrationPage */
+        $migrationPage->exportData('new');
+        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
+    }
+
+    /**
+     * Execute method for removing files - linked by button in runtime_markup_migrationActions
+     * @throws WireException
+     */
+    public function ___executeRemoveFiles() {
+        $pageId = $this->wire()->input->get->int('id');
+        $migrationPage = $this->wire()->pages->get($pageId);
+        /* @var $migrationPage DbMigrationPage */
+        $migrationPath = $this->migrationsPath . $migrationPage->name . '/';
+        if (is_dir($migrationPath)) {
+            $this->wire()->files->rmdir($migrationPath, true);
+        }
+        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
+    }
+
+
+    /**
+     * Execute method for install - linked by button in runtime_markup_migrationActions
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___executeInstallMigration() {
+        $pageId = $this->wire()->input->get->int('id');
+        $migrationPage = $this->wire()->pages->get($pageId);
+        /* @var $migrationPage DbMigrationPage */
+        $migrationPage->installMigration('new');
+        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
+    }
+
+
+    /**
+     * Execute method for uninstall - linked by button in runtime_markup_migrationActions
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___executeUninstallMigration() {
+        $pageId = $this->wire()->input->get->int('id');
+        $migrationPage = $this->wire()->pages->get($pageId);
+        /* @var $migrationPage DbMigrationPage */
+        $migrationPage->installMigration('old');
+        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
+    }
+
+    /**
+     * Markup for the Preview modal
+     * @param $value
+     * @param int $deep
+     * @return string
+     */
+    protected function formatCompare($value, $deep = 0) {
+        if (!$value) return '';
+        //bd($value, 'value in formatCompare');
+//        if (!is_array($value)) return '<td>' . $value . '</td><td>' . 'Unpaired item' . '</td>';
+        if ($this->array_depth($value) == 1) {
+            // at the bottom, there should be an unassociated array of length exactly = 2
+            if (count($value) != 2)  return '<td style="word-wrap: break-word">' . wireEncodeJSON($value) . '</td><td>' . 'Item is not a pair' . '</td>';
+            return '<td style="word-wrap: break-word">' . $value[0] . '</td><td style="word-wrap: break-word">' . $value[1] . '</td>';
+        }
+//        if ($this->array_depth($value) >= 2) {
+            //bd($value, 'depth >= 2 value');
+            if (count($value) == 2) {
+                // check that one item is not a string, so we don't iterate further in  that case
+                $a0 = array_slice($value, 0, 1, true);
+                $a1 = array_slice($value, 1, 1, true);
+                $v0 = reset($a0);
+                $v1 = reset($a1);
+                if (is_string($v0) or is_string($v1)) {
+                    //bd($value, 'depth 2 count 2 value where one element is a string');
+                    $v0 = (is_array($v0)) ? wireEncodeJSON($v0, true, true) : $v0;
+                    $v1 = (is_array($v1)) ? wireEncodeJSON($v1, true, true) : $v1;
+                    return '<td style="word-wrap: break-word">' . $v0 . '</td><td style="word-wrap: break-word">' . $v1 . '</td>';
+                }
+            }
+//        }
+        $out = '';
+        $deep += 1;
+        foreach ($value as $k => $v) {
+            $out .= '</tr><tr><td>' . str_repeat('>&nbsp;', $deep) . $k . '</td>';
+            if (is_array($v)) {
+                $out .= $this->formatCompare($v, $deep);
+            }
+            //bd($out, 'out for ' . $k);
+        }
+        return $out;
+    }
+
+    /**
+     * Lock the migration linked by runtime_markup_migrationControl
+     * @throws WireException
+     */
+    public function ___executeLock() {
+        $pageId = $this->wire()->input->get->int('id');
+        $action = $this->wire()->input->get->text('action');
+        $migrationPage = $this->wire()->pages->get($pageId);
+        $migrationFolder = $this->migrationsPath . $migrationPage->name . '/';
+        $now = $this->wire()->datetime->date('Ymd-His');
+        if ($action == 'lock') {
+            //bd($migrationPage->meta('locked'), 'Meta locked');
+            if (is_dir($migrationFolder)) {
+                if (!$migrationPage->meta('installable')) {
+                    $this->wire()->files->filePutContents($migrationFolder . 'lockfile.txt', $now);
+                    $migrationPage->meta('locked', true);
+                }
+            } else {
+                $this->wire()->notices->error("Unable to lock migration as no directory named $migrationFolder exists.");
+            }
+        } else {   // 'unlock'
+            $migrationFiles = $this->wire()->files->find($migrationFolder);
+            if (!$migrationPage->meta('installable')) {
+                $migrationPage->meta()->remove('locked');
+                if (is_dir($migrationFolder) and in_array($migrationFolder . 'lockfile.txt', $migrationFiles)) {
+                    $this->wire()->files->unlink($migrationFolder . 'lockfile.txt');
+                }
+            }
+        }
+        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
+    }
+
+    /**
+     *  Execute method for Preview - linked by button in runtime_markup_migrationActions
+     * @return string
+     * @throws WireException
+     */
+    public function ___executePreviewDiffs() {
+        $pageId = $this->wire()->input->get->int('id');
+        $comparisonType = $target = $this->wire()->input->get->text('target');
+        $target = ($target == 'export') ? 'install' : $target;  // export comparison is same as install, but with different text
+        $migrationPage = $this->wire()->pages->get($pageId);
+        /* @var $migrationPage DbMigrationPage */
+        $diffs = $target . 'edDataDiffs';  // e.g. uninstalledDataDiffs
+        $compare = $migrationPage->exportData('compare');
+        $arrayComparison = $compare[$diffs];
+        //bd($arrayComparison, 'array comparison');
+        $out = '<h1>Differences between Current and ' . $comparisonType . ' data</h1>';
+        if (!$arrayComparison) {
+            if ($compare['installedMigrationDiffs']) {
+                $out .= '<h2>No data differences, but there are other differences in the migration definition.</h2>';
+            } else {
+                $out .= '<h2>No differences</h2>';
+                return $out;
+            }
+        }
+        if (!is_array($arrayComparison)) {
+            $out .= '<h2>Invalid comparison</h2>';
+            return $out;
+        }
+        $out .= '<div class="uk-overflow-auto">';
+        $out .= '<table class="uk-table uk-table-divider uk-table-hover" style="white-space: pre-wrap; table-layout: fixed; width: 100%"><thead style="font-weight:bold"><tr><th class="uk-width-1-5">Key</th><th class="uk-width-2-5">Current</th><th class="uk-width-2-5">' . $comparisonType . '</th></tr></thead>';
+        $out .= '<tbody>';
+        foreach ($arrayComparison as $key => $value) {
+            $out .= '<tr style="font-style:italic"><td>' . $key . '</td>';
+            $out .= ($value) ? $this->formatCompare($value) : $value;
+            $out .= '</tr>';
+        }
+        if ($compare['installedMigrationDiffs']) {
+            $out .= '<tr><td>Differences in migration definition that do not affect data.json files (but do affect migration.json):</td><td></td></tr>';
+            foreach ($compare['installedMigrationDiffs'] as $key => $value) {
+                $out .= '<tr style="font-style:italic"><td>' . $key . '</td>';
+                $out .= ($value) ? $this->formatCompare($value) : $value;
+                $out .= '</tr>';
+            }
+        }
+        $out .= '</tbody></table></div>';
+        return $out;
+    }
+
+
+    /**
+     * Config inputfields
+     * @param InputfieldWrapper $inputfields
+     * @throws WireException
+     */
+    public function getModuleConfigInputfields(InputfieldWrapper $inputfields) {
+        $modules = $this->wire('modules');
+
+        /* @var InputfieldTextarea $f */
+        $f = $modules->InputfieldTextarea;
+        $f_name = 'exclude_fieldtypes';
+        $f->name = $f_name;
+        $f->label = $this->_('Exclude Field types');
+        $f->description = $this->_('Field types that are selected here will be excluded from page migrations. Enter the field type as text, (comma-separated for multiple types).');
+        $f->notes = $this->_('RuntimeMarkup and RuntimeOnly field types are excluded anyway as they do not hold data.');
+        $f->columnWidth = 33;
+        $f->value = $this->$f_name;
+        $inputfields->add($f);
+
+        /* @var InputfieldTextarea $f */
+        $f = $modules->InputfieldTextarea;
+        $f_name = 'exclude_fieldnames';
+        $f->name = $f_name;
+        $f->label = $this->_('Exclude Fields');
+        $f->description = $this->_('Fields that are selected here will be excluded from page migrations. Enter the field name as text, (comma-separated for multiple types).');
+        $f->notes = $this->_('For example fields which do not hold data.');
+        $f->columnWidth = 33;
+        $f->value = $this->$f_name;
+        $inputfields->add($f);
+
+        /* @var InputfieldTextarea $f */
+        $f = $modules->InputfieldTextarea;
+        $f_name = 'exclude_attributes';
+        $f->name = $f_name;
+        $f->label = $this->_('Exclude Attributes');
+        $f->description = $this->_('Attributes that are selected here will be excluded from template and field migrations. Enter the attribute name as text, (comma-separated for multiple types).');
+        $f->notes = $this->_("For example differences in CKEditor plugins that you don't want reported.");
+        $f->columnWidth = 33;
+        $f->value = $this->$f_name;
+        $inputfields->add($f);
+
+
+    }
+
+    /**
+     * Currently just used in the module, but seems to be a useful function
+     * @param array $array
+     * @return int
+     */
+    public function array_depth(array $array) {
+        $max_depth = 1;
+        foreach ($array as $value) {
+            if (is_array($value)) {
+                $depth = $this->array_depth($value) + 1;
+
+                if ($depth > $max_depth) {
+                    $max_depth = $depth;
+                }
+            }
+        }
+        return $max_depth;
+    }
+
+}
