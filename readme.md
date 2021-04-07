@@ -17,4 +17,4 @@ Place the ProcessDbMigrate folder in your site/modules directory. Make sure your
 Having satisfied the dependencies, install the module.
 
 ## Usage
-I think the usage is quite logical, but it is fairly complex, so please read the [help file](help/help.md) first.
+I think the usage is quite logical, but it is fairly complex, so please read the [help file](help.md) first.
