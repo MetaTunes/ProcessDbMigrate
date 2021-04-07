@@ -198,7 +198,7 @@ public function ready() {
     public function customUninstall($event) {
         $class = $event->arguments(0);
         if(__NAMESPACE__ . '\\' . $class != __CLASS__) return;
-        bd ('IN CUSTOM UNINSTALL - uninstalling....');
+        //bd('IN CUSTOM UNINSTALL - uninstalling....');
         $abort = false;
 
         // check 1
