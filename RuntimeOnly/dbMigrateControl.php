@@ -11,7 +11,7 @@ if ($page->template == 'Migration') {
     //  compare before render
     $installedStatus = $page->exportData('compare');
     $exportStatus = ($installedStatus['status'] == 'installed') ? 'exported' : 'pending';
-    bd($installedStatus, '$installedStatus in migration control');
+    //bd($installedStatus, '$installedStatus in migration control');
     $locked = ($page->meta('locked'));
     $display = wire('modules')->get("InputfieldMarkup");
     if ($page->meta('installable')) {
@@ -87,7 +87,7 @@ if ($page->template == 'DbMigration') {
     //  compare before render
     $installedStatus = $page->exportData('compare');
     $exportStatus = ($installedStatus['status'] == 'installed') ? 'exported' : 'pending';
-    bd($installedStatus, '$installedStatus in migration control');
+    //bd($installedStatus, '$installedStatus in migration control');
     $locked = ($page->meta('locked'));
     $display = wire('modules')->get("InputfieldMarkup");
     if ($page->meta('installable')) {

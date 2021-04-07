@@ -14,7 +14,7 @@ if ($page->template == 'DbMigration') {
     $form->attr('id', 'actions_form');
     //  compare before render
     $installedStatus = $page->exportData('compare');
-    bd($installedStatus, '$installedStatus in migration actions');
+    //bd($installedStatus, '$installedStatus in migration actions');
     wire('modules')->get('JqueryUI')->use('modal');
     // Only show if unlocked
     if (!$page->meta('locked')) {
