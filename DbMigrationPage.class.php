@@ -176,6 +176,7 @@ public function init() {
             // Queue warnings for reporting on save
             $warnings = [];
             foreach ($itemList as $item) {
+                if (!$item or !isset($item['type']) or !isset($item['name']) or !isset($item['action'])) continue;
                 // check if objects exist
                 $exists = ($item['type'] == 'pages') ? ($this->wire()->pages->get($item['name']) and $this->wire()->pages->get($item['name'])->id) : ($this->wire($item['type'])->get($item['name']));
 
@@ -1616,7 +1617,7 @@ public function getRepeaters($values) {
         foreach ($fields as $fieldName => $fieldValue) {
             $f = $this->wire()->fields->get($fieldName);
             if ($f and ($f->type == 'FieldtypeImage' or $f->type == 'FieldtypeFile')) {
-                $root = rtrim($this->wire()->config->paths->root, '/');
+                $files = $this->wire()->config->paths->files;
 
                 $oldItems = $page->$f->getArray();
                 //bd($oldItems, '$oldItems');
@@ -1637,18 +1638,16 @@ public function getRepeaters($values) {
 
 
                 $oldId = basename($fieldValue['url']);
-                $page->url = str_replace($oldId, $page->id, $fieldValue['url']); //basename change
-                $page->path = str_replace($oldId, $page->id, $fieldValue['path']); //basename change
+
                 foreach ($fieldValue['items'] as $item) {
                     if (array_key_exists($item['basename'], $notInNew) and $remove) $page->$f->delete($item['basename']);
-                    if (in_array($item['basename'], $notInOld)) $page->$f->add($root . $fieldValue['url'] . $item['basename']);
+                    if (in_array($item['basename'], $notInOld)) $page->$f->add($files . $oldId . '/' . $item['basename']);
                     if (array_key_exists($item['basename'], $inBoth) and $replace) {
                         $page->$f->delete($item['basename']);
-                        $page->$f->add($root . $fieldValue['url'] . $item['basename']);
+                        $page->$f->add($files . $oldId . '/' . $item['basename']);
                         $pageFile = $page->$f->getFile($item['basename']);
                         $page->$f->$pageFile->description = $item['description'];
                         $page->$f->$pageFile->tags = $item['tags'];
-//                        $page->$f->$pageFile->set('formatted', $item['formatted']);
                         $page->$f->$pageFile->filesize = $item['filesize'];
                         //bd($page->$f->$pageFile, 'Pagefile object');
                     }
