@@ -22,6 +22,7 @@ else
  * @property object $migrationTemplate The template for migration pages
  * @property string $migrationsPath Path to the folder holding the migrations .json files
  * @property string $adminPath Path to the admin root (page id = 2)
+ * @property boolean $ready To indicate tha ready() has run
  *
  *
  * @property string $title Title
@@ -77,7 +78,7 @@ public function init() {
         }
         $this->addHookAfter("Pages::saved(template=$this->migrationTemplate)", $this, 'afterSaved');
         $this->addHookBefore("Pages::save(template=$this->migrationTemplate)", $this, 'beforeSaveThis');
-        ////bd(__CLASS__ . ' IS READY');
+        $this->set('ready', true);
     }
 
     /**
@@ -628,6 +629,7 @@ protected function shouldExist($action, $compareType) {
         /*
          * INITIAL PROCESSING
          */
+        if (!$this->ready) $this->ready();
         //bd($this, 'In exportData with newOld = ' . $newOld);
         $configData = wire('modules')->getConfig('ProcessDbMigrate');
         $excludeFields = (isset($configData['exclude_fieldnames'])) ? str_replace(' ', '', $configData['exclude_fieldnames']) : '';
@@ -690,19 +692,21 @@ protected function shouldExist($action, $compareType) {
                 throw new WireException("Unable to create cache migration directory: $cachePath");
             }
             if ($data and $objectJson) {
+                bd($migrationPath, 'migrationPath');
                 $newFile = (file_exists($migrationPath . 'new/data.json')) ? file_get_contents($migrationPath . 'new/data.json') : null;
                 $oldFile = (file_exists($migrationPath . 'old/data.json')) ? file_get_contents($migrationPath . 'old/data.json') : null;
                 file_put_contents($cachePath . 'old-data.json', $objectJson['old']);
                 file_put_contents($cachePath . 'new-data.json', $objectJson['new']);
 //                $cmpFile = (file_exists($cachePath . 'data.json')) ? file_get_contents($cachePath . 'data.json') : null;
                 // sequence is unimportant
+                bd($newFile, 'New file');
                 $newArray = $this->compactArray(wireDecodeJSON($newFile));
                 $oldArray = $this->compactArray(wireDecodeJSON($oldFile));
                 $cmpArray['new'] = $this->compactArray(wireDecodeJSON($objectJson['new']));
                 $cmpArray['old'] = $this->compactArray(wireDecodeJSON($objectJson['old']));
                 $R = $this->array_compare($newArray, $cmpArray['new']);
                 $R = $this->pruneImageFields($R);
-                //bd($R, ' array compare new->cmp');
+                bd($R, ' array compare new->cmp');
                 $jsonR = wireEncodeJSON($R);
                 //bd($jsonR, ' array compare json new->cmp');
                 $installedData = (!$R);
@@ -754,8 +758,32 @@ protected function shouldExist($action, $compareType) {
 
             $installed = ($installedData and $installedMigration);
             $uninstalled = ($uninstalledData and $uninstalledMigration);
-            $status = ($installed) ? 'installed' : (($uninstalled) ? 'uninstalled' : 'indeterminate');
-            $status = ($installed and $uninstalled) ? 'void' : $status;
+//            $status = ($installed) ? 'installed' : (($uninstalled) ? 'uninstalled' : 'indeterminate');
+//            $status = ($installed and $uninstalled) ? 'void' : $status;
+            $locked = ($this->meta('locked'));
+            if ($this->meta('installable')) {
+                if ($installed) {
+                    if ($uninstalled) {
+                        $status = 'void';
+                    } else {
+                        $status = 'installed';
+                    }
+                } elseif ($uninstalled) {
+                    $status = 'uninstalled';
+                } elseif ($locked) {
+                    $status = 'superseded';
+                } else {
+                    $status = 'indeterminate';
+                }
+            } else {
+                if ($installed) {
+                    $status = 'exported';
+                } elseif ($locked) {
+                    $status = 'superseded';
+                } else {
+                    $status = 'pending';
+                }
+            }
             $result = [
                 'status' => $status,
                 'installed' => $installed,
@@ -1285,8 +1313,8 @@ public function getRepeaters($values) {
                                     }
                                     $fileTestCompare = $this->array_compare($testValues, $oldTestValues);  // just the important changes
                                     $fileCompare = $this->array_compare($values, $oldValues); // all the changes
-                                    //bd($fileTestCompare, '$fileTestCompare in refresh');
-                                    //bd($fileCompare, '$fileCompare in refresh');
+                                    bd($fileTestCompare, '$fileTestCompare in refresh');
+                                    bd($fileCompare, '$fileCompare in refresh');
                                 }
                             }
                         }
@@ -1701,20 +1729,20 @@ public function getRepeaters($values) {
      * @return array  arrays at bottom nodes should all be of 2 elements
      */
     public function array_compare(array $A, array $B) {
-        //bd($A, 'array $A');
-        //bd($B, 'array $B');
+        bd($A, 'array $A');
+        bd($B, 'array $B');
         // $C will have all elements in $A not in $B (stored as [$A element, ''])
         // plus all elements in both where they differ at key value $k, say, stored as $k => [$A element, $B element]
         $C = $this->arrayRecursiveDiff_assoc($A, $B);
-        //bd($C, 'array $C');
+        bd($C, 'array $C');
         // $D will have all elements in $B not in $A (stored as ['', $B element])
         // plus all elements in both where they differ at key value $k, say, stored as $k => [$A element, $B element]
         $D = $this->arrayRecursiveDiff_assoc($B, $A, true);
-        //bd($D, 'array $D');
+        bd($D, 'array $D');
         // ideally array_merge should remove duplication where $C and $D have identical elements, but it doesn't so remove them from $D first
         $R = array_merge_recursive($C, $this->arrayRecursiveDiff_key($D, $C));
         //bd($this->arrayRecursiveDiff_key($D, $C), 'arrayRecursiveDiff_key($D, $C)');
-        //bd($R, 'array $R');
+        bd($R, 'array $R');
 //        uksort($R, function($a, $b) use ($A, $B) {
 //            if (array_key_exists($a, $A) and !array_key_exists($a, $B)) return -1;
 //            if (array_key_exists($a, $B) and !array_key_exists($a, $A)) return 1;

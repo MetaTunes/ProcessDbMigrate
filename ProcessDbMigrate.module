@@ -282,13 +282,15 @@ public function ready() {
         $migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-created, include=hidden");
         foreach ($migrationPages as $migrationPage) {
             /* @var $migrationPage DbMigrationPage */
+            $installedStatus = $migrationPage->exportData('compare');
+            $status = $installedStatus['status'];
             if ($migrationPage->meta('installable')) {
-                $status = $migrationPage->exportData('compare')['status'];
                 $statusColour = ($status == 'installed') ? 'lightgreen' : (($status == 'uninstalled') ? 'salmon' : 'orange');
             } else {
-                $status = ($migrationPage->exportData('compare')['status'] == 'installed') ? 'exported' : 'pending';
                 $statusColour = ($status == 'exported') ? 'lightgreen' : 'salmon';
             }
+            //bd($migrationPage, $status);
+            //bd($installedStatus);
             $lockIcon = ($migrationPage->meta('locked')) ? '<i class="fa fa-lock"></i>' : '<i class="fa fa-unlock"></i>';
             $itemList = [];
             foreach ($migrationPage->dbMigrateItem as $migrateItem) {
