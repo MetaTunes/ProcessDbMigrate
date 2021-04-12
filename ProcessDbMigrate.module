@@ -1,6 +1,10 @@
 <?php namespace ProcessWire;
 
 /**
+ * ProcessWire DbMigrate
+ * by Mark Evens
+ * with tips and snippets from Adrian Jones and Bernhard Baumrock
+ *
  * Class ProcessDbMigrate
  * @package ProcessWire
  *
@@ -25,7 +29,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'summary' => 'Maintain migration data',
             'comments' => 'N.B. This module also requires classes DefaultPage and DbMigrationPage',
             'author' => 'Mark Evens',
-            'version' => "0.0.1",
+            'version' => "0.0.2",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
@@ -428,6 +432,7 @@ public function ready() {
                         $newMigration->status = $values['status'];
                         //bd($values, 'in module refresh with $values');
                         $newMigration->save();
+                        unset($values['id']);
                         unset($values['parent']);
                         unset($values['template']);
                         unset($values['status']);

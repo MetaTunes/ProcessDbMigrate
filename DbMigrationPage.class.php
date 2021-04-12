@@ -2,6 +2,8 @@
 
 namespace ProcessWire;
 
+use DOMDocument;
+
 /*
  * Need to allow for possibility of using DefaultPage (if it exists) as the base class
  */
@@ -37,6 +39,7 @@ else
 
 class DbMigrationPage extends DummyMigrationPage
 {
+
  // Module constanta
     const MIGRATION_TEMPLATE = 'DbMigration';
     const MIGRATION_PARENT = 'dbmigrations/';
@@ -360,6 +363,7 @@ public function init() {
         $data = [];
         $count = 0;
         $item = [];
+        $files = [];
         if ($compareType == 'old') $itemRepeater = $itemRepeater->reverse();
         foreach ($itemRepeater as $repeaterItem) {
             /* @var $repeaterItem RepeaterDbMigrateItemPage */
@@ -375,10 +379,12 @@ public function init() {
             $item['id'] = $repeaterItem->id;
             //bd($item, 'item');
             $count ++;
-            $data[] = $this->getMigrationItemData($count, $item, $excludeAttributes, $excludeFields, $newOld, $compareType);
+            $migrationItem = $this->getMigrationItemData($count, $item, $excludeAttributes, $excludeFields, $newOld, $compareType);
+            $data[] = $migrationItem['data'];
+            $files = array_merge_recursive($files, $migrationItem['files']);
         }
         //bd($data, 'data returned by cycleItems for ' . $newOld);
-        return $data;
+        return ['data' => $data, 'files' => $files];
     }
 
 
@@ -416,14 +422,15 @@ protected function shouldExist($action, $compareType) {
      */
     protected function getMigrationItemData($k, $item, $excludeAttributes, $excludeFields, $newOld, $compareType) {
         $data = [];
-
+        $files = [];
+        $empty = ['data' => [], 'files' => []];
 
         if (!$item['type'] or !$item['action'] or !$item['name']) {
            if ($newOld == 'new' and $compareType == 'new') {
                $this->wire()->notices->warning('Missing values for item ' . $k);
                //bd($item, 'missing values in item');
            }
-            return null;
+            return $empty;
         }
 
         $itemName = $item['name'];  // This will be the name in the current environment
@@ -432,14 +439,14 @@ protected function shouldExist($action, $compareType) {
             $isNew = $this->wire($item['type'])->get($item['name']);
             if ($isNew and $isNew->id and $isOld and $isOld->id) {
                 $this->wire()->notices->warning("Both new name ({$item['name']}) and old name ({$item['oldName']}) exist in the database. Please use unique names.");
-                return null;
+                return $empty;
             }
             if ($isOld and $isOld->id) {
                 $itemName = $item['oldName'];
                 //bd($item['oldName'], 'using old name');
             } elseif (!$isNew or !$isNew->id) {
                 $this->wire()->notices->warning("Neither new name ({$item['name']}) nor old name ({$item['oldName']}) exist in the database.");
-                return null;
+                return $empty;
             }
 
         }
@@ -456,7 +463,7 @@ protected function shouldExist($action, $compareType) {
                     // the array is of page objects, but that's OK here because getExportPageData allows objects or path names
                 } catch (WireException $e) {
                     $this->wire()->notices->error('Invalid selector: ' . $itemName);
-                    return null;
+                    return $empty;
                 }
             } else {
                 // otherwise it should just be a single path - include the old name after a pipe, if available
@@ -475,19 +482,21 @@ protected function shouldExist($action, $compareType) {
             $object = $this->wire($item['type'])->get($itemName);
         } catch (WireException $e) {
             $this->wire()->notices->error('Invalid name: ' . $itemName);
-            return [];
+            return $empty;
         }
         //bd($object, 'object is');
         if (!$object or !$object->id or $object->id == 0 and $newOld != 'compare') {
             if ($shouldExist) $this->wire()->notices->warning($this->name . ': No database object for ' . $itemName);
             $data = $data = [$item['type'] => [$item['action'] => [$itemName => []]]];
-            return $data;
+            return ['data' =>$data, 'files' => []];
         } elseif (!$shouldExist and $newOld == 'new') {                               // 2nd condition is to avoid double reporting for new and old
             $this->wire()->notices->warning("{$this->name}: There is already a database object for $itemName but none should exist");
         }
         if ($item['type'] == 'pages') {
             $exportPages = $this->getExportPageData($pagePaths, $excludeFields);
             $objectData = $exportPages['data'];
+            //bd($exportPages['files'], '$exportPages[files]');
+            $files = $exportPages['files'];
             //bd($objectData, 'object data for paths ' . implode(', ', $pagePaths));
             foreach ($objectData as $p => $f) {
                 foreach ($excludeFields as $excludeField) {
@@ -542,7 +551,7 @@ protected function shouldExist($action, $compareType) {
 
         $data = [$item['type'] => [$item['action'] => $objectData]];
 
-        return $data;
+        return ['data' => $data, 'files' => $files];
     }
 
 
@@ -562,6 +571,7 @@ protected function shouldExist($action, $compareType) {
                             // don't want removed pages with selector as they get expanded elsewhere (ToDo Consider deleting $action=='removed' condition as probably irrelevant)
                             continue;
                         }
+                        if (isset($values['id'])) unset($values['id']);
                         $newData[$type. '->' . $action . '->' . $name] = $values;
                     }
                 }
@@ -596,8 +606,28 @@ protected function shouldExist($action, $compareType) {
                         if ($field and ($field->type == 'FieldtypeImage' or $field->type == 'FieldtypeFile')) {
                             if (isset($values['url'])) unset($diffs[$pName][$fName]['url']);
                             if (isset($values['path'])) unset($diffs[$pName][$fName]['path']);
+                            if (is_array($diffs[$pName][$fName]) and count($diffs[$pName][$fName]) > 0) {
+                                $diffsRemain = true;
+                                //bd($diffs[$pName][$fName], 'remaining diffs in images');
+                            }
                         }
-                        if (is_array($diffs[$pName][$fName]) and count($diffs[$pName][$fName]) > 0) $diffsRemain = true;
+                        if ($field and $field->type == 'FieldtypeTextarea') {
+                            //bd($values, 'textarea values');
+//                            $newVals = [];
+//                            foreach ($values as $value) {
+//                                $re = '/\/files\/\d*\//m';
+//                                $newVals[] = preg_replace($re, '/files/xxxx/', $value);
+//                            }
+                            //bd($this->meta('idMap'), 'id map in prune');
+                            $values[1] = $this->replaceImgSrc($values[1], $this->meta('idMap'));
+                            $diffs[$pName][$fName] = $values;
+                            if ($values[0] != $values[1]) {
+                                $diffsRemain = true;
+                            } else {
+                                unset($diffs[$pName][$fName]);
+                            }
+                            //bd($values, 'textarea values after replace');
+                        }
                     }
                     if (!$diffsRemain) {
                         foreach ($data as $fName => $values) {
@@ -651,20 +681,54 @@ protected function shouldExist($action, $compareType) {
             if (!is_dir($migrationPathNewOld)) if (!wireMkdir($migrationPathNewOld, true)) {          // wireMkDir recursive
                 throw new WireException("Unable to create migration directory: $migrationPathNewOld");
             }
+            if (!is_dir($migrationPathNewOld . 'files/')) if (!wireMkdir($migrationPathNewOld . 'files/', true)) {
+                throw new WireException("Unable to create migration files directory: {$migrationPathNewOld}bootstrap/");
+            }
         }
         /*
          * GET DATA FROM PAGE AND SAVE IN JSON
          */
         $itemRepeater = $this->dbMigrateItem;
-
-        $data = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'new');
-        $reverseData = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'old'); // cycleItems will reverse order for uninstall
+        $items = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'new');
+        $data = $items['data'];
+        $files['new'] = $items['files'];
+        $reverseItems = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'old'); // cycleItems will reverse order for uninstall
+        $reverseData = $reverseItems['data'];
+        $files['old'] = $reverseItems['files'];
         $objectJson['new'] = wireEncodeJSON($data, true, true);
+        //bd($objectJson['new'], 'New json created');
         $objectJson['old'] = wireEncodeJSON($reverseData, true, true);
         //bd($objectJson, '$objectJson ($newOld = ' . $newOld . ')');
         if ($newOld != 'compare') {
             file_put_contents($migrationPathNewOld . 'data.json', $objectJson[$newOld]);
             $this->wire()->notices->message('Exported object data as ' . $migrationPathNewOld . '"data.json"');
+            //bd($files[$newOld], '$files[$newOld]');
+            foreach ($files[$newOld] as $fileArray) {
+                foreach ($fileArray as $id => $baseNames) {
+                    $filesPath = $this->wire('config')->paths->files . $id . '/';
+                    if (!is_dir($migrationPathNewOld . 'files/' . $id . '/')) if (!wireMkdir($migrationPathNewOld . 'files/' . $id . '/', true)) {
+                        throw new WireException("Unable to create migration files directory: {$migrationPathNewOld}files/{$id}/");
+                    }
+                    if (is_dir($filesPath)) {
+                        $copyFiles = [];
+                        foreach ($baseNames as $baseName) {
+                            //bd($baseName, 'Base name for id ' . $id);
+                            if (is_string($baseName)) {
+                                $copyFiles[] = $filesPath . $baseName;
+                            } elseif (is_array($baseName)) {
+                                $copyFiles = array_merge($copyFiles, $baseName);
+                            }
+                        }
+                        //bd($copyFiles, 'copyfiles');
+                        foreach ($copyFiles as $copyFile) {
+                            if (file_exists($copyFile)) {
+                                $this->wire()->files->copy($copyFile, $migrationPathNewOld . 'files/' . $id . '/');
+                                $this->wire()->notices->message('Copied file ' . $copyFile . ' to ' . $migrationPathNewOld . 'files/' . $id . '/');
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /*
@@ -675,7 +739,7 @@ protected function shouldExist($action, $compareType) {
         $item['action'] = 'changed';
         $item['name'] = $this->path;
         $item['oldName'] = '';
-        $migrationData = $this->getMigrationItemData(null, $item, $excludeAttributes, $excludeFields, $newOld, 'new');
+        $migrationData = $this->getMigrationItemData(null, $item, $excludeAttributes, $excludeFields, $newOld, 'new')['data'];
 
         $migrationObjectJson = wireEncodeJSON($migrationData, true, true);
         if ($newOld != 'compare') {
@@ -692,21 +756,21 @@ protected function shouldExist($action, $compareType) {
                 throw new WireException("Unable to create cache migration directory: $cachePath");
             }
             if ($data and $objectJson) {
-                bd($migrationPath, 'migrationPath');
+                //bd($migrationPath, 'migrationPath');
                 $newFile = (file_exists($migrationPath . 'new/data.json')) ? file_get_contents($migrationPath . 'new/data.json') : null;
                 $oldFile = (file_exists($migrationPath . 'old/data.json')) ? file_get_contents($migrationPath . 'old/data.json') : null;
                 file_put_contents($cachePath . 'old-data.json', $objectJson['old']);
                 file_put_contents($cachePath . 'new-data.json', $objectJson['new']);
 //                $cmpFile = (file_exists($cachePath . 'data.json')) ? file_get_contents($cachePath . 'data.json') : null;
                 // sequence is unimportant
-                bd($newFile, 'New file');
+                //bd($newFile, 'New file');
                 $newArray = $this->compactArray(wireDecodeJSON($newFile));
                 $oldArray = $this->compactArray(wireDecodeJSON($oldFile));
                 $cmpArray['new'] = $this->compactArray(wireDecodeJSON($objectJson['new']));
                 $cmpArray['old'] = $this->compactArray(wireDecodeJSON($objectJson['old']));
                 $R = $this->array_compare($newArray, $cmpArray['new']);
                 $R = $this->pruneImageFields($R);
-                bd($R, ' array compare new->cmp');
+                //bd($R, ' array compare new->cmp');
                 $jsonR = wireEncodeJSON($R);
                 //bd($jsonR, ' array compare json new->cmp');
                 $installedData = (!$R);
@@ -740,7 +804,7 @@ protected function shouldExist($action, $compareType) {
                 }
                 $cmpMigFile = (file_exists($cachePath . 'migration.json')) ? file_get_contents($cachePath . 'migration.json') : null;
 
-                $R = $this->array_compare(wireDecodeJSON($newMigFile), wireDecodeJSON($cmpMigFile));
+                $R = $this->array_compare($this->compactArray(wireDecodeJSON($newMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
                 $R = $this->pruneImageFields($R);
                 $installedMigration = (!$R);
                 $installedMigrationDiffs = $R;
@@ -960,7 +1024,7 @@ public function getRepeaters($values) {
 
         $message = [];
         $warning = [];
-
+        $pagesInstalled = [];
         foreach ($dataArray as $repeat) {
             foreach ($repeat as $itemType => $itemLine) {
                 //bd($itemLine, 'line');
@@ -976,15 +1040,32 @@ public function getRepeaters($values) {
                                 $this->installTemplates($items, $itemType);
                                 break;
                             case 'pages' :
-                                $this->installPages($items, $itemType);
+                                $pagesInstalled = array_merge($pagesInstalled, $this->installPages($items, $itemType, $newOld));
                                 break;
                         }
                     } else {
                         $this->removeItems($items, $itemType);
                     }
                 }
-
-
+            }
+        }
+        // update any images in RTE fields
+        $idMapArray = $this->setIdMap($pagesInstalled);
+        //bd($idMapArray, 'idMapArray');
+        foreach($pagesInstalled as $page) {
+            //bd($page, 'RTE? page');
+            foreach ($page->getFields() as $field) {
+                //bd([$page, $field], 'RTE? field');
+                if ($field->type == 'FieldtypeTextarea') {
+                    //bd([$page, $field], 'RTE field Y');
+                    //bd($page->$field, 'Initial html');
+                    $html = $page->$field;
+                    $html = $this->replaceImgSrc($html, $idMapArray);
+                    //bd($html, 'returned html');
+                    $page->$field = $html;
+                    $page->of(false);
+                    $page->save($field);
+                }
             }
         }
 
@@ -992,6 +1073,28 @@ public function getRepeaters($values) {
         if ($warning) $this->wire()->notices->warning(implode(', ', $warning));
         //bd($newOld, 'finished install');
     }
+
+    protected function setIdMap($pagesInstalled) {
+        $idMapArray = [];
+        if (is_array($pagesInstalled)) foreach($pagesInstalled as $page) {
+            //bd($page, 'page in getidmap');
+            if ($page and $page->meta('origId')) $idMapArray[$page->meta('origId')] = $page->id;
+        }
+        $this->meta('idMap', $idMapArray);
+        return $idMapArray;
+    }
+
+protected function replaceImgSrc($html, $idMapArray) {
+    if (strpos($html,'<img') === false) return $html; //return early if no images are embedded in html
+    foreach ($idMapArray as $origId => $destId) {
+        //bd([$origId, $destId], 'Id pair');
+        $re = '/(<img.*' . str_replace('/', '\/', preg_quote($files = $this->wire()->config->urls->files)) . ')' . $origId . '(\/.*>)/m';
+        //bd($re, 'regex pattern');
+        $html = preg_replace($re, '${1}' . $destId . '$2', $html);
+    }
+    return $html;
+}
+
 
 
     /**
@@ -1078,9 +1181,10 @@ public function getRepeaters($values) {
      * @throws WireException
      * @throws WirePermissionException
      */
-    protected function installPages($items, $itemType) {
+    protected function installPages($items, $itemType, $newOld) {
         $items = $this->pruneKeys($items, $itemType);
         //bd($items, 'install pages');
+        $pagesInstalled = [];
         foreach ($items as $name => $data) {
             $p = $this->wire('pages')->get($name);
             /* @var $p DefaultPage */
@@ -1104,7 +1208,9 @@ public function getRepeaters($values) {
             $data['template'] = $template;
 
             $fields = $data;
+            $origId = $fields['id'];
             // remove things that are not fields
+            unset($fields['id']);
             unset($fields['parent']);
             unset($fields['template']);
             unset($fields['status']);
@@ -1120,7 +1226,7 @@ public function getRepeaters($values) {
                 $fields = $this->setAndSaveComplex($fields, $p); // sets and saves complex fields, returning the other fields
                 $p->of(false);
                 $p->save();
-                $fields = $this->setAndSaveFiles($fields, $p); // saves files and images, returning other fields
+                $fields = $this->setAndSaveFiles($fields, $newOld, $p); // saves files and images, returning other fields
                 //bd($fields, 'fields to save');
                 $p->setAndSave($fields);
                 $this->setAndSaveRepeaters($repeaters, $p);
@@ -1142,14 +1248,17 @@ public function getRepeaters($values) {
                 $p->of(false);
                 $p->save();
                 $fields = $this->setAndSaveComplex($fields, $p); // sets and saves complex fields, returning the other fields
-                $fields = $this->setAndSaveFiles($fields, $p); // saves files and images, returning other fields
+                $fields = $this->setAndSaveFiles($fields, $newOld, $p); // saves files and images, returning other fields
                 $p->setAndSave($fields);
                 $this->setAndSaveRepeaters($repeaters, $p);
                 $this->wire()->notices->message('Created page ' . $name);
             }
+            $p->meta('origId', $origId); // Save the id of the originating page for matching purposes
             $p->of(false);
             $p->save();
+            $pagesInstalled[] = $p;
         }
+        return $pagesInstalled;
     }
 
 
@@ -1313,8 +1422,8 @@ public function getRepeaters($values) {
                                     }
                                     $fileTestCompare = $this->array_compare($testValues, $oldTestValues);  // just the important changes
                                     $fileCompare = $this->array_compare($values, $oldValues); // all the changes
-                                    bd($fileTestCompare, '$fileTestCompare in refresh');
-                                    bd($fileCompare, '$fileCompare in refresh');
+                                    //bd($fileTestCompare, '$fileTestCompare in refresh');
+                                    //bd($fileCompare, '$fileCompare in refresh');
                                 }
                             }
                         }
@@ -1334,6 +1443,7 @@ public function getRepeaters($values) {
                     }
                     //bd($values, ' in page refresh with $values');
                     unset($values['parent']);
+                    unset($values['id']);
                     unset($values['template']);
                     unset($values['status']);
                     $r = $this->getRepeaters($values);
@@ -1371,6 +1481,7 @@ public function getRepeaters($values) {
     protected function getExportPageData($exportPages, $excludeFields) {
         $restrictFields = array_filter($this->wire()->sanitizer->array(str_replace(' ', '', $this->dbMigrateRestrictFields), 'fieldName', ['delimiter' => ' ']));
         $data = array();
+        $files = array();
         $oldPage = '';
         $repeaterPages = array();
         // allow either page object or path as parameter. split out old names if path is a x|y pair
@@ -1398,18 +1509,20 @@ public function getRepeaters($values) {
             $attrib['parent'] = ($exportPage->parent->path) ?: $exportPage->parent->id;  // id needed in case page is root
             $attrib['status'] = $exportPage->status;
             $attrib['name'] = $exportPage->name;
+            $attrib['id'] = $exportPage->id;
             foreach ($exportPage->getFields() as $field) {
                 $name = $field->name;
 //                //bd($restrictFields, '$restrictFields');
                 if ((count($restrictFields) > 0 and !in_array($name, $restrictFields)) or in_array($name, $excludeFields)) continue;
-
-                $attrib = array_merge_recursive($attrib, $this->getFieldData($exportPage, $field, $restrictFields, $excludeFields));
+                $exportPageDetails = $this->getFieldData($exportPage, $field, $restrictFields, $excludeFields);
+                $attrib = array_merge_recursive($attrib, $exportPageDetails['attrib']);
+                $files[] = $exportPageDetails['files'];
 
             }
             $oldPath = ($oldPage) ? '|' . $oldPage : '';
             $data[$exportPage->path . $oldPath] = $attrib;
         }
-        return ['data' => $data, 'repeaterPages' => $repeaterPages];
+        return ['data' => $data, 'files' => $files, 'repeaterPages' => $repeaterPages];
     }
 
 
@@ -1431,7 +1544,8 @@ public function getRepeaters($values) {
                 $subFields = $subPage->getFields();
                 $subFieldArray = [];
                 foreach ($subFields as $subField) {
-                    $subFieldArray = $this->getFieldData($subPage, $subField);
+                    $subDetails = $this->getFieldData($subPage, $subField);
+                    $subFieldArray = $subDetails['attrib'];
                 }
                 $subPageArray[] = $subFieldArray;
                 $subPageObjects[] = $subPage;
@@ -1482,6 +1596,7 @@ public function getRepeaters($values) {
      */
     public function getFieldData($page, $field, $restrictFields=[], $excludeFields=[]) {
         $attrib = [];
+        $files = [];
         $name = $field->name;
         switch ($field->type) {
             case 'FieldtypePage' :
@@ -1510,6 +1625,7 @@ public function getRepeaters($values) {
                 $contents['path'] = $page->$field->path;
                 $contents['items'] = [];
                 $items = $page->$field->getArray();
+                $files[$page->id] = [];
                 foreach ($items as $item) {
                     $itemArray = $item->getArray();
                     // don't want these in item as they won't match in target system
@@ -1518,9 +1634,16 @@ public function getRepeaters($values) {
                     unset($itemArray['modified_users_id']);
                     unset($itemArray['created_users_id']);
                     $contents['items'][] = $itemArray; // sets remaining items - basename, description, tags, formatted, filesize
+                    if ($field->type == 'FieldtypeImage') {
+                        $files[$page->id] = array_merge($files[$page->id], $item->getVariations(['info' => true, 'verbose' => false]));
+                    }
+                    $files[$page->id][] = $itemArray['basename'];
                 }
                 $attrib[$name] = $contents;
                 break;
+//            case 'FieldtypeTextarea' :
+//
+//                break;
             case 'FieldtypeOptions' :
                 $attrib[$name] = $page->$field->id;
                 break;
@@ -1539,9 +1662,11 @@ public function getRepeaters($values) {
                         //bd($subField, 'subfield of type ' . $subField->type);
                         if ((count($restrictFields) > 0 and !in_array($name, $restrictFields)) or in_array($name, $excludeFields)) continue;
                         // recursive call
-                        $subData = $this->getFieldData($item, $subField, $restrictFields, $excludeFields);
+                        $itemDetails = $this->getFieldData($item, $subField, $restrictFields, $excludeFields);
+                        $subData = $itemDetails['attrib'];
                         //bd($subData, 'subData');
                         $itemData = array_merge_recursive($itemData, $subData);
+                        $files = array_merge_recursive($files, $itemDetails['files']);
                     }
                     //bd($itemData, 'itemData for ' . $item->name);
 
@@ -1578,7 +1703,7 @@ public function getRepeaters($values) {
                 }
                 break;
         }
-        return $attrib;
+        return ['attrib' => $attrib, 'files' => $files];
     }
 
 
@@ -1634,45 +1759,55 @@ public function getRepeaters($values) {
     /**
      * Updates page for files/images and removes these from fields array
      * @param array $fields This is all the fields to be set - the non-file/image fields are returned
+     * @param string $newOld 'new' for install, 'old' for uninstall
      * @param Page $page Is $this if null
      * @param boolean $replace Replace items that match
      * @param boolean $remove Remove any old items that do not match
      * @return mixed
      * @throws WireException
      */
-    public function setAndSaveFiles($fields, $page = null, $replace = true, $remove = true) {
+    public function setAndSaveFiles($fields, $newOld, $page = null, $replace = true, $remove = true) {
         if (!$page) $page = $this;
         foreach ($fields as $fieldName => $fieldValue) {
             $f = $this->wire()->fields->get($fieldName);
             if ($f and ($f->type == 'FieldtypeImage' or $f->type == 'FieldtypeFile')) {
-                $files = $this->wire()->config->paths->files;
 
-                $oldItems = $page->$f->getArray();
-                //bd($oldItems, '$oldItems');
-                //bd($fieldValue, 'new value');
-                $oldItemBasenames = array_filter($oldItems, function($v) {
+                $migrationFilesPath = $this->migrationsPath . $this->name . '/' . $newOld . '/files/';
+
+
+                $existingItems = $page->$f->getArray();
+                //bd($existingItems, '$existingItems');
+                //bd($fieldValue, 'proposed value');
+                $existingItemBasenames = array_filter($existingItems, function($v) {
                     return basename($v->url);
                 });
-                //bd($oldItemBasenames, '$oldItemBasenames');
-                $newItemBasenames = $fieldValue['items'];
-                array_walk($newItemBasenames, function(&$v) {
+                //bd($existingItemBasenames, '$existingItemBasenames');
+                $proposedItemBasenames = $fieldValue['items'];
+                array_walk($proposedItemBasenames, function(&$v) {
                     $v = $v['basename'];
                 });
-                //bd($newItemBasenames, '$newItemBasenames');
-                $notInNew = array_diff($oldItemBasenames, $newItemBasenames);
-                $notInOld = array_diff($newItemBasenames, $oldItemBasenames);
-                $inBoth = array_intersect($oldItemBasenames, $newItemBasenames);
-                //bd([$notInNew, $notInOld, $inBoth], 'Venn');
+                //bd($proposedItemBasenames, '$proposedItemBasenames');
+                $notInProposed = array_diff($existingItemBasenames, $proposedItemBasenames);
+                $notInExisting = array_diff($proposedItemBasenames, $existingItemBasenames);
+                $inBoth = array_intersect($existingItemBasenames, $proposedItemBasenames);
+                //bd([$notInProposed, $notInExisting, $inBoth], 'Venn');
 
 
-                $oldId = basename($fieldValue['url']);
-
+                $proposedId = basename($fieldValue['url']); // The id from the database that was used to create the migration file
+                if ($remove) foreach ($notInProposed as $item) {
+                    //bd($page->$f, ' Should be page array with item to delete being ' . $item);
+                    $page->$f->delete($item);
+                }
                 foreach ($fieldValue['items'] as $item) {
-                    if (array_key_exists($item['basename'], $notInNew) and $remove) $page->$f->delete($item['basename']);
-                    if (in_array($item['basename'], $notInOld)) $page->$f->add($files . $oldId . '/' . $item['basename']);
+                    if (in_array($item['basename'], $notInExisting)) {
+                        // check that there are no orphan files
+                        $this->removeOrphans($page, $item);
+                        $page->$f->add($migrationFilesPath . $proposedId . '/' . $item['basename']);
+                    }
                     if (array_key_exists($item['basename'], $inBoth) and $replace) {
                         $page->$f->delete($item['basename']);
-                        $page->$f->add($files . $oldId . '/' . $item['basename']);
+                        $this->removeOrphans($page, $item);
+                        $page->$f->add($migrationFilesPath . $proposedId . '/' . $item['basename']);
                         $pageFile = $page->$f->getFile($item['basename']);
                         $page->$f->$pageFile->description = $item['description'];
                         $page->$f->$pageFile->tags = $item['tags'];
@@ -1680,13 +1815,36 @@ public function getRepeaters($values) {
                         //bd($page->$f->$pageFile, 'Pagefile object');
                     }
                 }
+
                 unset($fields[$fieldName]);
                 $page->save($fieldName);
+                // add the variants after the page save as the new files not created before that
+                foreach ($fieldValue['items'] as $item) {
+                    $this->addVariants($migrationFilesPath, $item['basename'], $page, $proposedId);
+                }
+
             }
         }
         return $fields;
     }
 
+protected function removeOrphans($page, $item) {
+    $files = $this->wire()->config->paths->files;
+    $orphans = $this->wire()->files->find($files . $page->id);
+    foreach ($orphans as $orphan) {
+        if (strpos(basename($orphan), $item['basename']) === 0) unlink($orphan);
+    }
+}
+
+protected function addVariants($migrationFilesPath, $basename, $page, $proposedId) {
+    $files = $this->wire()->config->paths->files;
+        $variants = $this->wire('config')->files->find($migrationFilesPath . $proposedId . '/');
+        foreach ($variants as $variant) {
+            if (basename($variant) != $basename) {
+                $this->wire()->files->copy($variant, $files . $page->id . '/');
+            }
+        }
+}
 
     /**
      * Save template after setting fieldgroup contexts
@@ -1729,20 +1887,20 @@ public function getRepeaters($values) {
      * @return array  arrays at bottom nodes should all be of 2 elements
      */
     public function array_compare(array $A, array $B) {
-        bd($A, 'array $A');
-        bd($B, 'array $B');
+        //bd($A, 'array $A');
+        //bd($B, 'array $B');
         // $C will have all elements in $A not in $B (stored as [$A element, ''])
         // plus all elements in both where they differ at key value $k, say, stored as $k => [$A element, $B element]
         $C = $this->arrayRecursiveDiff_assoc($A, $B);
-        bd($C, 'array $C');
+        //bd($C, 'array $C');
         // $D will have all elements in $B not in $A (stored as ['', $B element])
         // plus all elements in both where they differ at key value $k, say, stored as $k => [$A element, $B element]
         $D = $this->arrayRecursiveDiff_assoc($B, $A, true);
-        bd($D, 'array $D');
+        //bd($D, 'array $D');
         // ideally array_merge should remove duplication where $C and $D have identical elements, but it doesn't so remove them from $D first
         $R = array_merge_recursive($C, $this->arrayRecursiveDiff_key($D, $C));
         //bd($this->arrayRecursiveDiff_key($D, $C), 'arrayRecursiveDiff_key($D, $C)');
-        bd($R, 'array $R');
+        //bd($R, 'array $R');
 //        uksort($R, function($a, $b) use ($A, $B) {
 //            if (array_key_exists($a, $A) and !array_key_exists($a, $B)) return -1;
 //            if (array_key_exists($a, $B) and !array_key_exists($a, $A)) return 1;
