@@ -2,7 +2,7 @@
 
 namespace ProcessWire;
 
-use DOMDocument;
+//use DOMDocument;
 
 /*
  * Need to allow for possibility of using DefaultPage (if it exists) as the base class
@@ -125,6 +125,8 @@ public function init() {
 
     /**
      * After save actions (none at present)
+     * @param HookEvent $event
+     * @throws WireException
      */
     public function afterSaved(HookEvent $event) {
         $p = $event->arguments(0);
@@ -204,8 +206,9 @@ public function init() {
 
     /**
      * Check that names and oldNames of current migration do not overlap with those of other (unlocked) migrations
-     * @param $event
      * @param $itemList
+     * @return bool
+     * @return bool
      * @throws WireException
      */
     protected function checkOverlaps($itemList) {
@@ -560,6 +563,7 @@ protected function shouldExist($action, $compareType) {
      * Used for presentation purposes in previews
      * @param $data
      * @return array
+     * @throws WireException
      */
     public function compactArray($data) {
         $newData = [];
@@ -650,9 +654,9 @@ protected function shouldExist($action, $compareType) {
      *    to compare against data.json files in 'new' and 'old' directories
      *
      * @param $newOld
-     * @param array $excludeFields
      * @return array|void|null
      * @throws WireException
+     * @throws WirePermissionException
      */
     public function exportData($newOld) {
 
@@ -877,7 +881,7 @@ protected function shouldExist($action, $compareType) {
      * @throws WireException
      * @throws WirePermissionException
      */
-    protected function processImport($data) {         //MDE parameter added
+    protected function processImport(array $data) {         //MDE parameter added
 
 //        $data = $this->session->get('FieldImportData');  //MDE not required
         if(!$data) throw new WireException("Invalid import data");
@@ -1074,9 +1078,16 @@ public function getRepeaters($values) {
         //bd($newOld, 'finished install');
     }
 
+
+    /**
+     * Return an array of pairs origId => destId to map the ids of 'identical' pages in the source and target databases
+     * This array is also stored in a meta value 'idMap' so that it is usable later
+     * @param $pagesInstalled
+     * @return array
+     */
     protected function setIdMap($pagesInstalled) {
         $idMapArray = [];
-        if (is_array($pagesInstalled)) foreach($pagesInstalled as $page) {
+        if (is_array($pagesInstalled)) foreach ($pagesInstalled as $page) {
             //bd($page, 'page in getidmap');
             if ($page and $page->meta('origId')) $idMapArray[$page->meta('origId')] = $page->id;
         }
@@ -1084,15 +1095,23 @@ public function getRepeaters($values) {
         return $idMapArray;
     }
 
-protected function replaceImgSrc($html, $idMapArray) {
-    if (strpos($html,'<img') === false) return $html; //return early if no images are embedded in html
-    foreach ($idMapArray as $origId => $destId) {
-        //bd([$origId, $destId], 'Id pair');
-        $re = '/(<img.*' . str_replace('/', '\/', preg_quote($files = $this->wire()->config->urls->files)) . ')' . $origId . '(\/.*>)/m';
-        //bd($re, 'regex pattern');
-        $html = preg_replace($re, '${1}' . $destId . '$2', $html);
-    }
-    return $html;
+
+    /**
+     * Using the idMapArray (see setIdMap() ) replace original page id directories in <img> tags with destination page id directories
+     * @param $html
+     * @param $idMapArray
+     * @return string|string[]|null
+     * @throws WireException
+     */
+    protected function replaceImgSrc($html, $idMapArray) {
+        if (strpos($html, '<img') === false) return $html; //return early if no images are embedded in html
+        foreach ($idMapArray as $origId => $destId) {
+            //bd([$origId, $destId], 'Id pair');
+            $re = '/(<img.*' . str_replace('/', '\/', preg_quote($files = $this->wire()->config->urls->files)) . ')' . $origId . '(\/.*>)/m';
+            //bd($re, 'regex pattern');
+            $html = preg_replace($re, '${1}' . $destId . '$2', $html);
+        }
+        return $html;
 }
 
 
@@ -1178,6 +1197,8 @@ protected function replaceImgSrc($html, $idMapArray) {
     /**
      * @param $items
      * @param $itemType
+     * @param $newOld
+     * @return array
      * @throws WireException
      * @throws WirePermissionException
      */
@@ -1265,6 +1286,7 @@ protected function replaceImgSrc($html, $idMapArray) {
     /**
      * @param $items
      * @param $itemType
+     * @return null
      * @throws WireException
      * @throws WirePermissionException
      */
@@ -1458,11 +1480,11 @@ protected function replaceImgSrc($html, $idMapArray) {
                     if ($p and $p->id and $p->meta() and $p->meta('installable')) {
                         $p->meta('allowSave' , true);  // to allow save
                         $p->setAndSave($values);
-                        if (count($repeaters) > 0) $p->setAndSaveRepeaters($repeaters, $p);
+                        if (count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, $p);
                         $p->meta()->remove('allowSave');  // reset
                     } else {
                         $p->setAndSave($values);
-                        if (count($repeaters) > 0) $p->setAndSaveRepeaters($repeaters, $p);
+                        if (count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, $p);
                     }
                 }
             }
@@ -1685,7 +1707,7 @@ protected function replaceImgSrc($html, $idMapArray) {
                 break;
             case 'FieldtypePageTable' :
                 $contents = [];
-                foreach ($page->$field as $item) {
+                foreach ($page->$field as $items) {
                     //bd($item, 'pagetable item');
                     $contents['items'] = [];
                     $items = $page->$field->getArray();
