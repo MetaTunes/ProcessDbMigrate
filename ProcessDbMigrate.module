@@ -29,7 +29,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'summary' => 'Maintain migration data',
             'comments' => 'N.B. This module also requires classes DefaultPage and DbMigrationPage',
             'author' => 'Mark Evens',
-            'version' => "0.0.2",
+            'version' => "0.0.3",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
@@ -103,7 +103,7 @@ public function ready() {
 
 
 
-    public function ___install() {
+    public function ___install($upgrade=false) {
         //bd('install');
         $this->init();  // Need the properties to be loaded for the bootstrap, but init() is not called before install()
         $doBootstrap = false;
@@ -112,7 +112,7 @@ public function ready() {
             $doBootstrap = true;
         }
         // Then check for a json file
-        $migrationFile = (file_exists($this->bootstrapPath . 'new/migration.json')) ? file_get_contents($this->bootstrapPath . 'new/migration.json') : null;
+        $migrationFile = (file_exists($this->bootstrapPath . '/new/migration.json')) ? file_get_contents($this->bootstrapPath . '/new/migration.json') : null;
         if (!$migrationFile) {
             $doBootstrap = true;  // bootstrap() will reject the install attempt
         } else {
@@ -121,10 +121,19 @@ public function ready() {
             unset($migrationArray['parent']);
             unset($migrationArray['template']);
             unset($migrationArray['status']);
-            foreach ($migrationArray as $k => $v) {
-                $f = $this->wire()->fields->get($k);
-                if (!$f) $doBootstrap = true;
-                break;
+            foreach ($migrationArray as $line) {
+                foreach ($line as $item) {
+                    foreach ($item as $attribute) {
+                        foreach ($attribute as $k => $v) {
+                            if (in_array($k, ['template', 'parent', 'status', 'name'])) continue;
+                            $f = $this->wire()->fields->get($k);
+                            if (!$f) {
+                                $doBootstrap = true;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
             if (!$doBootstrap) {
                 if ($this->bootstrap and $this->bootstrap->id) {
@@ -139,30 +148,35 @@ public function ready() {
         }
         if ($doBootstrap) {
             // No migrations parent page or templates, or bootstrap has changed
-            $this->bootstrap();
+            $this->bootstrap($upgrade);
             $this->init();  // re-initialise now everything should be there
             if (!$this->migrations or !$this->migrations->id) {
                 $this->wire->session->error('Bootstrap failed');
                 return;
             }
+        } elseif ($upgrade) {
+            $this->bootstrap($upgrade);
         }
-        // Create the admin page
-        $p = new Page();
-        $p->template = 'admin';
-        $p->name = self::getModuleinfo()['page']['name'];
-        $p->parent = $this->adminPath . self::getModuleinfo()['page']['parent'] . '/';
-        $p->title = self::getModuleinfo()['page']['title'];
-        $p->process = str_replace(__NAMESPACE__ . '\\', '', get_class());
-        $p->save();
+        if (!$upgrade) {
+            // Create the admin page
+            $p = new Page();
+            $p->template = 'admin';
+            $p->name = self::getModuleinfo()['page']['name'];
+            $p->parent = $this->adminPath . self::getModuleinfo()['page']['parent'] . '/';
+            $p->title = self::getModuleinfo()['page']['title'];
+            $p->process = str_replace(__NAMESPACE__ . '\\', '', get_class());
+            $p->save();
+        }
     }
 
 
     /**
      * Install the bootstrap page
      * @throws WireException
+     * @param boolean $upgrade  True for upgrade only.
      * @throws WirePermissionException
      */
-    protected function bootstrap() {
+    protected function bootstrap($upgrade=false) {
         // copy the bootstrap files to templates
         if (!is_dir($this->migrationsPath . 'bootstrap/')) if (!wireMkdir($this->migrationsPath . 'bootstrap/', true)) {
             throw new WireException("Unable to create migration directory: {$this->migrationsPath}bootstrap/");
@@ -185,14 +199,20 @@ public function ready() {
                 }
             }
         }
-        // Now run the bootstrap using the copied/amended files
-        $className = 'ProcessWire\\' . self::MIGRATION_TEMPLATE . 'Page';
-        $dummyBootstrap = new $className();  // dummy migration
-        // NB we cannot assign a template to dummy-bootstrap as we need to run it to create the template!!
-        $dummyBootstrap->name = 'dummy-bootstrap';
-        $dummyBootstrap->installMigration('new');
+        if (!$upgrade) {
+            // Now run the bootstrap using the copied/amended files
+            $className = 'ProcessWire\\' . self::MIGRATION_TEMPLATE . 'Page';
+            $dummyBootstrap = new $className();  // dummy migration
+            // NB we cannot assign a template to dummy-bootstrap as we need to run it to create the template!!
+            $dummyBootstrap->name = 'dummy-bootstrap';
+            $dummyBootstrap->installMigration('new');
+        }
+
     }
 
+    public function ___upgrade() {
+        $this->___install(true);
+    }
 
     /**
      * Custom uninstall routine

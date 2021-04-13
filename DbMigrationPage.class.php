@@ -495,6 +495,7 @@ protected function shouldExist($action, $compareType) {
         } elseif (!$shouldExist and $newOld == 'new') {                               // 2nd condition is to avoid double reporting for new and old
             $this->wire()->notices->warning("{$this->name}: There is already a database object for $itemName but none should exist");
         }
+        
         if ($item['type'] == 'pages') {
             $exportPages = $this->getExportPageData($pagePaths, $excludeFields);
             $objectData = $exportPages['data'];
@@ -507,8 +508,11 @@ protected function shouldExist($action, $compareType) {
                 }
             }
         } else {
+            //bd('CHECKPOINT');
+            //bd($object, 'OBJECT');
             $objectData = $object->getExportData();
-            unset($objectData['id']);  // Don't want ids as they may be different in different dbs
+            //bd('CHECKPOINT2');
+            if (isset($objectData['id'])) unset($objectData['id']);  // Don't want ids as they may be different in different dbs
             //bd($objectData, 'objectdata');
             if ($item['type'] == 'fields') {
                 // enhance repeater field data
@@ -998,7 +1002,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     public function installMigration($newOld) {
-        //bd($this, 'In install with newOld = ' . $newOld);
+       //$this, 'In install with newOld = ' . $newOld);
         // Backup the old installation first
         if ($newOld == 'new' and $this->name != 'dummy-bootstrap') $this->exportData('old');
         //NB The bootstrap is excluded from the above. A separate 'old' file is provided with the module and is used when uninstalling the module.
@@ -1053,6 +1057,7 @@ public function getRepeaters($values) {
                 }
             }
         }
+        if (!$this->name == 'dummy-bootstrap') {
         // update any images in RTE fields
         $idMapArray = $this->setIdMap($pagesInstalled);
         //bd($idMapArray, 'idMapArray');
@@ -1071,6 +1076,7 @@ public function getRepeaters($values) {
                     $page->save($field);
                 }
             }
+        }
         }
 
         if ($message) $this->wire()->notices->message(implode(', ', $message));
@@ -1104,6 +1110,7 @@ public function getRepeaters($values) {
      * @throws WireException
      */
     protected function replaceImgSrc($html, $idMapArray) {
+        if (!$idMapArray) return $html;
         if (strpos($html, '<img') === false) return $html; //return early if no images are embedded in html
         foreach ($idMapArray as $origId => $destId) {
             //bd([$origId, $destId], 'Id pair');
@@ -1229,9 +1236,14 @@ public function getRepeaters($values) {
             $data['template'] = $template;
 
             $fields = $data;
-            $origId = $fields['id'];
-            // remove things that are not fields
-            unset($fields['id']);
+            if  (isset($fields['id'])) {
+                $origId = $fields['id'];
+
+                // remove things that are not fields
+                unset($fields['id']);
+            } else {
+                $origId = null;
+            }
             unset($fields['parent']);
             unset($fields['template']);
             unset($fields['status']);
@@ -1274,7 +1286,7 @@ public function getRepeaters($values) {
                 $this->setAndSaveRepeaters($repeaters, $p);
                 $this->wire()->notices->message('Created page ' . $name);
             }
-            $p->meta('origId', $origId); // Save the id of the originating page for matching purposes
+            if ($origId) $p->meta('origId', $origId); // Save the id of the originating page for matching purposes
             $p->of(false);
             $p->save();
             $pagesInstalled[] = $p;

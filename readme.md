@@ -17,7 +17,8 @@ Place the ProcessDbMigrate folder in your site/modules directory. Make sure your
 Having satisfied the dependencies, install the module.
 
 ## Updating
-Just put the new code in the ProcessDbMigrate folder. However, if the RuntimeOnly code has also changed, you may need to copy that to the folder in templates/ until I automate it.
+Just put the new code in the ProcessDbMigrate folder. Then refresh Modules.
+Note that if you have hacked the bootstrap json, then updating will overwrite your hack.
 
 ## Usage
 I think the usage is quite logical, but it is fairly complex, so please read the [help file](help.md) first.
