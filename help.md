@@ -55,6 +55,10 @@ Initially install the module in your dev (source) environment.
 
 Note that this module has only been tested on ProcessWire>=3.0.148 and requires the RuntimeOnly module to run.
 
+## Upgrading
+
+Place the code in the modules directory, replacing the existing files, then refresh modules in the database.
+
 ## Uninstalling
 
 Uninstalling the module first uninstalls the bootstrap migration. If that fails then the error will be reported, so that it can be fixed, and the module will not be uninstalled.
@@ -159,7 +163,11 @@ The module handles (I think) the following field types:
    When defining a migration, the normal sequence is to define fields before templates which might use them. However, repeater fields are linked to their own templates, so the repeater\_fieldName template needs to be included before fieldName.
 - FieldtypePageTable: This has a PageArray so requires special processing.
 - FieldtypeStreetAddress. This is an object, and requires special processing analagous to PageTable.
-- Images and files. Similarly to the above, these are more complex fields. Some special processing is required to deal with the likely differences between host page ids meaning that urls and paths will differ between the source and target environments.
+- Images and files. 
+Similarly to the above, these are more complex fields. 
+Some special processing is required to deal with the likely differences between host page ids meaning that urls and paths will differ between the source and target environments.
+Images should be migrated along with the page that holds them. Any Rich Text Editor (textarea) fields with embedded images should migrate satisfactorily **provided** the pages which hold the images are included in the migration.
+
 
 ### Subsequent installations
 
