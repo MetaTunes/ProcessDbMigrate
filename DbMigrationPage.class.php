@@ -24,6 +24,7 @@ else
  * @property object $migrationTemplate The template for migration pages
  * @property string $migrationsPath Path to the folder holding the migrations .json files
  * @property string $adminPath Path to the admin root (page id = 2)
+ * @property object $configData Process module settings
  * @property boolean $ready To indicate tha ready() has run
  *
  *
@@ -74,6 +75,7 @@ public function init() {
         $this->set('migrations', wire('pages')->get($this->adminPath . self::MIGRATION_PARENT));
         $this->set('migrationTemplate', wire('templates')->get(self::MIGRATION_TEMPLATE));
         $this->set('migrationsPath', wire('config')->paths->templates . self::MIGRATION_PATH);
+        $this->set('configData', wire('modules')->getConfig('ProcessDbMigrate'));
         // Fix for versions < 3.0.152, but left in place regardless of version, in case custom page classes are not enabled
         if ($this->migrationTemplate->pageClass != __CLASS__) {
             $this->migrationTemplate->pageClass = __CLASS__;
@@ -81,6 +83,7 @@ public function init() {
         }
         $this->addHookAfter("Pages::saved(template=$this->migrationTemplate)", $this, 'afterSaved');
         $this->addHookBefore("Pages::save(template=$this->migrationTemplate)", $this, 'beforeSaveThis');
+
         $this->set('ready', true);
     }
 
@@ -508,10 +511,7 @@ protected function shouldExist($action, $compareType) {
                 }
             }
         } else {
-            //bd('CHECKPOINT');
-            //bd($object, 'OBJECT');
             $objectData = $object->getExportData();
-            //bd('CHECKPOINT2');
             if (isset($objectData['id'])) unset($objectData['id']);  // Don't want ids as they may be different in different dbs
             //bd($objectData, 'objectdata');
             if ($item['type'] == 'fields') {
@@ -573,6 +573,7 @@ protected function shouldExist($action, $compareType) {
         $newData = [];
         foreach ($data as $entry) {
             if (is_array($entry)) foreach ($entry as $type => $line) {
+                if ($type == 'sourceDb') continue; // Ignore source database tags in comparisons
                 if (is_array($line)) foreach ($line as $action => $item) {
                     if (is_array($item)) foreach ($item as $name => $values) {
                         if ($type == 'pages' and $action == 'removed' and !$this->wire()->sanitizer->path($name)) {
@@ -669,10 +670,9 @@ protected function shouldExist($action, $compareType) {
          */
         if (!$this->ready) $this->ready();
         //bd($this, 'In exportData with newOld = ' . $newOld);
-        $configData = wire('modules')->getConfig('ProcessDbMigrate');
-        $excludeFields = (isset($configData['exclude_fieldnames'])) ? str_replace(' ', '', $configData['exclude_fieldnames']) : '';
+        $excludeFields = (isset($this->configData['exclude_fieldnames'])) ? str_replace(' ', '', $this->configData['exclude_fieldnames']) : '';
         $excludeFields = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeFields), 'fieldName', ['delimiter' => ' ']);
-        $excludeTypes = (isset($configData['exclude_fieldtypes'])) ? str_replace(' ', '', $configData['exclude_fieldtypes']) : '';
+        $excludeTypes = (isset($this->configData['exclude_fieldtypes'])) ? str_replace(' ', '', $this->configData['exclude_fieldtypes']) : '';
         $excludeTypes = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeTypes), 'fieldName');
         $excludeTypes = array_merge($excludeTypes, self::EXCLUDE_TYPES);
         $excludeFieldsForTypes = $this->excludeFieldsForTypes($excludeTypes);
@@ -748,7 +748,7 @@ protected function shouldExist($action, $compareType) {
         $item['name'] = $this->path;
         $item['oldName'] = '';
         $migrationData = $this->getMigrationItemData(null, $item, $excludeAttributes, $excludeFields, $newOld, 'new')['data'];
-
+        if (isset($this->configData['database_name'])) $migrationData['sourceDb'] = $this->configData['database_name'];
         $migrationObjectJson = wireEncodeJSON($migrationData, true, true);
         if ($newOld != 'compare') {
             file_put_contents($migrationPathNewOld . 'migration.json', $migrationObjectJson);
@@ -1389,6 +1389,29 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     public function refresh($found=null) {
+        if (!$this->ready) $this->ready();
+        // get the migration details
+        $migrationPath = $this->migrationsPath . $this->name;
+        if (!$found) {
+            if (is_dir($migrationPath)) {
+                $found = $migrationPath . '/new/migration.json';
+            }
+        }
+        if (!file_exists($found)) {
+            $this->wire()->notices->error('migration.json not found');
+            return false;
+        }
+        $fileContents = wireDecodeJSON(file_get_contents($found));
+        // set installable status according to database name
+        $sourceDb = (isset($fileContents['sourceDb']) and $fileContents['sourceDb']) ? $fileContents['sourceDb'] : null;
+        if ($sourceDb) {
+            if ($this->configData['database_name'] and $sourceDb == $this->configData['database_name']) {
+                if ($this->meta('installable')) $this->meta()->remove('installable');
+            } else {
+                if (!$this->meta('installable')) $this->meta('installable', true);
+            }
+        }
+        if (isset($fileContents['sourceDb'])) unset($fileContents['sourceDb']);
         // set lock status according to presence of lockfile
         $migrationFolder = $this->migrationsPath . $this->name . '/';
         $migrationFiles = $this->wire()->files->find($migrationFolder);
@@ -1404,17 +1427,7 @@ public function getRepeaters($values) {
         if (!$this->meta('installable')) return true;
 
         // for installable migrations (i.e. in target environment)...
-        $migrationPath = $this->migrationsPath . $this->name;
-        if (!$found) {
-            if (is_dir($migrationPath)) {
-                $found = $migrationPath . '/new/migration.json';
-            }
-        }
-        if (!file_exists($found)) {
-            $this->wire()->notices->error('migration.json not found');
-            return false;
-        }
-        $fileContents = wireDecodeJSON(file_get_contents($found));
+
         //bd($fileContents, 'already found file contents');
 
             // in practice there is only one item in the array as it is just for the migration page itself

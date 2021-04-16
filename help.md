@@ -35,7 +35,10 @@ The migration files described above are mirrored by pages of template &quot;DbMi
 1. If a new migration is created in the module (from the Setup -> Database Migration menu – see below re installation), then initially no json files exist. The json files are created in the new directory, after the scope of the migration is defined on the page, by running &quot;Export Data&quot; from the eponymous button.
 2. If (new) json files exist, but there is no matching migration page, then the latter is created by the module on accessing the Database Migration admin page. In this case, we are in the &quot;target&quot; database so there is no &quot;Export Data&quot; button, but instead &quot;Install&quot; and/or &quot;Uninstall&quot; buttons.
 
-Migrations therefore either view the current environment as a &quot;source&quot; (type 1) or a &quot;target&quot; (type 2). This is determined by whether the meta item meta(&#39;installable&#39;) is set (for type 2) or not. Thus, if required, a knowledgeable superuser can change the type of a migration by adding or removing this meta item (e.g. in the Tracy console), but this is deliberately not made easy.
+Migrations therefore either view the current environment as a &quot;source&quot; or a &quot;target&quot;. This is determined by whether the meta item meta(&#39;installable&#39;) is set or not. 
+ (The terms ‘installable’ and ‘exportable’ are used in this help file to differentiate the two types). 
+Thus, if required, a knowledgeable superuser can change the type of a migration by adding or removing this meta item (e.g. in the Tracy console), but this is deliberately not made easy.
+(See further notes below on source and target databases).
 
 ## Health warnings
 
@@ -48,7 +51,9 @@ Initially install the module in your dev (source) environment.
 1. Place the whole folder in your site/modules/ directory.
 2. Make sure that the RuntimeOnly module is installed first. Install ProcessDbMigrate (see note below re dependencies).
 3. Installing the module runs a &#39;bootstrap&#39; migration which creates (system) templates called DbMigration and DbMigrations and a page in the admin named &#39;dbmigrations&#39;, so make sure you are not using those already and rename if required. It also creates some fields which include &quot;dbMigrate&quot; in their name. All templates and fields have the &#39;dbMigrate&#39; tag. The bootstrap migration files are copied by the installation process to the templates/DbMigrate directory, which will be created if it does not exist. Also, the RuntimeOnly files are copied to the /templates/RuntimeOnly/ directory.
-4. Configure the settings – exclude any fields or fieldtypes from page migrations that might cause problems and which are not needed. RuntimeMarkup and RuntimeOnly fields are excluded automatically.
+4. Configure the settings. Note that the settings are specific to the current database. You can give the (current) database a name. If you do so, this name will be included as a tag (‘sourceDb’) in the migration.json of any migration you create from this database. Any database with the same name will treat this migration as exportable rather than installable. This means, for example, that you can copy a production database and rename it to be the same as your original development database, so that any migrations sourced from that development database will be shown as exportable, not installable. You can also request that the current database name is notified in every admin page (in case you forget which environment you are in!).
+   
+   Also in the settings, you can exclude any fields or fieldtypes from page migrations that might cause problems and which are not needed. RuntimeMarkup and RuntimeOnly fields are excluded automatically (you will need to do this in each database).
 5. Open the admin page &quot;Setup -> Database Migration&quot; to create your first migration. You will see that one (&quot;bootstrap&quot; is already installed) and cannot be modified (unless you unset the meta(&#39;installable&#39;)).
 
 ### Dependencies
