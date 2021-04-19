@@ -77,7 +77,7 @@ public function init() {
         $this->set('migrationsPath', wire('config')->paths->templates . self::MIGRATION_PATH);
         $this->set('configData', wire('modules')->getConfig('ProcessDbMigrate'));
         // Fix for versions < 3.0.152, but left in place regardless of version, in case custom page classes are not enabled
-        if ($this->migrationTemplate->pageClass != __CLASS__) {
+        if ($this->migrationTemplate->getPageClass() != __CLASS__) {
             $this->migrationTemplate->pageClass = __CLASS__;
             $this->migrationTemplate->save();
         }
@@ -1002,6 +1002,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     public function installMigration($newOld) {
+        if (!$this->ready) $this->ready();
        //$this, 'In install with newOld = ' . $newOld);
         // Backup the old installation first
         if ($newOld == 'new' and $this->name != 'dummy-bootstrap') $this->exportData('old');
@@ -1202,6 +1203,9 @@ public function getRepeaters($values) {
 
 
     /**
+     * Install any pages in this migration
+     * NB any hooks associated with pages will operate (perhaps more than once) ...
+     * NB to alter any operation of such hooks etc., note that the session variable of 'installPages' is set for the duration of this method
      * @param $items
      * @param $itemType
      * @param $newOld
@@ -1210,6 +1214,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     protected function installPages($items, $itemType, $newOld) {
+        $this->wire()->session->set('installPages', true);  // for use by host app
         $items = $this->pruneKeys($items, $itemType);
         //bd($items, 'install pages');
         $pagesInstalled = [];
@@ -1265,21 +1270,16 @@ public function getRepeaters($values) {
                 $this->setAndSaveRepeaters($repeaters, $p);
                 $this->wire()->notices->message('Set and saved page ' . $name);
             } else {
-                $baseClass = (class_exists('DefaultPage')) ? 'ProcessWire\\DefaultPage' : 'ProcessWire\\Page';
-                $p = new $baseClass();
+                $template = $this->wire()->templates->get($data['template']);
+                $pageClass = $template->getPageClass();
+                $p = new $pageClass();
                 $p->name = $name;
                 $p->template = $data['template'];
                 $p->status = $data['status'];
-                //bd($this, "this $name is ");
-//                if ($this->name == 'dummy-bootstrap' and $name == self::SOURCE_ADMIN . self::MIGRATION_PARENT) {
-//                    $p->parent = $this->wire()->urls->admin; // Original admin url/path used in bootstrap json may differ from target system
-//                } else {
-//                    $p->parent = $data['parent'];
-//                }
                 $p->parent = $data['parent'];
-                //bd($p->parent, 'parent is');
                 $p->of(false);
                 $p->save();
+                $p = $this->wire()->pages->get($p->id);
                 $fields = $this->setAndSaveComplex($fields, $p); // sets and saves complex fields, returning the other fields
                 $fields = $this->setAndSaveFiles($fields, $newOld, $p); // saves files and images, returning other fields
                 $p->setAndSave($fields);
@@ -1291,11 +1291,14 @@ public function getRepeaters($values) {
             $p->save();
             $pagesInstalled[] = $p;
         }
+        $this->wire()->session->remove('installPages');
         return $pagesInstalled;
     }
 
 
     /**
+     * NB any hooks associated with page->trash will operate
+     * NB to alter any operation of such hooks etc., note that the session variable of 'removeItems' is set for the duration of this method
      * @param $items
      * @param $itemType
      * @return null
@@ -1303,6 +1306,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     protected function removeItems($items, $itemType) {
+        $this->wire()->session->set('removeItems', true); // for use by host app
         //bd($items, 'items for deletion. item type is ' . $itemType);
         switch ($itemType) {
             case 'pages' :
@@ -1343,11 +1347,14 @@ public function getRepeaters($values) {
                             //bd([trim($this->adminPath, '/'), trim(self::MIGRATION_PARENT, '/')], 'comparators');
                             if ($this->name == 'bootstrap' and $p->parent->name == trim($this->adminPath, '/') and $p->name  == trim(self::MIGRATION_PARENT, '/')) {
                                 //bd($p, 'Deleting children too');
+
                                 // we are uninstalling the module so remove all migration pages!
+                                $p->trash(); // trash before deleting in case any hooks need to operate
                                 $p->delete(true);
                             } else {
                                 //bd($p, 'Only deleting page - will not delete if there are children. (This is ' . $this->name . ')');
                                 try {
+                                    $p->trash(); // trash before deleting in case any hooks need to operate
                                     $p->delete();
                                 } catch (WireException $e) {
                                     $this->wire()->notices->error('Page: ' . $this->name . $e->getMessage());
@@ -1376,6 +1383,7 @@ public function getRepeaters($values) {
                 }
                 break;
         }
+        $this->wire()->session->remove('removeItems');
     }
 
     /**
@@ -1389,6 +1397,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     public function refresh($found=null) {
+
         if (!$this->ready) $this->ready();
         // get the migration details
         $migrationPath = $this->migrationsPath . $this->name;
@@ -1398,7 +1407,7 @@ public function getRepeaters($values) {
             }
         }
         if (!file_exists($found)) {
-            $this->wire()->notices->error('migration.json not found');
+            if ($this->meta('installable')) $this->wire()->notices->error('migration.json not found');
             return false;
         }
         $fileContents = wireDecodeJSON(file_get_contents($found));
@@ -1437,7 +1446,7 @@ public function getRepeaters($values) {
                 foreach ($line as $pathName => $values) {
                     $pageName = $values['name'];
                     if ($this->name != $pageName) $this->wire()->notices->warning('Page name in migrations file is not the same as the host folder.');
-                    $p = $this->migrations->get("name=$pageName, include=hidden");
+                    $p = $this->migrations->get("name=$pageName, include=all");
                     /* @var $p MigrationPage */
                     // check if the definition has changed
                     $oldFile = $migrationPath . '/old/migration.json';
@@ -1454,6 +1463,7 @@ public function getRepeaters($values) {
 //                        //bd($test1, 'TEST1');
 //                        //bd($test2, 'TEST2');
 // in practice there is only one item in the array as it is just for the migration page itself
+                        if (isset($oldContents['sourceDb'])) unset($oldContents['sourceDb']);
                         foreach ($oldContents as $oldType => $oldContent) {
                             foreach ($oldContent as $oldLine) {
                                 foreach ($oldLine as $oldPathName => $oldValues) {
@@ -1755,6 +1765,7 @@ public function getRepeaters($values) {
 
 
     public function getPageRef($pageRefObject) {
+        if (!$pageRefObject) return false;
         $show = $pageRefObject->path;
         if (!$show) {  // in case of multi-page fields
             $contents = [];

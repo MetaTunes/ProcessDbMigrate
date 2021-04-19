@@ -144,7 +144,18 @@ To uninstall a migration, click the &quot;Uninstall&quot; button (again, you can
 
 NB When re-installing and un-re-installing migrations, issues may arise with the &#39;old&#39; files being wrong unless you &#39;remove migration files&#39; before exporting a new version.
 
-### Partial / Unsuccessful migrations
+### Troubleshooting / Technical notes
+
+#### Issues with page migrations
+Issues may arise with page migration which are not possible to foresee fully. This is particularly the case if the user migrates pages with multiple complex field types and custom processing. The module was designed for migrating developments, not for mass updating of user pages. It is therefore assumed that any pages being migrated are of a ‘site-settings’ nature, not user pages. That said, it is possible to use the module more generally (e.g. in ‘rescue’ mode) but test carefully first.
+In particular, the host PW application may make use of page hooks. All page actions in the module allow hooks to run. To enable users to modify this behaviour, session variables are set for the duration of the following methods:
+- installPages() – new/changed pages – ‘installPages’ is set to true
+- removeItems() – all item removals – ‘removeItems’ is set to true
+
+These can then be referenced in the application code as required.
+
+
+#### Partial / Unsuccessful migrations
 
 In some circumstances, migrations may not complete properly. This will result in error messages when the migration is installed. Some typical examples and possible solutions are set out below. Occasionally, re-clicking &#39;install&#39; or &#39;uninstall&#39; may resolve this. Note that you cannot change a migration definition in the target environment, so any changes need to be done in the source environment and re-exported (and installed after uninstalling the previous version).
 
@@ -158,7 +169,7 @@ _Components not removed_: This is most likely because you have misnamed the comp
 
 Use the preview button to see what changes have not been fully implemented. You can also inspect and compare the json files to identify the issue (your IDE is probably the best place to do this). For example, compare templates/…/new/data.json (the required state) with assets/cache/dbMigrations/new-data.json (the current state). (Similarly, for uninstallation problems, compare ../old/data.json with assets/cache/dbMigrations/old-data.json).
 
-### Field types
+#### Field types
 
 The module handles (I think) the following field types:
 
@@ -174,13 +185,19 @@ Some special processing is required to deal with the likely differences between 
 Images should be migrated along with the page that holds them. Any Rich Text Editor (textarea) fields with embedded images should migrate satisfactorily **provided** the pages which hold the images are included in the migration.
 
 
-### Subsequent installations
+#### Subsequent installations
 
 After an initial export from a source and installation in a target, the question arises as to how to deal with revised or additional migrations. If a migration is revised in the source, then it can be installed in the target once the previous version has been uninstalled. New migrations exported from the source are handled in the same way as initial migrations (except that the module is already installed in the target).
 
-However, the user may wish to use a (migrated) test or live database as a new source for subsequent development (assuming the migrations so far are bug-free). In this case, the completed migrations should be locked in the database (by clicking on the &#39;lock&#39; icon on the migration page). They will then be there as a record only – the database can be copied to the development environment (after locking) and new migrations can be developed for export, knowing that the base system is in sync (except for user changes to the live system, which will normally only be to pages, not fields or templates). The use of names (including the new|old syntax) rather than ids should mean that most user changes will not disrupt future migrations. Installation &#39;previews&#39; should highlight any difficulties. Overlapping scope detection on migrations only looks at unlocked migrations.
+However, the user may wish to use a (migrated) test or live database as a new source for subsequent development (assuming the migrations so far are bug-free). In this case, use one (or both) of the following strategies:
+
+- Use database naming (in the module settings page) to rename the imported database back to the name you were using for the development database.
+- Lock the completed migrations (by clicking on the &#39;lock&#39; icon on the migration page) before importing the database. They will then be there as a record only – the database can be copied to the development environment (after locking) and new migrations can be developed for export, knowing that the base system is in sync (except for user changes to the live system, which will normally only be to pages, not fields or templates). 
+
+The use of names for items (including the new|old syntax) rather than ids should mean that most user changes will not disrupt future migrations. Installation &#39;previews&#39; should highlight any difficulties. Overlapping scope detection on migrations only looks at unlocked migrations.
 
 It is also possible, in theory (not advised, but maybe necessary if the development environment is inaccessible) to make changes directly to the live database and &#39;export&#39; them for installation on the development system. These should be locked after installing them.
+Database naming is strongly recommended if you use this strategy.
 
 #### Rescue mode
 

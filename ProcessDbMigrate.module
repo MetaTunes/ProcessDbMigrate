@@ -30,7 +30,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'summary' => 'Maintain migration data',
             'comments' => 'N.B. This module also requires classes DefaultPage and DbMigrationPage',
             'author' => 'Mark Evens',
-            'version' => "0.0.4",
+            'version' => "0.0.5",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
@@ -175,7 +175,7 @@ public function ready() {
 
     }
 
-    public function ___upgrade() {
+    public function ___upgrade($fromVersion, $toVersion) {
         $this->___install(true);
     }
 
@@ -397,8 +397,8 @@ public function ready() {
             //Retrieve the data from our text file.
             $fileContents = wireDecodeJSON(file_get_contents($file));
             //bd($fileContents, 'wanted file contents');
+            if (isset($fileContents['sourceDb'])) unset($fileContents['sourceDb']);
             foreach ($fileContents as $content) {
-                //bd($content, 'content item');
                 // There should only be one item - Todo: check this
                 foreach ($content as $line) {
                     foreach ($line as $pathName => $values) {
@@ -408,7 +408,7 @@ public function ready() {
                         $newMigration->of(false);
                         $newMigration->name = $pageName;
                         $newMigration->parent = $this->migrations;
-                        $newMigration->status = $values['status'];
+                        $newMigration->status = 1;
                         //bd($values, 'in module refresh with $values');
                         $newMigration->save();
                         unset($values['id']);
@@ -421,6 +421,7 @@ public function ready() {
                         $values = $r['values'];  // values has repeaters removed
                         //
                         //bd($values, 'wanted values');
+                        //bd($newMigration, 'newMigration');
                         $newMigration->setAndSave($values);
                         $newMigration->setAndSaveRepeaters($repeaters);
                     }
