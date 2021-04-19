@@ -1214,7 +1214,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     protected function installPages($items, $itemType, $newOld) {
-        $this->wire()->session->set('installPages', true);  // for use by host app
+        $this->wire()->session->set('dbMigrate_installPages', true);  // for use by host app
         $items = $this->pruneKeys($items, $itemType);
         //bd($items, 'install pages');
         $pagesInstalled = [];
@@ -1291,7 +1291,7 @@ public function getRepeaters($values) {
             $p->save();
             $pagesInstalled[] = $p;
         }
-        $this->wire()->session->remove('installPages');
+        $this->wire()->session->remove('dbMigrate_installPages');
         return $pagesInstalled;
     }
 
@@ -1306,7 +1306,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     protected function removeItems($items, $itemType) {
-        $this->wire()->session->set('removeItems', true); // for use by host app
+        $this->wire()->session->set('dbMigrate_removeItems', true); // for use by host app
         //bd($items, 'items for deletion. item type is ' . $itemType);
         switch ($itemType) {
             case 'pages' :
@@ -1383,7 +1383,7 @@ public function getRepeaters($values) {
                 }
                 break;
         }
-        $this->wire()->session->remove('removeItems');
+        $this->wire()->session->remove('dbMigrate_removeItems');
     }
 
     /**

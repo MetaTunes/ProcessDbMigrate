@@ -149,8 +149,8 @@ NB When re-installing and un-re-installing migrations, issues may arise with the
 #### Issues with page migrations
 Issues may arise with page migration which are not possible to foresee fully. This is particularly the case if the user migrates pages with multiple complex field types and custom processing. The module was designed for migrating developments, not for mass updating of user pages. It is therefore assumed that any pages being migrated are of a ‘site-settings’ nature, not user pages. That said, it is possible to use the module more generally (e.g. in ‘rescue’ mode) but test carefully first.
 In particular, the host PW application may make use of page hooks. All page actions in the module allow hooks to run. To enable users to modify this behaviour, session variables are set for the duration of the following methods:
-- installPages() – new/changed pages – ‘installPages’ is set to true
-- removeItems() – all item removals – ‘removeItems’ is set to true
+- installPages() – new/changed pages – ‘dbMigrate_installPages’ is set to true
+- removeItems() – all item removals – ‘dbMigrate_removeItems’ is set to true
 
 These can then be referenced in the application code as required.
 
