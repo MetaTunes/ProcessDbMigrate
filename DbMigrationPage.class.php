@@ -685,7 +685,7 @@ protected function shouldExist($action, $compareType) {
          * INITIAL PROCESSING
          */
         if (!$this->ready) $this->ready();
-        bd($this, 'In exportData with newOld = ' . $newOld);
+        //bd($this, 'In exportData with newOld = ' . $newOld);
         $excludeFields = (isset($this->configData['exclude_fieldnames'])) ? str_replace(' ', '', $this->configData['exclude_fieldnames']) : '';
         $excludeFields = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeFields), 'fieldName', ['delimiter' => ' ']);
         $excludeTypes = (isset($this->configData['exclude_fieldtypes'])) ? str_replace(' ', '', $this->configData['exclude_fieldtypes']) : '';
@@ -885,7 +885,7 @@ protected function shouldExist($action, $compareType) {
                 'uninstalledMigration' => $uninstalledMigration,
                 'uninstalledMigrationDiffs' => $uninstalledMigrationDiffs,
             ];
-            bd($result, 'result');
+            //bd($result, 'result');
         }
         return $result;
 
@@ -1350,7 +1350,7 @@ public function getRepeaters($values) {
                             $items[$page->path] = $page->data;
                         }
                     }
-                    bd($items);
+                    //bd($items);
                 }
                 foreach ($items as $name => $data) {
                     // For new and changed pages, selector will have been decoded on export. However, for removed pages, decode needs to happen on install
@@ -1460,7 +1460,7 @@ bd('IN REFRESH');
         } elseif ($this->meta('locked')) {
             $this->meta()->remove('locked');
         }
-        bd($this->meta('locked'), 'Locked status');
+        //bd($this->meta('locked'), 'Locked status');
         // notify any conflicts
         $itemList = $this->listItems();
         if (!$this->meta('locked')) $this->checkOverlaps($itemList);
@@ -1989,8 +1989,8 @@ protected function addVariants($migrationFilesPath, $basename, $page, $proposedI
         //bd($D, 'array $D');
         // ideally array_merge should remove duplication where $C and $D have identical elements, but it doesn't so remove them from $D first
         $R = array_merge_recursive($C, $this->arrayRecursiveDiff_key($D, $C));
-        bd($this->arrayRecursiveDiff_key($D, $C), 'arrayRecursiveDiff_key($D, $C)');
-        bd($R, 'array $R');
+       //$this->arrayRecursiveDiff_key($D, $C), 'arrayRecursiveDiff_key($D, $C)');
+        //bd($R, 'array $R');
 //        uksort($R, function($a, $b) use ($A, $B) {
 //            if (array_key_exists($a, $A) and !array_key_exists($a, $B)) return -1;
 //            if (array_key_exists($a, $B) and !array_key_exists($a, $A)) return 1;
