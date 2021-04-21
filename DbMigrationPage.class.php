@@ -459,6 +459,7 @@ protected function shouldExist($action, $compareType) {
 
         $pagePaths = [];
         // Need to unpack selectors here
+        $selector = false;
         if ($item['type'] == 'pages') {
             if (!$this->wire()->sanitizer->path($itemName)) {
                 //bd($itemName, 'Selector provided instead of path name');
@@ -467,6 +468,16 @@ protected function shouldExist($action, $compareType) {
                     $pagePaths = $this->wire()->pages->find($itemName);
                     $pagePaths = $pagePaths->getArray(); // want them as a php array not an object
                     // the array is of page objects, but that's OK here because getExportPageData allows objects or path names
+                    // selectors do not respect sort=path - we want parents before children and natural sort order is, well, more natural
+                    if (strpos($itemName, 'sort=path')) {
+                        usort($pagePaths,function ($a, $b) {
+                            return strnatcmp($a->path, $b->path);
+                        });
+                        if ($item['action'] == 'removed') $pagePaths = array_reverse($pagePaths); // children before parents when deleting!
+                    }
+                    if ($newOld == 'old' and $item['action'] == 'removed') $pagePaths = array_reverse($pagePaths); // To make sure page actions occur in reverse on uninstall
+                    $selector = true;
+
                 } catch (WireException $e) {
                     $this->wire()->notices->error('Invalid selector: ' . $itemName);
                     return $empty;
@@ -500,14 +511,19 @@ protected function shouldExist($action, $compareType) {
         }
         
         if ($item['type'] == 'pages') {
-            $exportPages = $this->getExportPageData($pagePaths, $excludeFields);
-            $objectData = $exportPages['data'];
-            //bd($exportPages['files'], '$exportPages[files]');
-            $files = $exportPages['files'];
-            //bd($objectData, 'object data for paths ' . implode(', ', $pagePaths));
-            foreach ($objectData as $p => $f) {
-                foreach ($excludeFields as $excludeField) {
-                    unset($objectData[$p][$excludeField]);
+            // where the name is a selector, we want to keep the selector as is for removed fields so that it operates in the target
+            if ($selector and $newOld != 'compare' and $item['action'] == 'removed') {
+                $objectData = $item['name'];
+            } else {
+                $exportPages = $this->getExportPageData($pagePaths, $excludeFields);
+                $objectData = $exportPages['data'];
+                //bd($exportPages['files'], '$exportPages[files]');
+                $files = $exportPages['files'];
+                //bd($objectData, 'object data for paths ' . implode(', ', $pagePaths));
+                foreach ($objectData as $p => $f) {
+                    foreach ($excludeFields as $excludeField) {
+                        unset($objectData[$p][$excludeField]);
+                    }
                 }
             }
         } else {
@@ -669,7 +685,7 @@ protected function shouldExist($action, $compareType) {
          * INITIAL PROCESSING
          */
         if (!$this->ready) $this->ready();
-        //bd($this, 'In exportData with newOld = ' . $newOld);
+        bd($this, 'In exportData with newOld = ' . $newOld);
         $excludeFields = (isset($this->configData['exclude_fieldnames'])) ? str_replace(' ', '', $this->configData['exclude_fieldnames']) : '';
         $excludeFields = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeFields), 'fieldName', ['delimiter' => ' ']);
         $excludeTypes = (isset($this->configData['exclude_fieldtypes'])) ? str_replace(' ', '', $this->configData['exclude_fieldtypes']) : '';
@@ -869,7 +885,7 @@ protected function shouldExist($action, $compareType) {
                 'uninstalledMigration' => $uninstalledMigration,
                 'uninstalledMigrationDiffs' => $uninstalledMigrationDiffs,
             ];
-            //bd($result, 'result');
+            bd($result, 'result');
         }
         return $result;
 
@@ -1224,7 +1240,7 @@ public function getRepeaters($values) {
             $pageIsHome = ($data['parent'] === 0);
             if ($this->name == 'dummy-bootstrap' and $name == self::SOURCE_ADMIN . self::MIGRATION_PARENT) {
                 // Original admin url/path used in bootstrap json may differ from target system
-                $parent = $this->wire()->pages ->get(2); // admin root
+                $parent = $this->wire()->pages->get(2); // admin root
                 $data['parent'] = $parent->path;
             } else {
                 $parent = $this->wire()->pages->get($data['parent']);
@@ -1310,23 +1326,35 @@ public function getRepeaters($values) {
         //bd($items, 'items for deletion. item type is ' . $itemType);
         switch ($itemType) {
             case 'pages' :
-                $this->wire('pages')->uncacheAll(); // necessary - otherwise PW may think pages have children etc. which have in fact just been deleted
-                foreach ($items as $name => $data) {
-                    // For new and changed pages, selector will have been decoded on export. However, for removed pages, decode needs to happen on install
-                    if (!$this->wire()->sanitizer->path($name)) {
+                if (is_string($items)) {
+                    // probably a selector
+                    if (!$this->wire()->sanitizer->path($items)) {
                         //bd($name, 'In removeItems - Selector provided instead of path name');
                         // we have a selector
                         try {
-                            $pages = $this->wire()->pages->find($name);
+                            $pages = $this->wire()->pages->find($items);
                             $pages = $pages->getArray(); // want them as a php array not an object
-                            // the array is of page objects, but that's OK here because getExportPageData allows objects or path names
+
+                            if (strpos($items, 'sort=path')) {
+                                usort($pages,function ($a, $b) {
+                                    return strnatcmp($a->path, $b->path);
+                                });
+                                $pages = array_reverse($pages); // children before parents when deleting!
+                            }
                         } catch (WireException $e) {
-                            $this->wire()->notices->error('In removeItems - Invalid selector: ' . $name);
+                            $this->wire()->notices->error('In removeItems - Invalid selector: ' . $items);
                             return null;
                         }
-                    } else {
-                        $pages = [$this->wire('pages')->get($name)];
+                        $items = [];
+                        foreach ($pages as $page) {
+                            $items[$page->path] = $page->data;
+                        }
                     }
+                    bd($items);
+                }
+                foreach ($items as $name => $data) {
+                    // For new and changed pages, selector will have been decoded on export. However, for removed pages, decode needs to happen on install
+                    $pages = [$this->wire('pages')->get($name)];
                     foreach ($pages as $p) {
                         if ($p and $p->id) {
                             // find and remove any images and files before deleting the page
@@ -1349,11 +1377,13 @@ public function getRepeaters($values) {
                                 //bd($p, 'Deleting children too');
 
                                 // we are uninstalling the module so remove all migration pages!
+                                if ($p->isLocked()) $p->removeStatus(Page::statusLocked);
                                 $p->trash(); // trash before deleting in case any hooks need to operate
                                 $p->delete(true);
                             } else {
                                 //bd($p, 'Only deleting page - will not delete if there are children. (This is ' . $this->name . ')');
                                 try {
+                                    if ($p->isLocked()) $p->removeStatus(Page::statusLocked);
                                     $p->trash(); // trash before deleting in case any hooks need to operate
                                     $p->delete();
                                 } catch (WireException $e) {
@@ -1361,6 +1391,7 @@ public function getRepeaters($values) {
                                 }
                             }
                         }
+                        $this->wire('pages')->uncacheAll(); // necessary - otherwise PW may think pages have children etc. which have in fact just been deleted
                     }
                 }
                 break;
@@ -1397,7 +1428,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     public function refresh($found=null) {
-
+bd('IN REFRESH');
         if (!$this->ready) $this->ready();
         // get the migration details
         $migrationPath = $this->migrationsPath . $this->name;
@@ -1429,11 +1460,12 @@ public function getRepeaters($values) {
         } elseif ($this->meta('locked')) {
             $this->meta()->remove('locked');
         }
+        bd($this->meta('locked'), 'Locked status');
         // notify any conflicts
         $itemList = $this->listItems();
         if (!$this->meta('locked')) $this->checkOverlaps($itemList);
         //bd($this->meta('installable'), 'installable?');
-        if (!$this->meta('installable')) return true;
+        if (!$this->meta('installable') or $this->meta('locked')) return true;
 
         // for installable migrations (i.e. in target environment)...
 
@@ -1770,7 +1802,7 @@ public function getRepeaters($values) {
         if (!$show) {  // in case of multi-page fields
             $contents = [];
             foreach ($pageRefObject as $p) {
-                $contents[] = $p->path;
+                if ($p and is_object($p) and $p->id) $contents[] = $p->path;
             }
             $show = $contents;
         }
@@ -1957,8 +1989,8 @@ protected function addVariants($migrationFilesPath, $basename, $page, $proposedI
         //bd($D, 'array $D');
         // ideally array_merge should remove duplication where $C and $D have identical elements, but it doesn't so remove them from $D first
         $R = array_merge_recursive($C, $this->arrayRecursiveDiff_key($D, $C));
-        //bd($this->arrayRecursiveDiff_key($D, $C), 'arrayRecursiveDiff_key($D, $C)');
-        //bd($R, 'array $R');
+        bd($this->arrayRecursiveDiff_key($D, $C), 'arrayRecursiveDiff_key($D, $C)');
+        bd($R, 'array $R');
 //        uksort($R, function($a, $b) use ($A, $B) {
 //            if (array_key_exists($a, $A) and !array_key_exists($a, $B)) return -1;
 //            if (array_key_exists($a, $B) and !array_key_exists($a, $A)) return 1;

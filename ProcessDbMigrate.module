@@ -30,7 +30,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'summary' => 'Maintain migration data',
             'comments' => 'N.B. This module also requires classes DefaultPage and DbMigrationPage',
             'author' => 'Mark Evens',
-            'version' => "0.0.5",
+            'version' => "0.0.6",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
@@ -262,15 +262,20 @@ public function ready() {
 //        $migrations = $this->wire('pages')->get('/dbmigrations/');
         $this->moduleRefresh();
 //        /* @var $migrations DbMigrationsPage */
-        $migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-created, include=hidden");
+        $migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-created, include=all");
         foreach ($migrationPages as $migrationPage) {
             /* @var $migrationPage DbMigrationPage */
-            $installedStatus = $migrationPage->exportData('compare');
-            $status = $installedStatus['status'];
-            if ($migrationPage->meta('installable')) {
-                $statusColour = ($status == 'installed') ? 'lightgreen' : (($status == 'uninstalled') ? 'salmon' : 'orange');
+            if (!$migrationPage->meta('locked')) {
+                $installedStatus = $migrationPage->exportData('compare');
+                $status = $installedStatus['status'];
+                if ($migrationPage->meta('installable')) {
+                    $statusColour = ($status == 'installed') ? 'lightgreen' : (($status == 'uninstalled') ? 'salmon' : 'orange');
+                } else {
+                    $statusColour = ($status == 'exported') ? 'lightgreen' : 'salmon';
+                }
             } else {
-                $statusColour = ($status == 'exported') ? 'lightgreen' : 'salmon';
+                $status = 'Locked';
+                $statusColour = 'LightGrey';
             }
             //bd($migrationPage, $status);
             //bd($installedStatus);
@@ -380,7 +385,7 @@ public function ready() {
             $this->wire()->session->redirect('../');
             return;
         }
-        $migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-modified, include=hidden");
+        $migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-modified, include=all");
         $alreadyFound = [];
         foreach ($migrationPages as $migrationPage) {
             /* @var $migrationPage DbMigrationPage */
@@ -432,8 +437,10 @@ public function ready() {
         }
         foreach ($alreadyFound as $pName => $found) {
             $migrationPage = $this->migrations->get("name=$pName");
-            $migrationPage->ready(); // Need to trigger it as not auto
-            $migrationPage->refresh($found);
+            if ($migrationPage and $migrationPage->id) {
+                $migrationPage->ready(); // Need to trigger it as not auto
+                $migrationPage->refresh($found);
+            }
         }
     }
 

@@ -108,6 +108,7 @@ _Selectors_: Only one item is permitted per entry, however pages may be selected
 
 1. For &#39;new&#39; and &#39;changed&#39; pages, the selector identifies the pages in the **source environment only**. If these pages also exist in the target environment, they will be changed, otherwise they will be created. There is no possibility of matching pages whose path name has changed.
 2. For &#39;removed&#39; pages, the selector identifies pages in the **target environment only**.
+3. The use of “sort=path” is permitted in selectors, even though this normally has no effect. If it is used, the pages will be sorted in parent-child order with using the ‘natural’ sort order (e.g. XYZ100 is greater than XYZ20). This means that parents should be installed before children. For ‘removed’ pages, the order is reversed so that children are deleted before parents.
 
 So do make sure that your selector works in the source and/or target environments, as appropriate, before implementing it.
 

@@ -11,16 +11,16 @@ if ($page->template == 'DbMigration') {
     if ($page->status != 1) {
         echo('Page must be published before any actions are available');
     } else {
-        $updated = $page->refresh();
-        $migrationPath = $page->migrationsPath . $page->name . '/';
-        $form = wire(new InputfieldWrapper());
-        $form->attr('id', 'actions_form');
-        //  compare before render
-        $installedStatus = $page->exportData('compare');
-        //bd($installedStatus, '$installedStatus in migration actions');
-        wire('modules')->get('JqueryUI')->use('modal');
         // Only show if unlocked
         if (!$page->meta('locked')) {
+            $updated = $page->refresh();
+            $migrationPath = $page->migrationsPath . $page->name . '/';
+            $form = wire(new InputfieldWrapper());
+            $form->attr('id', 'actions_form');
+            //  compare before render
+            $installedStatus = $page->exportData('compare');
+            //bd($installedStatus, '$installedStatus in migration actions');
+            wire('modules')->get('JqueryUI')->use('modal');
             if ($page->meta('installable')) {
                 if (!$installedStatus['installed'] and is_dir($migrationPath . 'new/') and $updated) {
 

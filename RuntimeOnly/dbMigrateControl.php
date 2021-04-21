@@ -8,20 +8,25 @@
 if ($page->template == 'Migration') {
     /* @var $page \ProcessWire\MigrationPage */
 //    $migrationPath = $page->migrationsPath() . $page->name . '/';
-    //  compare before render
-    $installedStatus = $page->exportData('compare');
-    $exportStatus = ($installedStatus['status'] == 'installed') ? 'exported' : 'pending';
-//bd($installedStatus, '$installedStatus in migration control');
     $locked = ($page->meta('locked'));
+//bd($installedStatus, '$installedStatus in migration control');
     $display = wire('modules')->get("InputfieldMarkup");
-    if ($page->meta('installable')) {
-        $text = (!$locked) ? 'This page is installable here. It cannot be amended.' : 'This page is locked and cannot be changed or actioned.';
-        $text2 = 'The status of installation is "';
-        $text2 .= (!$locked) ? $installedStatus['status'] . '".' : (($installedStatus['status'] != 'indeterminate') ? $installedStatus['status'] : 'superseded".');
+    if ($locked) {
+        $text = 'This page is locked and cannot be changed or actioned unless you unlock it.';
+        $text2 = '';
     } else {
-        $text = (!$locked) ? 'This page is exportable - i.e. you can generate migration data from it.' : 'This page is locked and cannot be changed or actioned unless you unlock it.';
-        $text2 = 'The status of the export is "';
-        $text2 .= (!$locked) ? $exportStatus . '".' : (($exportStatus == 'exported') ? $exportStatus : 'superseded".');
+        //  compare before render
+        $installedStatus = $page->exportData('compare');
+        $exportStatus = ($installedStatus['status'] == 'installed') ? 'exported' : 'pending';
+        if ($page->meta('installable')) {
+            $text = 'This page is installable here. It cannot be amended.';
+            $text2 = 'The status of installation is "';
+            $text2 .= $installedStatus['status'] . '".';
+        } else {
+            $text = 'This page is exportable - i.e. you can generate migration data from it.';
+            $text2 = 'The status of the export is "';
+            $text2 .= $exportStatus . '".';
+        }
     }
     $display->value = $text . '<br/>' . $text2;
     echo $display->render();
