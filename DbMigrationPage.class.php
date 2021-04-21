@@ -1428,7 +1428,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     public function refresh($found=null) {
-bd('IN REFRESH');
+        //bd('IN REFRESH');
         if (!$this->ready) $this->ready();
         // get the migration details
         $migrationPath = $this->migrationsPath . $this->name;
