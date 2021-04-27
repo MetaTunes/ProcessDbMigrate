@@ -11,14 +11,16 @@ if ($page->template == 'DbMigration') {
     if ($page->status != 1) {
         echo('Page must be published before any actions are available');
     } else {
+
+        //  compare before render
+        $installedStatus = $page->exportData('compare');
+        $form = wire(new InputfieldWrapper());
+        $form->attr('id', 'actions_form');
         // Only show if unlocked
         if (!$page->meta('locked')) {
             $updated = $page->refresh();
             $migrationPath = $page->migrationsPath . $page->name . '/';
-            $form = wire(new InputfieldWrapper());
-            $form->attr('id', 'actions_form');
-            //  compare before render
-            $installedStatus = $page->exportData('compare');
+
             //bd($installedStatus, '$installedStatus in migration actions');
             wire('modules')->get('JqueryUI')->use('modal');
             if ($page->meta('installable')) {
@@ -118,6 +120,21 @@ if ($page->template == 'DbMigration') {
                     $btn->notes('Removes all files, but only files');
                     $form->append($btn);
                 }
+            }
+        } else {
+            // for locked installable migrations show the complete diffs between old and new
+            if ($page->meta('installable') and $installedStatus['reviewedDataDiffs']) {
+                $review = wire(new InputfieldWrapper());
+                $review->label('Review all changes');
+                $review->description('No actions are available, but you can review all the changes included in this migration');
+                $review->notes('Note that it is assumed the migration was fully installed before locking. Subsequent changes may have occurred.');
+                $btn = wire('modules')->get("InputfieldButton");
+                $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=review&modal=1');
+                $btn->attr('id', "preview-diffs-review");
+                $btn->attr('value', "Review total differences");
+                $btn->addClass("pw-modal");
+                $review->append($btn);
+                $form->append($review);
             }
         }
         echo $form->render();

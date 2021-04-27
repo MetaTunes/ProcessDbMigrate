@@ -30,7 +30,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'summary' => 'Maintain migration data',
             'comments' => 'N.B. This module also requires classes DefaultPage and DbMigrationPage',
             'author' => 'Mark Evens',
-            'version' => "0.0.6",
+            'version' => "0.0.7",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
@@ -600,7 +600,9 @@ public function ready() {
         $compare = $migrationPage->exportData('compare');
         $arrayComparison = $compare[$diffs];
         //bd($arrayComparison, 'array comparison');
-        $out = '<h1>Differences between Current and ' . $comparisonType . ' data</h1>';
+        $col1 = ($target == 'review') ? 'pre-installation' : 'current';
+        $col2 = ($target == 'review') ? 'post-installation' : $comparisonType;
+        $out = "<h1>Differences between $col1 and $col2 data</h1>";
         if (!$arrayComparison) {
             if ($compare['installedMigrationDiffs']) {
                 $out .= '<h2>No data differences, but there are other differences in the migration definition.</h2>';
@@ -614,7 +616,7 @@ public function ready() {
             return $out;
         }
         $out .= '<div class="uk-overflow-auto">';
-        $out .= '<table class="uk-table uk-table-divider uk-table-hover" style="white-space: pre-wrap; table-layout: fixed; width: 100%"><thead style="font-weight:bold"><tr><th class="uk-width-1-5">Key</th><th class="uk-width-2-5">Current</th><th class="uk-width-2-5">' . $comparisonType . '</th></tr></thead>';
+        $out .= '<table class="uk-table uk-table-divider uk-table-hover" style="white-space: pre-wrap; table-layout: fixed; width: 100%"><thead style="font-weight:bold"><tr><th class="uk-width-1-5">Key</th><th class="uk-width-2-5">' . $col1 . '</th><th class="uk-width-2-5">' . $col2 . '</th></tr></thead>';
         $out .= '<tbody>';
         foreach ($arrayComparison as $key => $value) {
             $out .= '<tr style="font-style:italic"><td>' . $key . '</td>';

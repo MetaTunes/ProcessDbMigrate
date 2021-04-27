@@ -614,17 +614,17 @@ protected function shouldExist($action, $compareType) {
      * @throws WireException
      * @throws WirePermissionException
      */
-    public function pruneImageFields($diffs) {
+    public function pruneImageFields($diffs, $newOld) {
         //bd($diffs, 'Page diffs before unset');
         // Prune the result for any image/file fields with url/path/modified/created mismatches (as this will probably always differ)
         foreach ($diffs as $pName => $data) {
-            // $data should be a 2-item array
             if (is_array($data)) {
                 if (strpos($pName, 'pages') === 0) {
-                    $diffsRemain = false;
+                    $diffsRemain = true;
                     foreach ($data as $fName => $values) {
+                        // $values should be a 2-item array
                         if (!$values or !is_array($values) or count($values) == 0) {
-                            $diffsRemain = true;
+//                            $diffsRemain = true;
                             continue;
                         }
                         $field = $this->wire('fields')->get($fName);
@@ -634,6 +634,8 @@ protected function shouldExist($action, $compareType) {
                             if (is_array($diffs[$pName][$fName]) and count($diffs[$pName][$fName]) > 0) {
                                 $diffsRemain = true;
                                 //bd($diffs[$pName][$fName], 'remaining diffs in images');
+                            } else {
+                                $diffsRemain = false;
                             }
                         }
                         if ($field and $field->type == 'FieldtypeTextarea') {
@@ -644,12 +646,14 @@ protected function shouldExist($action, $compareType) {
 //                                $newVals[] = preg_replace($re, '/files/xxxx/', $value);
 //                            }
                             //bd($this->meta('idMap'), 'id map in prune');
-                            $values[1] = $this->replaceImgSrc($values[1], $this->meta('idMap'));
+//                            $values[1] = $this->replaceImgSrc($values[1], $this->meta('idMap'));
+                            $values[1] = $this->replaceImgSrcPath($values[1], $newOld);
                             $diffs[$pName][$fName] = $values;
                             if ($values[0] != $values[1]) {
                                 $diffsRemain = true;
                             } else {
                                 unset($diffs[$pName][$fName]);
+                                $diffsRemain = false;
                             }
                             //bd($values, 'textarea values after replace');
                         }
@@ -793,24 +797,34 @@ protected function shouldExist($action, $compareType) {
                 $cmpArray['new'] = $this->compactArray(wireDecodeJSON($objectJson['new']));
                 $cmpArray['old'] = $this->compactArray(wireDecodeJSON($objectJson['old']));
                 $R = $this->array_compare($newArray, $cmpArray['new']);
-                $R = $this->pruneImageFields($R);
+                $R = $this->pruneImageFields($R, 'new');
+                //bd($R, 'new diffs');
                 //bd($R, ' array compare new->cmp');
                 $jsonR = wireEncodeJSON($R);
                 //bd($jsonR, ' array compare json new->cmp');
                 $installedData = (!$R);
                 $installedDataDiffs = $R;
                 $R2 = $this->array_compare($oldArray, $cmpArray['old']);
-                $R2 = $this->pruneImageFields($R2);
+                $R2 = $this->pruneImageFields($R2, 'old');
                 //bd($R2, ' array compare old->cmp');
                 $jsonR2 = wireEncodeJSON($R2);
                 //bd($jsonR2, ' array compare json old->cmp');
                 $uninstalledData = (!$R2);
                 $uninstalledDataDiffs = $R2;
+                // Finally compare the total difference between old and new files if both files are present
+                if ($newFile and $oldFile) {
+                    $R3 = $this->array_compare($newArray, $oldArray);
+                    $R3 = $this->pruneImageFields($R3, 'new');
+                    $reviewedDataDiffs = $R3;
+                } else {
+                    $reviewedDataDiffs = [];
+                }
             } else {
                 $installedData = true;
                 $uninstalledData = true;
                 $installedDataDiffs = [];
                 $uninstalledDataDiffs = [];
+                $reviewedDataDiffs = [];
             }
 
             /*
@@ -829,11 +843,11 @@ protected function shouldExist($action, $compareType) {
                 $cmpMigFile = (file_exists($cachePath . 'migration.json')) ? file_get_contents($cachePath . 'migration.json') : null;
 
                 $R = $this->array_compare($this->compactArray(wireDecodeJSON($newMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
-                $R = $this->pruneImageFields($R);
+                $R = $this->pruneImageFields($R, 'new');
                 $installedMigration = (!$R);
                 $installedMigrationDiffs = $R;
-                $R2 = $this->array_compare(wireDecodeJSON($oldMigFile), wireDecodeJSON($cmpMigFile));
-                $R2 = $this->pruneImageFields($R2);
+                $R2 = $this->array_compare($this->compactArray(wireDecodeJSON($oldMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
+                $R2 = $this->pruneImageFields($R2, 'old');
                 $uninstalledMigration = (!$R2);
                 $uninstalledMigrationDiffs = $R2;
             } else {
@@ -884,6 +898,7 @@ protected function shouldExist($action, $compareType) {
                 'installedMigrationDiffs' => $installedMigrationDiffs,
                 'uninstalledMigration' => $uninstalledMigration,
                 'uninstalledMigrationDiffs' => $uninstalledMigrationDiffs,
+                'reviewedDataDiffs' => $reviewedDataDiffs,
             ];
             //bd($result, 'result');
         }
@@ -1131,14 +1146,28 @@ public function getRepeaters($values) {
         if (strpos($html, '<img') === false) return $html; //return early if no images are embedded in html
         foreach ($idMapArray as $origId => $destId) {
             //bd([$origId, $destId], 'Id pair');
-            $re = '/(<img.*' . str_replace('/', '\/', preg_quote($files = $this->wire()->config->urls->files)) . ')' . $origId . '(\/.*>)/m';
+            $re = '/(<img.*' . str_replace('/', '\/', preg_quote($files = $this->wire()->config->urls->files)) . ')' . $origId . '(\/.*>)/mU';
             //bd($re, 'regex pattern');
             $html = preg_replace($re, '${1}' . $destId . '$2', $html);
         }
         return $html;
 }
 
-
+    protected function replaceImgSrcPath($html, $newOld) {
+        if (strpos($html, '<img') === false) return $html; //return early if no images are embedded in html
+            $re = '/(<img.*)' . str_replace('/', '\/', preg_quote($this->wire()->config->urls->files)) . '(.*>)/mU';
+            //bd($re, 'regex pattern');
+        $newHtml = '';
+        $count = 0;
+        while ($newHtml != $html) {
+            $newHtml = preg_replace($re, '${1}' . $this->wire()->config->urls->templates . self::MIGRATION_PATH .
+                $this->name . '/' . $newOld . '/files/' . '$2', $html);
+            if ($count > 100) break;
+            $count ++;
+        }
+            //bd($newHtml, 'new html');
+        return $newHtml;
+    }
 
     /**
      * @param $items
@@ -1990,7 +2019,7 @@ protected function addVariants($migrationFilesPath, $basename, $page, $proposedI
         // ideally array_merge should remove duplication where $C and $D have identical elements, but it doesn't so remove them from $D first
         $R = array_merge_recursive($C, $this->arrayRecursiveDiff_key($D, $C));
        //$this->arrayRecursiveDiff_key($D, $C), 'arrayRecursiveDiff_key($D, $C)');
-        //bd($R, 'array $R');
+       //$R, 'array $R');
 //        uksort($R, function($a, $b) use ($A, $B) {
 //            if (array_key_exists($a, $A) and !array_key_exists($a, $B)) return -1;
 //            if (array_key_exists($a, $B) and !array_key_exists($a, $A)) return 1;
