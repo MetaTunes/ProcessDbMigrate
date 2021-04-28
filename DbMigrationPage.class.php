@@ -1316,8 +1316,12 @@ public function getRepeaters($values) {
                 $this->wire()->notices->message('Set and saved page ' . $name);
             } else {
                 $template = $this->wire()->templates->get($data['template']);
-                $pageClass = $template->getPageClass();
-                $p = new $pageClass();
+                if ($template->pageClass) {
+                    $pageClass = $template->getPageClass();
+                    $p = new $pageClass();
+                } else {
+                    $p = new Page();
+                }
                 $p->name = $name;
                 $p->template = $data['template'];
                 $p->status = $data['status'];
@@ -1479,6 +1483,7 @@ public function getRepeaters($values) {
             } else {
                 if (!$this->meta('installable')) $this->meta('installable', true);
             }
+            $this->meta('sourceDb', $sourceDb);
         }
         if (isset($fileContents['sourceDb'])) unset($fileContents['sourceDb']);
         // set lock status according to presence of lockfile
@@ -1500,7 +1505,7 @@ public function getRepeaters($values) {
 
         //bd($fileContents, 'already found file contents');
 
-            // in practice there is only one item in the array as it is just for the migration page itself
+            // in practice there is only one item in the array (after 'sourceDb' has been unset) as it is just for the migration page itself
         foreach ($fileContents as $type => $content) {
             //bd($content, 'content item');
             foreach ($content as $line) {
@@ -1523,7 +1528,7 @@ public function getRepeaters($values) {
 //                        $test2 = $this->getRepeaterItem($oldContents, '/images/');
 //                        //bd($test1, 'TEST1');
 //                        //bd($test2, 'TEST2');
-// in practice there is only one item in the array as it is just for the migration page itself
+// in practice there is only one item in the array (after 'sourceDb' has been unset) as it is just for the migration page itself
                         if (isset($oldContents['sourceDb'])) unset($oldContents['sourceDb']);
                         foreach ($oldContents as $oldType => $oldContent) {
                             foreach ($oldContent as $oldLine) {
@@ -1546,7 +1551,8 @@ public function getRepeaters($values) {
                             }
                         }
                     }
-                    if ($fileTestCompare and !$this->exportData('compare')['uninstalled'] and !$this->name == 'bootstrap') {
+                    $installedStatus = $this->exportData('compare');
+                    if ($fileTestCompare and !$installedStatus['uninstalled'] and !$this->name == 'bootstrap') {
                         $this->wire()->notices->warning("Migration definition has changed for $pageName \nYou must fully uninstall the current migration before refreshing the definition and installing the new migration.");
                         return false;
                     }
@@ -1554,7 +1560,7 @@ public function getRepeaters($values) {
                     // So now we should have a new migration definition where the previous version has been uninstalled or the changes are only 'cosmetic'
                     // Delete the old files before continuing - a new version of these will be created when the new version of the migration is installed
                     // BUT only do this if the migration is fully uninstalled - do not do it when we are just updating cosmetic changes
-                    if (is_dir($migrationPath . '/old/') and $this->exportData('compare')['uninstalled']) {
+                    if (is_dir($migrationPath . '/old/') and $installedStatus['uninstalled']) {
                         // Do not remove the old directory - retain as backup with date and time appended
                         $timeStamp = $this->wire()->datetime->date('Ymd-Gis');
                         $this->wire()->files->rename($migrationPath . '/old/', $migrationPath . 'old-' . $timeStamp . '/');

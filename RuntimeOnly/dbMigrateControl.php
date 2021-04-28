@@ -29,7 +29,9 @@ if ($page->template == 'DbMigration') {
             $text2 .= $exportStatus . '".';
         }
     }
-    $display->value = $text . '<br/>' . $text2;
+    $text3 = ' Source database for this migration is ';
+    $text3 .= ($page->meta('sourceDb')) ?  : 'not named';
+    $display->value = $text . '<br/>' . $text2 . '<br/>' . $text3 . '.';
     echo $display->render();
     $form = wire(new InputfieldWrapper());
     $control = wire(new InputfieldWrapper());

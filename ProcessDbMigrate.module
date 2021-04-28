@@ -28,9 +28,9 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'permanent' => false, 		// true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
             'title' => 'ProcessDbMigrate',
             'summary' => 'Maintain migration data',
-            'comments' => 'N.B. This module also requires classes DefaultPage and DbMigrationPage',
+            'comments' => '',
             'author' => 'Mark Evens',
-            'version' => "0.0.7",
+            'version' => "0.0.8",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
