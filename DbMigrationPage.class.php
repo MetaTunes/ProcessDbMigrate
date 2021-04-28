@@ -1033,7 +1033,7 @@ public function getRepeaters($values) {
      * @throws WirePermissionException
      */
     public function installMigration($newOld) {
-        if (!$this->ready) $this->ready();
+        if (!$this->ready and $this->name != 'dummy-bootstrap') $this->ready();
        //$this, 'In install with newOld = ' . $newOld);
         // Backup the old installation first
         if ($newOld == 'new' and $this->name != 'dummy-bootstrap') $this->exportData('old');
