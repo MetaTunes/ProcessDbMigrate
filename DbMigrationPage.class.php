@@ -77,7 +77,7 @@ public function init() {
         $this->set('migrationsPath', wire('config')->paths->templates . self::MIGRATION_PATH);
         $this->set('configData', wire('modules')->getConfig('ProcessDbMigrate'));
         // Fix for versions < 3.0.152, but left in place regardless of version, in case custom page classes are not enabled
-        if ($this->migrationTemplate->getPageClass() != __CLASS__) {
+        if ($this->migrationTemplate->pageClass != __CLASS__) {
             $this->migrationTemplate->pageClass = __CLASS__;
             $this->migrationTemplate->save();
         }
@@ -1317,7 +1317,7 @@ public function getRepeaters($values) {
             } else {
                 $template = $this->wire()->templates->get($data['template']);
                 if ($template->pageClass) {
-                    $pageClass = $template->getPageClass();
+                    $pageClass = $template->pageClass;
                     $p = new $pageClass();
                 } else {
                     $p = new Page();

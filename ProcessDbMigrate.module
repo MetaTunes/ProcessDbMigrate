@@ -30,7 +30,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'summary' => 'Maintain migration data',
             'comments' => '',
             'author' => 'Mark Evens',
-            'version' => "0.0.8",
+            'version' => "0.0.9",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
