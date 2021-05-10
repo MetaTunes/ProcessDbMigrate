@@ -1367,7 +1367,7 @@ public function getRepeaters($values) {
                 $p->of(false);
                 $p->save();
                 $fields = $this->setAndSaveFiles($fields, $newOld, $p); // saves files and images, returning other fields
-                //bd($fields, 'fields to save');
+                bd($fields, 'fields to save');
                 $p->setAndSave($fields);
                 $this->setAndSaveRepeaters($repeaters, $p);
                 $this->wire()->notices->message($this->_('Set and saved page ') . $name);
@@ -1968,6 +1968,16 @@ public function getRepeaters($values) {
                         if ($p and $p->id) $pa->add($p);
                     }
                     $page->$fieldName->add($pa);
+                } elseif ($f->type == 'FieldtypePage') {
+                    $a = new PageArray();
+                    //bd($fieldValue, 'field type page');
+                    foreach ($fieldValue as $item) {
+                        $p = $this->wire()->pages->get($item);
+                        if ($p) $a->add($p);
+                    }
+                    $page->of(false);
+                    $page->$fieldName= $a;
+                    //bd($page->$fieldName, 'page field value');
                 } elseif ($f->type == 'FieldtypeTemplates') {
                     $a = [];
                     //bd($fieldValue, 'field type templates');
