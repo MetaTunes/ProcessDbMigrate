@@ -14,9 +14,11 @@ $(document).ready(function () {
     $('.AdminDataTable  .abbreviate').each(shortNotes);
 
 
-    $('#remove_files').click(function (event) {
-        if (!confirm('Are you sure you want to remove the files for this migration? All files (in "old" and "new" directories) will be removed. This page will remain.')) {
-            event.preventDefault();
+    $('.ProcessPageEdit-template-DbMigration #delete_page').click(function (event) {
+        if ($(this).prop('checked')) {
+            if (!confirm(ProcessWire.config.ProcessDbMigrate.confirmDelete)) {
+                event.preventDefault();
+            }
         }
     });
 

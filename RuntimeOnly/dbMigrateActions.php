@@ -8,8 +8,13 @@
 
 if ($page->template == 'DbMigration') {
     /* @var $page \ProcessWire\DbMigrationPage */
+    $config->js('dbMigrateActions', [
+        'confirmRemoveFiles' => __("Are you sure you want to remove the migration files? All files (including those required for uninstallation in this environment) will be removed. 
+This may mean that some image files may be lost if they are not installed. Please check that all required image files are in /site/assets/files/ before proceeding. 
+This page will remain and can be re-exported based on the current database (and files).")
+    ]);
     if ($page->status != 1) {
-        echo('Page must be published before any actions are available');
+        echo __("Page must be published before any actions are available");
     } else {
 
         //  compare before render
@@ -28,13 +33,13 @@ if ($page->template == 'DbMigration') {
 
                     //Install button
                     $install = wire(new InputfieldWrapper());
-                    $install->label('Install actions');
-                    $install->description('This migration is not (fully) installed. Install it or preview to see the effect of installation.');
+                    $install->label(__('Install actions')); //Install is adjective
+                    $install->description(__('This migration is not (fully) installed. Install it or preview to see the effect of installation.'));
                     $btn = wire('modules')->get("InputfieldButton");
                     $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/install-migration/?id=" . $page->id);
                     $btn->attr('id', "install_migration");
-                    $btn->attr('value', "Install Migration");
-                    $btn->notes("If an installation did not work completely,\n try redoing it before diagnosing differences with previews.");
+                    $btn->attr('value', __("Install Migration")); // Install is verb
+                    $btn->notes(__("If an installation did not work completely,\n try redoing it before diagnosing differences with previews."));
                     $install->append($btn);
 
                     //Preview button
@@ -43,20 +48,20 @@ if ($page->template == 'DbMigration') {
                         $btn = wire('modules')->get("InputfieldButton");
                         $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=install&modal=1');
                         $btn->attr('id', "preview-diffs-install");
-                        $btn->attr('value', "Preview differences");
+                        $btn->attr('value', __("Preview differences"));
                         $btn->addClass("pw-modal");
                         $install->append($btn);
                     }
                     $form->append($install);
                 } else {
                     $install = wire(new InputfieldWrapper());
-                    $install->label('Install actions');
+                    $install->label(__('Install actions')); //Install is adjective
                     $mkup = wire('modules')->get("InputfieldMarkup");
                     if ($updated) {
-                        $annotate = (is_dir($migrationPath . 'old/')) ? "You may uninstall it." : "It is not possible to uninstall it.";
-                        $mkup->attr('value', "This migration is installed. No further install actions are required.\n" . $annotate);
+                        $annotate = (is_dir($migrationPath . 'old/')) ? __("You may uninstall it.") : __("It is not possible to uninstall it.");
+                        $mkup->attr('value', __("This migration is installed. No further install actions are required.\n") . $annotate); //Install is adjective
                     } else {
-                        $mkup->attr('value', "The definition for this migration has changed. You need to uninstall it fully then refresh it before you can install the new version.");
+                        $mkup->attr('value', __("The definition for this migration has changed. You need to uninstall it fully then refresh it before you can install the new version."));
                     }
                     $install->append($mkup);
                     $form->append($install);
@@ -66,17 +71,17 @@ if ($page->template == 'DbMigration') {
                     //Uninstall button
 
                     $uninstall = wire(new InputfieldWrapper());
-                    $uninstall->label('Uninstall actions');
+                    $uninstall->label(__('Uninstall actions')); //Uninstall is adjective
                     if ($page->name != 'bootstrap') {
-                        $uninstall->description('This migration is not (fully) uninstalled. Uninstall it or preview to see the effect of uninstallation.');
+                        $uninstall->description(__('This migration is not (fully) uninstalled. Uninstall it or preview to see the effect of uninstallation.'));
                         $btn = wire('modules')->get("InputfieldButton");
                         $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/uninstall-migration/?id=" . $page->id);
                         $btn->attr('id', "uninstall_migration");
-                        $btn->attr('value', "Uninstall Migration");
-                        $btn->notes("If an uninstallation did not work completely,\n try redoing it before diagnosing differences with previews.");
+                        $btn->attr('value', __("Uninstall Migration")); // Uninstall is verb
+                        $btn->notes(__("If an uninstallation did not work completely,\n try redoing it before diagnosing differences with previews."));
                         $uninstall->append($btn);
                     } else {
-                        $uninstall->notes("Bootstrap is only uninstallable by uninstalling ProcessDbMigrate module");
+                        $uninstall->notes(__("Bootstrap is only uninstallable by uninstalling ProcessDbMigrate module"));
                     }
 
                     //Preview button
@@ -85,7 +90,7 @@ if ($page->template == 'DbMigration') {
                         $btn = wire('modules')->get("InputfieldButton");
                         $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=uninstall&modal=1');
                         $btn->attr('id', "preview-diffs-uninstall");
-                        $btn->attr('value', "Preview differences");
+                        $btn->attr('value', __("Preview differences"));
                         $btn->addClass("pw-modal");
                         $uninstall->append($btn);
                     }
@@ -98,7 +103,7 @@ if ($page->template == 'DbMigration') {
                 $btn = wire('modules')->get("InputfieldButton");
                 $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/export-data/?id=" . $page->id);
                 $btn->attr('id', "export_data");
-                $btn->attr('value', "Export Data");
+                $btn->attr('value', __("Export Data"));
                 $form->append($btn);
 
                 // preview button
@@ -106,7 +111,7 @@ if ($page->template == 'DbMigration') {
                     $btn = wire('modules')->get("InputfieldButton");
                     $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=export&modal=1');
                     $btn->attr('id', "preview-diffs-export");
-                    $btn->attr('value', "Preview differences");
+                    $btn->attr('value', __("Preview differences"));
                     $btn->addClass("pw-modal");
                     $form->append($btn);
                 }
@@ -116,8 +121,8 @@ if ($page->template == 'DbMigration') {
                     $btn = wire('modules')->get("InputfieldButton");
                     $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/remove-files/?id=" . $page->id);
                     $btn->attr('id', "remove_files");
-                    $btn->attr('value', "Remove migration files");
-                    $btn->notes('Removes all files, but only files');
+                    $btn->attr('value', __("Remove migration files"));
+                    $btn->notes(__('Removes all files, but only files'));
                     $form->append($btn);
                 }
             }
@@ -125,13 +130,13 @@ if ($page->template == 'DbMigration') {
             // for locked installable migrations show the complete diffs between old and new
             if ($page->meta('installable') and $installedStatus['reviewedDataDiffs']) {
                 $review = wire(new InputfieldWrapper());
-                $review->label('Review all changes');
-                $review->description('No actions are available, but you can review all the changes included in this migration');
-                $review->notes('Note that it is assumed the migration was fully installed before locking. Subsequent changes may have occurred.');
+                $review->label(__('Review all changes'));
+                $review->description(__('No actions are available, but you can review all the changes included in this migration'));
+                $review->notes(__('Note that it is assumed the migration was fully installed before locking. Subsequent changes may have occurred.'));
                 $btn = wire('modules')->get("InputfieldButton");
                 $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=review&modal=1');
                 $btn->attr('id', "preview-diffs-review");
-                $btn->attr('value', "Review total differences");
+                $btn->attr('value', __("Review total differences"));
                 $btn->addClass("pw-modal");
                 $review->append($btn);
                 $form->append($review);
