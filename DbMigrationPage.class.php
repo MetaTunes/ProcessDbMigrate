@@ -41,7 +41,7 @@ else
 class DbMigrationPage extends DummyMigrationPage
 {
 
- // Module constants
+ // Module constanta
     const MIGRATION_TEMPLATE = 'DbMigration';
     const MIGRATION_PARENT = 'dbmigrations/';
     const MIGRATION_PATH = 'DbMigrate/migrations/';
@@ -83,8 +83,6 @@ public function init() {
         }
         $this->addHookAfter("Pages::saved(template=$this->migrationTemplate)", $this, 'afterSaved');
         $this->addHookBefore("Pages::save(template=$this->migrationTemplate)", $this, 'beforeSaveThis');
-        $this->addHookBefore("Pages::trash(template=$this->migrationTemplate)", $this, 'beforeTrashThis');
-        $this->addHookAfter("Pages::trashed(template=$this->migrationTemplate)", $this, 'afterTrashedThis');
 
         $this->set('ready', true);
     }
@@ -112,10 +110,10 @@ public function init() {
                     }
                 }
                 if ($exists[0] and $exists[1]) {
-                    $this->wire()->notices->error(sprintf($this->_('Unable to change name for %s as both names already exist'), implode('|', $both)));
+                    $this->wire()->notices->error('Unable to change name for ' . implode('|', $both) . ' as both names already exist');
                     continue;
                 } elseif (!$exists[0] and !$exists[1]) {
-                    $this->wire()->notices->error(sprintf($this->_('Error in %1$s. Neither "%2$s" nor "%3$s" exists.'), $type, $both[0], $both[1]));
+                    $this->wire()->notices->error('Error in ' . $type . '. Neither "' . $both[0] . '" nor "' . $both[1] . '" exists.');
                     continue;
                 } else {
                     $key2 = ($exists[0]) ? $both[0] : $both[1];
@@ -142,7 +140,7 @@ public function init() {
             /* @var $item RepeaterDbMigrateItemPage */
             $k ++;
         if (!$item->dbMigrateType or !$item->dbMigrateAction or !$item->dbMigrateName) {
-                $this->wire()->notices->warning($this->_('Missing values for item ') . $k);
+                $this->wire()->notices->warning('Missing values for item ' . $k);
                 //bd($item, 'missing values in item');
         }
         }
@@ -167,7 +165,7 @@ public function init() {
                 $event->return;
             } else {
                 //bd($this, 'not saving page');
-                $this->warning("$p->name - " . $this->_("This page is only installable. Saving it has no effect."));
+                $this->warning("$p->name - This page is only installable. Saving it has no effect.");
                 $event->replace = true;
                 $event->return;
             }
@@ -192,8 +190,8 @@ public function init() {
                 $exists = ($item['type'] == 'pages') ? ($this->wire()->pages->get($item['name']) and $this->wire()->pages->get($item['name'])->id) : ($this->wire($item['type'])->get($item['name']));
 
                 //Removed fields etc. which still exist or new/changed fields which do not exist
-                if ($item['action'] == 'removed' and $exists) $warnings[] = "{$item['type']} -> {$item['name']} " . $this->_("is listed as 'removed' but exists in the current database");
-                if ($item['action'] != 'removed' and !$exists) $warnings[] = "{$item['type']} -> {$item['name']} " . $this->_("is listed as 'new' or 'changed' but does not exist in the current database");
+                if ($item['action'] == 'removed' and $exists) $warnings[] = "{$item['type']} -> {$item['name']} is listed as 'removed' but exists in the current database";
+                if ($item['action'] != 'removed' and !$exists) $warnings[] = "{$item['type']} -> {$item['name']} is listed as 'new' or 'changed' but does not exist in the current database";
             }
 
             // check for overlapping scopes
@@ -208,41 +206,6 @@ public function init() {
         }
     }
 
-    protected function beforeTrashThis(HookEvent $event) {
-        $p = $event->arguments(0);
-        if (!$p or !$p->id) return;
-        //bd($event, 'hook event');
-        if ($this != $p) return;  // only want this method to run on the current instance, not all instances of this class
-        $migrationPath = $this->migrationsPath . $this->name . '/';
-        if (is_dir($migrationPath)) {
-            wire()->session->warning('Cannot delete a migration page which has files. Please delete the migration files first. 
-            Also check that this migration is not used by any other database.');
-            $event->replace = true;
-            $event->return = null;
-        } else {
-            $this->meta()->remove('installable'); // there are no migration files, so remove the 'installable' meta to enable deletion
-        }
-    }
-
-    protected function afterTrashedThis(HookEvent $event) {
-        $p = $event->arguments(0);
-        if (!$p or !$p->id) return;
-        //bd($event, 'hook event');
-        if ($this != $p) return;  // only want this method to run on the current instance, not all instances of this class
-        // Find where the setup page is because it might have been moved after installation
-        $admins = wire()->pages->find("template=admin");
-        $setupPage = null;
-        foreach ($admins as $p) {
-            if ($p->process == 'ProcessDbMigrate') {
-                $setupPage = $p;
-                break;
-            }
-        }
-        if ($setupPage) {
-            $this->wire()->session->redirect($setupPage->url);
-        }
-    }
-
 
     /**
      * Check that names and oldNames of current migration do not overlap with those of other (unlocked) migrations
@@ -254,7 +217,7 @@ public function init() {
     protected function checkOverlaps($itemList) {
         $warnings = [];
         if (!$this->migrations or !$this->migrations->id) {
-            $this->wire()->notices->error($this->_('Missing dbmigrations page'));
+            $this->wire()->notices->error('Missing dbmigrations page');
             return false;
         }
         $itemOldNames = array_filter($this->extractElements($itemList, 'oldName'));
@@ -275,11 +238,11 @@ public function init() {
             if ($intersectOld) $intersectionOld[] = $migration->name . ': ' . implode(', ', $intersectOld);
         }
         $intersectString = implode('; ', $intersection);
-        if ($intersection) $warnings[] = sprintf($this->_("Item names in %s overlap with names in other migrations as follows"), $this->name) . " - \n $intersectString";
+        if ($intersection) $warnings[] = "Item names in {$this->name} overlap with names in other migrations as follows - \n $intersectString";
         $intersectOldString = implode('; ', $intersectionOld);
-        if ($intersectionOld) $warnings[] = sprintf($this->_("Item old names in %s overlap with old names in other migrations as follows"), $this->name) . " - \n $intersectOldString";
+        if ($intersectionOld) $warnings[] = "Item old names in {$this->name} overlap with old names in other migrations as follows - \n $intersectOldString";
         if ($warnings) {
-            $warnings[] = "\n" . $this->_("It is recommended that you make the migrations disjoint, or install and lock an overlapping migration.");
+            $warnings[] = "\nIt is recommended that you make the migrations disjoint, or install and lock an overlapping migration.";
         }
         if ($warnings) $this->wire()->notices->warning(implode('; ', $warnings));
         return true;
@@ -321,7 +284,7 @@ public function init() {
                             $names[] = $page->path;
                         }
                     } catch (WireException $e) {
-                        $this->wire()->notices->error($this->_('Invalid selector: ') . $item->dbMigrateName);
+                        $this->wire()->notices->error('Invalid selector: ' . $item->dbMigrateName);
                     }
                 } else {
                 $names = [$item->dbMigrateName];
@@ -357,11 +320,11 @@ public function init() {
         foreach ($itemList as $item)
             if ($item['type'] == 'pages') {
                 if (!$this->validPath($item['name']) or ($item['oldName'] and !$this->validPath($item['oldName']))) {
-                    $errors[] = $this->_('Invalid path name (or old path name) for ') . $item['type'] . '->' . $item['action'] . '->' . $item['name'];
+                    $errors[] = 'Invalid path name (or old path name) for ' . $item['type'] . '->' . $item['action'] . '->' . $item['name'];
                 }
             } else {
                 if (!$this->wire->sanitizer->fieldName($item['name']) or ($item['oldName'] and !$this->wire->sanitizer->fieldName($item['oldName']))) {
-                    $errors[] = $this->_('Invalid name (or old name) for ') . $item['type'] . '->' . $item['action'] . '->' . $item['name'];
+                    $errors[] = 'Invalid name (or old name) for ' . $item['type'] . '->' . $item['action'] . '->' . $item['name'];
                 }
             }
         return $errors;
@@ -469,10 +432,10 @@ protected function shouldExist($action, $compareType) {
         $empty = ['data' => [], 'files' => []];
 
         if (!$item['type'] or !$item['action'] or !$item['name']) {
-            if ($newOld == 'new' and $compareType == 'new') {
-                $this->wire()->notices->warning($this->_('Missing values for item ') . $k);
-                //bd($item, 'missing values in item');
-            }
+           if ($newOld == 'new' and $compareType == 'new') {
+               $this->wire()->notices->warning('Missing values for item ' . $k);
+               //bd($item, 'missing values in item');
+           }
             return $empty;
         }
 
@@ -481,14 +444,14 @@ protected function shouldExist($action, $compareType) {
             $isOld = $this->wire($item['type'])->get($item['oldName']);
             $isNew = $this->wire($item['type'])->get($item['name']);
             if ($isNew and $isNew->id and $isOld and $isOld->id) {
-                $this->wire()->notices->warning(sprintf($this->_('Both new name (%1$s) and old name (%2$s) exist in the database. Please use unique names.'), $item['name'], $item['oldName']));
+                $this->wire()->notices->warning("Both new name ({$item['name']}) and old name ({$item['oldName']}) exist in the database. Please use unique names.");
                 return $empty;
             }
             if ($isOld and $isOld->id) {
                 $itemName = $item['oldName'];
                 //bd($item['oldName'], 'using old name');
             } elseif (!$isNew or !$isNew->id) {
-                $this->wire()->notices->warning(sprintf($this->_('Neither new name (%1$s) nor old name (%2$s) exist in the database.'), $item['name'], $item['oldName']));
+                $this->wire()->notices->warning("Neither new name ({$item['name']}) nor old name ({$item['oldName']}) exist in the database.");
                 return $empty;
             }
 
@@ -507,7 +470,7 @@ protected function shouldExist($action, $compareType) {
                     // the array is of page objects, but that's OK here because getExportPageData allows objects or path names
                     // selectors do not respect sort=path - we want parents before children and natural sort order is, well, more natural
                     if (strpos($itemName, 'sort=path')) {
-                        usort($pagePaths, function ($a, $b) {
+                        usort($pagePaths,function ($a, $b) {
                             return strnatcmp($a->path, $b->path);
                         });
                         if ($item['action'] == 'removed') $pagePaths = array_reverse($pagePaths); // children before parents when deleting!
@@ -516,7 +479,7 @@ protected function shouldExist($action, $compareType) {
                     $selector = true;
 
                 } catch (WireException $e) {
-                    $this->wire()->notices->error($this->_('Invalid selector: ') . $itemName);
+                    $this->wire()->notices->error('Invalid selector: ' . $itemName);
                     return $empty;
                 }
             } else {
@@ -529,26 +492,22 @@ protected function shouldExist($action, $compareType) {
             //bd($pagePaths, 'Paths for ' . $item['action'] . ' ' . $item['name'] . ' in context ' . $compareType);
         }
 
-
+        $shouldExist = $this->shouldExist($item['action'], $compareType); //should the item exist as a database object in this context?
+        //bd($shouldExist, $item['type'] . ' - ' . $item['action'] . ' - ' . $itemName . ' should exist in context  ' . $compareType);
 
         try {
             $object = $this->wire($item['type'])->get($itemName);
         } catch (WireException $e) {
-            $this->wire()->notices->error($this->_('Invalid name: ') . $itemName);
+            $this->wire()->notices->error('Invalid name: ' . $itemName);
             return $empty;
         }
         //bd($object, 'object is');
-        // Check object existence if migration is not exported/installed
-        if (!$this->meta('installedStatus') or !$this->meta('installedStatus')['installed']) {
-            $shouldExist = $this->shouldExist($item['action'], $compareType); //should the item exist as a database object in this context?
-            //bd($shouldExist, $item['type'] . ' - ' . $item['action'] . ' - ' . $itemName . ' should exist in context  ' . $compareType);
-            if (!$object or !$object->id or $object->id == 0 and $newOld != 'compare') {
-                if ($shouldExist) $this->wire()->notices->warning($this->name . ': No database object for ' . $itemName);
-                $data = $data = [$item['type'] => [$item['action'] => [$itemName => []]]];
-                return ['data' => $data, 'files' => []];
-            } elseif (!$shouldExist and $newOld == 'new') {                               // 2nd condition is to avoid double reporting for new and old
-                $this->wire()->notices->warning("{$this->name}: " . sprintf($this->_('There is already a database object for %s but none should exist'), $itemName));
-            }
+        if (!$object or !$object->id or $object->id == 0 and $newOld != 'compare') {
+            if ($shouldExist) $this->wire()->notices->warning($this->name . ': No database object for ' . $itemName);
+            $data = $data = [$item['type'] => [$item['action'] => [$itemName => []]]];
+            return ['data' =>$data, 'files' => []];
+        } elseif (!$shouldExist and $newOld == 'new') {                               // 2nd condition is to avoid double reporting for new and old
+            $this->wire()->notices->warning("{$this->name}: There is already a database object for $itemName but none should exist");
         }
         
         if ($item['type'] == 'pages') {
@@ -598,9 +557,9 @@ protected function shouldExist($action, $compareType) {
                             }
                         }
                         if (!$templateOk and $newOld == 'new') {
-                            $w2 = ($item['action'] = 'new') ? '. ' . sprintf($this->_('Template %s should be specified (as new) before the repeater'), $templateName) :
-                                '. ' . sprintf($this->_('If it has changed, consider if template %s should be specified (as changed) before the repeater'), $templateName);
-                            $this->wire()->notices->warning($this->_("No template specified earlier in installation for repeater") .  $objectData['name'] . $w2);
+                            $w2 = ($item['action'] = 'new') ? '. Template ' . $templateName . ' should be specified (as new) before the repeater' :
+                                '. If it has changed, consider if template ' . $templateName . ' should be specified (as changed) before the repeater';
+                            $this->wire()->notices->warning("No template specified earlier in installation for repeater {$objectData['name']}  $w2");
                         }
 
                     }
@@ -631,7 +590,6 @@ protected function shouldExist($action, $compareType) {
         foreach ($data as $entry) {
             if (is_array($entry)) foreach ($entry as $type => $line) {
                 if ($type == 'sourceDb') continue; // Ignore source database tags in comparisons
-                //bd([$type, $line], 'compact item');
                 if (is_array($line)) foreach ($line as $action => $item) {
                     if (is_array($item)) foreach ($item as $name => $values) {
                         if ($type == 'pages' and $action == 'removed' and !$this->wire()->sanitizer->path($name)) {
@@ -656,17 +614,17 @@ protected function shouldExist($action, $compareType) {
      * @throws WireException
      * @throws WirePermissionException
      */
-    public function pruneImageFields($diffs) {
+    public function pruneImageFields($diffs, $newOld) {
         //bd($diffs, 'Page diffs before unset');
-        // Prune the result for any image/file fields with url/path mismatches (as this will probably always differ)
+        // Prune the result for any image/file fields with url/path/modified/created mismatches (as this will probably always differ)
         foreach ($diffs as $pName => $data) {
             if (is_array($data)) {
                 if (strpos($pName, 'pages') === 0) {
-                    $diffsRemain = [];
+                    $diffsRemain = true;
                     foreach ($data as $fName => $values) {
-                        $diffsRemain[$pName][$fName] = true;
-                        //bd([$fName => $values], "[Field name => Values] in pruneImageFields for $pName");
+                        // $values should be a 2-item array
                         if (!$values or !is_array($values) or count($values) == 0) {
+//                            $diffsRemain = true;
                             continue;
                         }
                         $field = $this->wire('fields')->get($fName);
@@ -674,25 +632,38 @@ protected function shouldExist($action, $compareType) {
                             if (isset($values['url'])) unset($diffs[$pName][$fName]['url']);
                             if (isset($values['path'])) unset($diffs[$pName][$fName]['path']);
                             if (is_array($diffs[$pName][$fName]) and count($diffs[$pName][$fName]) > 0) {
-                                $diffsRemain[$pName][$fName] = true;
+                                $diffsRemain = true;
                                 //bd($diffs[$pName][$fName], 'remaining diffs in images');
                             } else {
-                                $diffsRemain[$pName][$fName] = false;
+                                $diffsRemain = false;
                             }
                         }
-                    }
-                    foreach ($data as $fName => $values) {
-                        if (!$diffsRemain[$pName][$fName]) {
-                            //bd($diffs[$pName][$fName], "unset field $pName -> $fName");
-                            unset($diffs[$pName][$fName]);
-                            unset($diffsRemain[$pName][$fName]);
+                        if ($field and $field->type == 'FieldtypeTextarea') {
+                            //bd($values, 'textarea values');
+//                            $newVals = [];
+//                            foreach ($values as $value) {
+//                                $re = '/\/files\/\d*\//m';
+//                                $newVals[] = preg_replace($re, '/files/xxxx/', $value);
+//                            }
+                            //bd($this->meta('idMap'), 'id map in prune');
+//                            $values[1] = $this->replaceImgSrc($values[1], $this->meta('idMap'));
+                            $values[1] = $this->replaceImgSrcPath($values[1], $newOld);
+                            $diffs[$pName][$fName] = $values;
+                            if ($values[0] != $values[1]) {
+                                $diffsRemain = true;
+                            } else {
+                                unset($diffs[$pName][$fName]);
+                                $diffsRemain = false;
+                            }
+                            //bd($values, 'textarea values after replace');
                         }
                     }
-                    if (count($diffsRemain[$pName]) == 0 and is_array($diffs[$pName]) and count($diffs[$pName]) == 0) {
-                        // (don't unset page if there are more than just image fields for this page)
-                        //bd($diffs[$pName], "unset page $pName");
-                        unset($diffs[$pName]);
+                    if (!$diffsRemain) {
+                        foreach ($data as $fName => $values) {
+                            unset($diffs[$pName][$fName]);
+                        }
                     }
+                    if (!$diffsRemain and is_array($diffs[$pName]) and count($diffs[$pName]) == 0) unset($diffs[$pName]);
                 }
             }
         }
@@ -748,7 +719,6 @@ protected function shouldExist($action, $compareType) {
         $itemRepeater = $this->dbMigrateItem;
         $items = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'new');
         $data = $items['data'];
-        //bd($data, 'data for json');
         $files['new'] = $items['files'];
         $reverseItems = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'old'); // cycleItems will reverse order for uninstall
         $reverseData = $reverseItems['data'];
@@ -759,7 +729,7 @@ protected function shouldExist($action, $compareType) {
         //bd($objectJson, '$objectJson ($newOld = ' . $newOld . ')');
         if ($newOld != 'compare') {
             file_put_contents($migrationPathNewOld . 'data.json', $objectJson[$newOld]);
-            $this->wire()->notices->message($this->_('Exported object data as') . ' ' . $migrationPathNewOld . 'data.json');
+            $this->wire()->notices->message('Exported object data as ' . $migrationPathNewOld . '"data.json"');
             //bd($files[$newOld], '$files[$newOld]');
             foreach ($files[$newOld] as $fileArray) {
                 foreach ($fileArray as $id => $baseNames) {
@@ -781,7 +751,7 @@ protected function shouldExist($action, $compareType) {
                         foreach ($copyFiles as $copyFile) {
                             if (file_exists($copyFile)) {
                                 $this->wire()->files->copy($copyFile, $migrationPathNewOld . 'files/' . $id . '/');
-                                $this->wire()->notices->message(sprintf($this->_('Copied file %s to '), $copyFile) . $migrationPathNewOld . 'files/' . $id . '/');
+                                $this->wire()->notices->message('Copied file ' . $copyFile . ' to ' . $migrationPathNewOld . 'files/' . $id . '/');
                             }
                         }
                     }
@@ -802,7 +772,7 @@ protected function shouldExist($action, $compareType) {
         $migrationObjectJson = wireEncodeJSON($migrationData, true, true);
         if ($newOld != 'compare') {
             file_put_contents($migrationPathNewOld . 'migration.json', $migrationObjectJson);
-            $this->wire()->notices->message($this->_('Exported object data as ') . $migrationPathNewOld . '"data.json"');
+            $this->wire()->notices->message('Exported object data as ' . $migrationPathNewOld . '"data.json"');
         }
 
         /*
@@ -822,19 +792,12 @@ protected function shouldExist($action, $compareType) {
 //                $cmpFile = (file_exists($cachePath . 'data.json')) ? file_get_contents($cachePath . 'data.json') : null;
                 // sequence is unimportant
                 //bd($newFile, 'New file');
-                //bd('NEW');
-
                 $newArray = $this->compactArray(wireDecodeJSON($newFile));
-                //bd('OLD');
-                $oldArrayFull = wireDecodeJSON($oldFile);
-                $oldArray = $this->compactArray($oldArrayFull);
-                //bd('New compare');
+                $oldArray = $this->compactArray(wireDecodeJSON($oldFile));
                 $cmpArray['new'] = $this->compactArray(wireDecodeJSON($objectJson['new']));
-                //bd('Old compare');
-                $cmpArrayFull['old'] = wireDecodeJSON($objectJson['old']);
-                $cmpArray['old'] = $this->compactArray($cmpArrayFull['old']);
+                $cmpArray['old'] = $this->compactArray(wireDecodeJSON($objectJson['old']));
                 $R = $this->array_compare($newArray, $cmpArray['new']);
-                $R = $this->pruneImageFields($R);
+                $R = $this->pruneImageFields($R, 'new');
                 //bd($R, 'new diffs');
                 //bd($R, ' array compare new->cmp');
                 $jsonR = wireEncodeJSON($R);
@@ -842,12 +805,7 @@ protected function shouldExist($action, $compareType) {
                 $installedData = (!$R);
                 $installedDataDiffs = $R;
                 $R2 = $this->array_compare($oldArray, $cmpArray['old']);
-                $newOldNames = $this->getPagesFromJson($cmpArrayFull['old']);
-                $oldOldNames = $this->getPagesFromJson($oldArrayFull);
-                $oldIntersect = array_intersect($oldOldNames, $newOldNames);
-                $scopeChange = (count($oldIntersect) == count($oldOldNames) and  count($oldOldNames) == count($newOldNames)) ? false : true;
-                //bd([$scopeChange, $oldIntersect], 'Scope Change?');
-                $R2 = $this->pruneImageFields($R2);
+                $R2 = $this->pruneImageFields($R2, 'old');
                 //bd($R2, ' array compare old->cmp');
                 $jsonR2 = wireEncodeJSON($R2);
                 //bd($jsonR2, ' array compare json old->cmp');
@@ -856,9 +814,7 @@ protected function shouldExist($action, $compareType) {
                 // Finally compare the total difference between old and new files if both files are present
                 if ($newFile and $oldFile) {
                     $R3 = $this->array_compare($newArray, $oldArray);
-                    //bd($R3, 'R3 1');
-                    $R3 = $this->pruneImageFields($R3);
-                    //bd($R3, 'R3 2');
+                    $R3 = $this->pruneImageFields($R3, 'new');
                     $reviewedDataDiffs = $R3;
                 } else {
                     $reviewedDataDiffs = [];
@@ -869,7 +825,6 @@ protected function shouldExist($action, $compareType) {
                 $installedDataDiffs = [];
                 $uninstalledDataDiffs = [];
                 $reviewedDataDiffs = [];
-                $scopeChange = false;
             }
 
             /*
@@ -888,11 +843,11 @@ protected function shouldExist($action, $compareType) {
                 $cmpMigFile = (file_exists($cachePath . 'migration.json')) ? file_get_contents($cachePath . 'migration.json') : null;
 
                 $R = $this->array_compare($this->compactArray(wireDecodeJSON($newMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
-                $R = $this->pruneImageFields($R);
+                $R = $this->pruneImageFields($R, 'new');
                 $installedMigration = (!$R);
                 $installedMigrationDiffs = $R;
                 $R2 = $this->array_compare($this->compactArray(wireDecodeJSON($oldMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
-                $R2 = $this->pruneImageFields($R2);
+                $R2 = $this->pruneImageFields($R2, 'old');
                 $uninstalledMigration = (!$R2);
                 $uninstalledMigrationDiffs = $R2;
             } else {
@@ -933,7 +888,6 @@ protected function shouldExist($action, $compareType) {
             }
             $result = [
                 'status' => $status,
-                'scopeChange' => $scopeChange,
                 'installed' => $installed,
                 'uninstalled' => $uninstalled,
                 'installedData' => $installedData,
@@ -1044,8 +998,8 @@ protected function shouldExist($action, $compareType) {
 //        $numSkippedFields = count($skipFieldNames);  //MDE not applicable
         if($numAddedFields) $this->message(sprintf($this->_n('Added %d field', 'Added %d fields', $numAddedFields), $numAddedFields));
         if($numChangedFields) $this->message(sprintf($this->_n('Modified %d field', 'Modified %d fields', $numChangedFields), $numChangedFields));
-//        if($numSkippedFields) $this->message(sprintf($this->_n('Skipped %d field', 'Skipped %d fields', $numSkippedFields), $numSkippedFields)); //MDE not used
-//        $this->session->redirect("./?verify=1");  //MDE not used
+//        if($numSkippedFields) $this->message(sprintf($this->_n('Skipped %d field', 'Skipped %d fields', $numSkippedFields), $numSkippedFields)); //MDE not applicable
+//        $this->session->redirect("./?verify=1");  //MDE not applicable
     }
 
 
@@ -1091,17 +1045,17 @@ public function getRepeaters($values) {
         $migrationPathNewOld = $migrationPath . $newOld . '/';
         if (!is_dir($migrationPathNewOld)) {
             //bd($migrationPath, '$migrationPath. Name is ' . $name);
-            $error = ($newOld == 'new') ? $this->_('Cannot install - ') : $this->_('Cannot uninstall - ');
-            $error .= sprintf($this->_('No "%s" directory for this migration.'), $newOld);
+            $error = ($newOld == 'new') ? 'Cannot install - ' : 'Cannot uninstall - ';
+            $error .= 'No "' . $newOld . '" directory for this migration.';
             $this->wire()->notices->error($error);
             return;
         }
         $dataFile = (file_exists($migrationPathNewOld . 'data.json')) ? file_get_contents($migrationPathNewOld . 'data.json') : null;
         if (!$dataFile) {
-            $error = ($newOld == 'new') ? $this->_('Cannot install - ') : $this->_('Cannot uninstall - ');
-            $error .= sprintf($this->_('No "%s" data.json file for this migration.'),$newOld);
+            $error = ($newOld == 'new') ? 'Cannot install - ' : 'Cannot uninstall - ';
+            $error .= 'No "' . $newOld . '" data.json file for this migration.';
             if ($name == 'bootstrap') {
-                $error .= $this->_(' Copy the old/data.json file from the module directory into the templates directory then try again?');
+                $error .= ' Copy the old/data.json file from the module directory into the templates directory then try again?';
             }
             $this->wire()->notices->error($error);
             return;
@@ -1199,30 +1153,19 @@ public function getRepeaters($values) {
         return $html;
 }
 
-    /**
-     * Replace image paths in RTE (Textarea) fields with the path to the file in the migration folder - for preview purposes
-     * @param string $html  Text in the RTE field
-     * @param string $newOld  Context - to get the file from the 'new' or 'old' directory as appropriate
-     * @param bool $json
-     * @return string|string[]|null
-     * @throws WireException
-     */
-    public function replaceImgSrcPath($html, $newOld, $json = false) {
+    protected function replaceImgSrcPath($html, $newOld) {
         if (strpos($html, '<img') === false) return $html; //return early if no images are embedded in html
-        $re = '/(<img.*)' . str_replace('/', '\/', preg_quote($this->wire()->config->urls->files)) . '(.*>)/mU';
-        //bd($re, 'regex pattern');
+            $re = '/(<img.*)' . str_replace('/', '\/', preg_quote($this->wire()->config->urls->files)) . '(.*>)/mU';
+            //bd($re, 'regex pattern');
         $newHtml = '';
         $count = 0;
         while ($newHtml != $html) {
             $newHtml = preg_replace($re, '${1}' . $this->wire()->config->urls->templates . self::MIGRATION_PATH .
                 $this->name . '/' . $newOld . '/files/' . '$2', $html);
             if ($count > 100) break;
-            $count++;
+            $count ++;
         }
-        // because json uses double quotes, need to change escaped double quotes to single quotes
-        if ($json) $newHtml = str_replace('\"', "'", $newHtml);
-        //bd($html, 'old html');
-        //bd($newHtml, 'new html');
+            //bd($newHtml, 'new html');
         return $newHtml;
     }
 
@@ -1252,7 +1195,7 @@ public function getRepeaters($values) {
             $templateName = 'repeater_' . $repeater['name'];
             $t = $this->wire()->templates->get($templateName);
             if (!$t) {
-                $this->wire()->notices->error(sprintf($this->_('Cannot install repeater %1$s because template %2$s is missing. Is it out of sequence in the installation list?'), $repeaterName, $templateName));
+                $this->wire()->notices->error('Cannot install repeater ' . $repeaterName . ' because template ' . $templateName . ' is missing. Is it out of sequence in the installation list?');
                 unset($repeaters[$repeaterName]);
             }
         }
@@ -1292,12 +1235,12 @@ public function getRepeaters($values) {
             //bd($result, 'template result');
             if (isset($t) and $t and $result) {
                 $this->saveItem($t);
-                $this->wire()->notices->message($this->_('Saved new settings for ') . $name);
+                $this->wire()->notices->message('Saved new settings for ' . $name);
             } else {
                 if ($result) {
                     $this->wire()->notices->warning(implode('| ', $result));
                 } else {
-                    $this->wire()->notices->message($this->_('No changes to ') . $name);
+                    $this->wire()->notices->message('No changes to ' . $name);
                 }
             }
         }
@@ -1336,7 +1279,7 @@ public function getRepeaters($values) {
             //bd($parent, 'PARENT');
             $template = $this->wire()->templates->get($data['template']);
             if (!$pageIsHome and (!$parent or !$parent->id or !$template or !$template->id)) {
-                $this->wire()->notices->error(sprintf($this->_('Missing parent or template for page "%s". Page not created/saved.'), $name));
+                $this->wire()->notices->error('Missing parent or template for page "' . $name . '". Page not created/saved.');
                 break;
             }
             $data['parent'] = ($pageIsHome) ? 0 : $parent;
@@ -1370,7 +1313,7 @@ public function getRepeaters($values) {
                 //bd($fields, 'fields to save');
                 $p->setAndSave($fields);
                 $this->setAndSaveRepeaters($repeaters, $p);
-                $this->wire()->notices->message($this->_('Set and saved page ') . $name);
+                $this->wire()->notices->message('Set and saved page ' . $name);
             } else {
                 $template = $this->wire()->templates->get($data['template']);
                 if ($template->pageClass) {
@@ -1390,7 +1333,7 @@ public function getRepeaters($values) {
                 $fields = $this->setAndSaveFiles($fields, $newOld, $p); // saves files and images, returning other fields
                 $p->setAndSave($fields);
                 $this->setAndSaveRepeaters($repeaters, $p);
-                $this->wire()->notices->message($this->_('Created page ') . $name);
+                $this->wire()->notices->message('Created page ' . $name);
             }
             if ($origId) $p->meta('origId', $origId); // Save the id of the originating page for matching purposes
             $p->of(false);
@@ -1416,36 +1359,34 @@ public function getRepeaters($values) {
         //bd($items, 'items for deletion. item type is ' . $itemType);
         switch ($itemType) {
             case 'pages' :
-                $newItems = [];
-                foreach ($items as $item => $data) { // $data is probably empty
-                    // For new and changed pages, selector will have been decoded on export. However, for removed pages, decode needs to happen on install
-                    if (!$this->wire()->sanitizer->path($item)) {
-                        //bd($item, 'In removeItems - Selector provided instead of path name');
-                        // we have a selector?
+                if (is_string($items)) {
+                    // probably a selector
+                    if (!$this->wire()->sanitizer->path($items)) {
+                        //bd($name, 'In removeItems - Selector provided instead of path name');
+                        // we have a selector
                         try {
-                            $pages = $this->wire()->pages->find($item);
+                            $pages = $this->wire()->pages->find($items);
                             $pages = $pages->getArray(); // want them as a php array not an object
 
-                            if (strpos($item, 'sort=path')) {
+                            if (strpos($items, 'sort=path')) {
                                 usort($pages,function ($a, $b) {
                                     return strnatcmp($a->path, $b->path);
                                 });
                                 $pages = array_reverse($pages); // children before parents when deleting!
                             }
                         } catch (WireException $e) {
-                            $this->wire()->notices->error($this->_('In removeItems - Invalid selector: ') . $item);
+                            $this->wire()->notices->error('In removeItems - Invalid selector: ' . $items);
                             return null;
                         }
+                        $items = [];
                         foreach ($pages as $page) {
-                            $newItems[$page->path] = [];  // no need for any data as only removing it
+                            $items[$page->path] = $page->data;
                         }
-                        unset($items[$item]);  // remove the selector so it doesn't get treated like a path for deletion
                     }
-                    //bd($newItems, 'remove page items decoded from selector');
+                    //bd($items);
                 }
-                $items = array_merge($items, $newItems);
-                foreach ($items as $name => $data) {   // $data is probably empty
-                    //bd($name, 'path to delete');
+                foreach ($items as $name => $data) {
+                    // For new and changed pages, selector will have been decoded on export. However, for removed pages, decode needs to happen on install
                     $pages = [$this->wire('pages')->get($name)];
                     foreach ($pages as $p) {
                         if ($p and $p->id) {
@@ -1530,7 +1471,7 @@ public function getRepeaters($values) {
             }
         }
         if (!file_exists($found)) {
-            if ($this->meta('installable')) $this->wire()->notices->error($this->_('migration.json not found'));
+            if ($this->meta('installable')) $this->wire()->notices->error('migration.json not found');
             return false;
         }
         $fileContents = wireDecodeJSON(file_get_contents($found));
@@ -1570,7 +1511,7 @@ public function getRepeaters($values) {
             foreach ($content as $line) {
                 foreach ($line as $pathName => $values) {
                     $pageName = $values['name'];
-                    if ($this->name != $pageName) $this->wire()->notices->warning($this->_('Page name in migrations file is not the same as the host folder.'));
+                    if ($this->name != $pageName) $this->wire()->notices->warning('Page name in migrations file is not the same as the host folder.');
                     $p = $this->migrations->get("name=$pageName, include=all");
                     /* @var $p MigrationPage */
                     // check if the definition has changed
@@ -1610,21 +1551,12 @@ public function getRepeaters($values) {
                             }
                         }
                     }
-                    /*
-                     * Need to add a further check here, for migrations which reference page selectors
-                     * The migration page may be unchanged, but database changes may mean that different pages are within the scope, so we need to recreate the 'old' data
-                     * Method is to compare the pages in the scope as evidenced by the previous old.json file and the one that would be created from the new migration
-                     * This is done in exportData(). If there is a difference, the result array element 'scopeChange' is set to true.
-                     */
                     $installedStatus = $this->exportData('compare');
-                    $this->meta('installedStatus', $installedStatus); // used in exportData() to prevent recursion
-                    $scopeChange = $installedStatus['scopeChange'];
-                    //bd([$fileTestCompare, $scopeChange], '[fileTestCompare, scopeChange]');
-                    if ((file_exists($oldFile)) and ($fileTestCompare or $scopeChange) and !$installedStatus['uninstalled'] and $this->name != 'bootstrap') {
-                        $this->wire()->notices->warning(sprintf($this->_("Migration definition has changed for %s \nYou must fully uninstall the current migration before refreshing the definition and installing the new migration."), $pageName));
+                    if ($fileTestCompare and !$installedStatus['uninstalled'] and !$this->name == 'bootstrap') {
+                        $this->wire()->notices->warning("Migration definition has changed for $pageName \nYou must fully uninstall the current migration before refreshing the definition and installing the new migration.");
                         return false;
                     }
-                    if (file_exists($oldFile) and !$fileCompare and !$scopeChange) continue;   // nothing changed at all so no action required
+                    if (file_exists($oldFile) and !$fileCompare) continue;   // nothing changed at all so no action required
                     // So now we should have a new migration definition where the previous version has been uninstalled or the changes are only 'cosmetic'
                     // Delete the old files before continuing - a new version of these will be created when the new version of the migration is installed
                     // BUT only do this if the migration is fully uninstalled - do not do it when we are just updating cosmetic changes
@@ -1647,7 +1579,6 @@ public function getRepeaters($values) {
 //            $values = $this->setFields($fields);
                     //bd($values, 'already found values');
                     //bd($p->meta('installable'), $p->name . ' installable?');
-                    //bd($p, 'p before save');
                     if ($p and $p->id and $p->meta() and $p->meta('installable')) {
                         $p->meta('allowSave' , true);  // to allow save
                         $p->setAndSave($values);
@@ -1657,29 +1588,10 @@ public function getRepeaters($values) {
                         $p->setAndSave($values);
                         if (count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, $p);
                     }
-                    //bd($p, 'p after save');
                 }
             }
         }
         return true;
-    }
-
-    protected function getPagesFromJson($json) {
-        $names = [];
-        foreach ($json as $type => $contents) {
-            if ($type == 'pages') {
-                foreach ($contents as $action => $content) {
-                    //bd($content, 'content item');
-                    foreach ($content as $line) {
-                        foreach ($line as $pathName => $values) {
-                            $names[] = $pathName;
-                        }
-                    }
-                }
-            }
-        }
-        //bd($names);
-        return $names;
     }
 
     /**
@@ -1710,7 +1622,7 @@ public function getRepeaters($values) {
                 if ($exportPageName) {
                     $exportPage = $this->wire()->pages->get($exportPageName);
                 } else {
-                    $this->wire()->notices->error($this->_('Invalid Page to export: ') . $exportPage);
+                    $this->wire()->notices->error('Invalid Page to export: ' . $exportPage);
                     return ['data' => null];
                 }
             }
@@ -1778,16 +1690,7 @@ public function getRepeaters($values) {
                         break;
                     } elseif (!array_diff(array_map('serialize', $oldSubPage), array_map('serialize', $setSubPage))) {  //matching subpage, new data
                         $diff = array_diff(array_map('serialize', $setSubPage), array_map('serialize', $oldSubPage));  // the new data
-                        //bd(array_map('unserialize',$diff), ' the new data');
-//                        $subPage->setAndSave[array_map('unserialize',$diff)];
-                        //bd($subPage, 'subpage before setting');
-                        // NB setAndSave() does not seem to work on repeater pages, so need to iterate
-                        foreach (array_map('unserialize',$diff) as $diffKey => $diffItem) {
-                            $subPage->$diffKey = $diffItem;
-                        }
-                        $subPage->save();
-                        //bd($subPage, 'subpage after setting');
-                        //bd($page, 'page after subpage setting');
+                        $subPage->setAndSave[array_map('unserialize',$diff)];
                         unset($repeaterData[$j]);
                         $found = true;
                         break;
@@ -1859,7 +1762,6 @@ public function getRepeaters($values) {
                         $files[$page->id] = array_merge($files[$page->id], $item->getVariations(['info' => true, 'verbose' => false]));
                     }
                     $files[$page->id][] = $itemArray['basename'];
-                    //bd($files, 'files for page ' . $page->name);
                 }
                 $attrib[$name] = $contents;
                 break;
@@ -1968,16 +1870,6 @@ public function getRepeaters($values) {
                         if ($p and $p->id) $pa->add($p);
                     }
                     $page->$fieldName->add($pa);
-                } elseif ($f->type == 'FieldtypeTemplates') {
-                    $a = [];
-                    //bd($fieldValue, 'field type templates');
-                    foreach ($fieldValue as $item) {
-                        $t = $this->wire()->templates->get($item);
-                        if ($t) $a[] = $t->id;
-                    }
-                    $page->of(false);
-                    $page->$fieldName= $a;
-                    //bd($page->$fieldName, 'template field value');
                 } else {
                     continue;
                 }
@@ -2023,7 +1915,7 @@ public function getRepeaters($values) {
                 $notInProposed = array_diff($existingItemBasenames, $proposedItemBasenames);
                 $notInExisting = array_diff($proposedItemBasenames, $existingItemBasenames);
                 $inBoth = array_intersect($existingItemBasenames, $proposedItemBasenames);
-                //bd([$notInProposed, $notInExisting, $inBoth], 'Venn [$notInProposed, $notInExisting, $inBoth]');
+                //bd([$notInProposed, $notInExisting, $inBoth], 'Venn');
 
 
                 $proposedId = basename($fieldValue['url']); // The id from the database that was used to create the migration file
@@ -2038,10 +1930,8 @@ public function getRepeaters($values) {
                         $page->$f->add($migrationFilesPath . $proposedId . '/' . $item['basename']);
                     }
                     if (array_key_exists($item['basename'], $inBoth) and $replace) {
-                        //bd($item['basename'], 'deleting file to be replaced');
                         $page->$f->delete($item['basename']);
                         $this->removeOrphans($page, $item);
-                        //bd($migrationFilesPath . $proposedId . '/' . $item['basename'], 'adding file');
                         $page->$f->add($migrationFilesPath . $proposedId . '/' . $item['basename']);
                         $pageFile = $page->$f->getFile($item['basename']);
                         $page->$f->$pageFile->description = $item['description'];
@@ -2075,9 +1965,9 @@ protected function addVariants($migrationFilesPath, $basename, $page, $proposedI
     $files = $this->wire()->config->paths->files;
         $variants = $this->wire('config')->files->find($migrationFilesPath . $proposedId . '/');
         foreach ($variants as $variant) {
-//            if (basename($variant) != $basename) {
+            if (basename($variant) != $basename) {
                 $this->wire()->files->copy($variant, $files . $page->id . '/');
-//            }
+            }
         }
 }
 
@@ -2185,7 +2075,7 @@ protected function addVariants($migrationFilesPath, $basename, $page, $proposedI
      * @return array
      */
     public function arrayRecursiveDiff_assoc($aArray1, $aArray2, $swap=false, $deep = 0) {
-        $noValueText = ($deep == 0) ? $this->_('No Object') : $this->_('No Value');
+        $noValueText = ($deep == 0) ? 'No Object' : 'No Value';
         $noValue = '<span style="color:grey">(' . $noValueText . ')</span>';
         $aReturn = array();
         foreach ($aArray1 as $mKey => $mValue) {

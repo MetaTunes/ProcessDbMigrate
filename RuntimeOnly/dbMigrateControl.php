@@ -8,36 +8,29 @@
 
 if ($page->template == 'DbMigration') {
     /* @var $page \ProcessWire\DbMigrationPage */
-    $config->js('dbMigrateControl', [
-        'lock' => __('Lock the page? Locking marks the migration as complete and reduces the risk of subsequent conflicts. You will need to sync the lockfile to implement the lock in target environments.'),
-        'unlock' => __('Unlock the page? Unlocking allows changes and may conflict with other migrations. You will need to remove the lockfile from target environments if you wish the unlock to be implemented there.')
-    ]);
 //    $migrationPath = $page->migrationsPath() . $page->name . '/';
     $locked = ($page->meta('locked'));
 //bd($installedStatus, '$installedStatus in migration control');
     $display = wire('modules')->get("InputfieldMarkup");
     if ($locked) {
-        $text = __('This page is locked and cannot be changed or actioned unless you unlock it.');
+        $text = 'This page is locked and cannot be changed or actioned unless you unlock it.';
         $text2 = '';
     } else {
         //  compare before render
         $installedStatus = $page->exportData('compare');
+        $exportStatus = ($installedStatus['status'] == 'installed') ? 'exported' : 'pending';
         if ($page->meta('installable')) {
-            $text = __('This page is installable here. It cannot be amended.');
-            $text2 = __('The status of installation is') . ' "';
+            $text = 'This page is installable here. It cannot be amended.';
+            $text2 = 'The status of installation is "';
             $text2 .= $installedStatus['status'] . '".';
         } else {
-            $text = __('This page is exportable - i.e. you can generate migration data from it.');
-            $text2 = __('The status of the export is') . ' "';
-            $text2 .= $installedStatus['status'] . '".';
+            $text = 'This page is exportable - i.e. you can generate migration data from it.';
+            $text2 = 'The status of the export is "';
+            $text2 .= $exportStatus . '".';
         }
     }
-    if ($page->meta('installable')) {
-        $text3 = __(' Source database for this migration is ');
-        $text3 .= ($page->meta('sourceDb')) ?: __('not named');
-    } else {
-        $text3 = '';
-    }
+    $text3 = ' Source database for this migration is ';
+    $text3 .= ($page->meta('sourceDb')) ?  : 'not named';
     $display->value = $text . '<br/>' . $text2 . '<br/>' . $text3 . '.';
     echo $display->render();
     $form = wire(new InputfieldWrapper());
@@ -48,7 +41,7 @@ if ($page->template == 'DbMigration') {
         if ($page->meta('locked')) {
             $btn = wire('modules')->get("InputfieldButton");
             $btn->attr('id', "unlock-page");
-            $btn->attr('value', __(" You can only unlock this in the source system"));
+            $btn->attr('value', " You can only unlock this in the source system");
             $btn->class('fa fa-lock');
             $btn->showInHeader();
             $control->append($btn);
@@ -56,7 +49,7 @@ if ($page->template == 'DbMigration') {
             //Lock button
             $btn = wire('modules')->get("InputfieldButton");
             $btn->attr('id', "lock-page");
-            $btn->attr('value', __(' You can only lock this in the source system'));
+            $btn->attr('value', ' You can only lock this in the source system');
             $btn->class('fa fa-unlock');
             $btn->showInHeader();
             $control->append($btn);
