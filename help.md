@@ -16,7 +16,14 @@ The concept of this module is therefore to achieve the following:
 3. To allow roll-back of a migration if installation causes problems (ideally while testing rather than after implementation!).
 4. To provide a record of changes applied.
 5. Optionally, if changes are made directly on the live system (presumably simple, low-risk mods – although not best practice), to allow reverse migration to the development system in a similar fashion.
-6. Although not originally intended, the module also allows the selective reversion of parts of the database by exporting migration data from a backup copy.
+
+## Uses
+
+The module has quite a wide range of applications. For example:
+1.	Developments where both code and database changes are involved. The changes can be fully tested in a dev environment. Installation of the migration can then be checked in a test environment (on a copy of the live database). Installation in the live environment is then very quick (sync code changes and migration files then install the migration) resulting in little or no down time.
+2.	Updating of admin pages (not editable by general users), such as settings pages and help pages.
+3.	Updating of language pages (e.g. by a simple migration of pages with “template=language”) – the associated files will be updated along with the pages.
+4.	Although not originally intended, the module also allows the selective reversion of parts of the database by exporting migration data from a backup copy.
 
 ## Design
 
@@ -28,11 +35,11 @@ The module has the following principal components:
 
 The module requires the FieldtypeRuntimeOnly module.
 
-Migration definitions are held in .json files in the templates/DbMigrate /migrations/{migration name} folder. This folder contains up to 2 sub-folders - &quot;new&quot; and &quot;old&quot; which each may contain a file called a migration.json file, which defines the scope of the migration, and - once the migration been exported (for &#39;new&#39;) or installed (for &#39;old&#39;) – a file called data.json. The latter file contains the data comprising the installation (or uninstallation, in the case of the &#39;old&#39; file). There may also be a file lockfile.txt if the migration has been locked, which just holds a date &amp; time stamp of when it was locked.
+Migration definitions are held in .json files in the templates/DbMigrate /migrations/{migration name} folder. This folder contains up to 2 sub-folders - &quot;new&quot; and &quot;old&quot; which each may contain a file called a migration.json file, which defines the scope of the migration, and - once the migration been exported (for &#39;new&#39;) or installed (for &#39;old&#39;) – a file called data.json. The latter file contains the data comprising the installation (or uninstallation, in the case of the &#39;old&#39; file). In addition, the “new” and “old” directories can contain “files” directories which hold the files associated with pages in the migration. There may also be a file lockfile.txt if the migration has been locked, which just holds a date &amp; time stamp of when it was locked.
 
 The migration files described above are mirrored by pages of template &quot;DbMigration&quot; under a parent /dbmigrations/ of template &quot;DbMigrations&quot;. The mirroring happens in two ways:
 
-1. If a new migration is created in the module (from the Setup -> Database Migration menu – see below re installation), then initially no json files exist. The json files are created in the new directory, after the scope of the migration is defined on the page, by running &quot;Export Data&quot; from the eponymous button.
+1. If a new migration is created in the module (from the Setup -> Database Migration menu – see below re installation), then initially no json files exist. The json files are created in the "new" directory, after the scope of the migration is defined on the page, by running &quot;Export Data&quot; from the eponymous button.
 2. If (new) json files exist, but there is no matching migration page, then the latter is created by the module on accessing the Database Migration admin page. In this case, we are in the &quot;target&quot; database so there is no &quot;Export Data&quot; button, but instead &quot;Install&quot; and/or &quot;Uninstall&quot; buttons.
 
 Migrations therefore either view the current environment as a &quot;source&quot; or a &quot;target&quot;. This is determined by whether the meta item meta(&#39;installable&#39;) is set or not. 
@@ -51,9 +58,9 @@ Initially install the module in your dev (source) environment.
 1. Place the whole folder in your site/modules/ directory.
 2. Make sure that the RuntimeOnly module is installed first. Install ProcessDbMigrate (see note below re dependencies).
 3. Installing the module runs a &#39;bootstrap&#39; migration which creates (system) templates called DbMigration and DbMigrations and a page in the admin named &#39;dbmigrations&#39;, so make sure you are not using those already and rename if required. It also creates some fields which include &quot;dbMigrate&quot; in their name. All templates and fields have the &#39;dbMigrate&#39; tag. The bootstrap migration files are copied by the installation process to the templates/DbMigrate directory, which will be created if it does not exist. Also, the RuntimeOnly files are copied to the /templates/RuntimeOnly/ directory.
-4. Configure the settings. Note that the settings are specific to the current database. You can give the (current) database a name. If you do so, this name will be included as a tag (‘sourceDb’) in the migration.json of any migration you create from this database. Any database with the same name will treat this migration as exportable rather than installable. This means, for example, that you can copy a production database and rename it to be the same as your original development database, so that any migrations sourced from that development database will be shown as exportable, not installable. You can also request that the current database name is notified in every admin page (in case you forget which environment you are in!).
+4. Configure the settings. Note that the settings are specific to the current database. You can give the (current) database a name. If you do so, this name will be included as an item (‘sourceDb’) in the migration.json of any migration you create from this database. Any database with the same name will treat this migration as exportable rather than installable. This means, for example, that you can copy a production database and rename it to be the same as your original development database, so that any migrations sourced from that development database will be shown as exportable, not installable. You can also request that the current database name is notified in every admin page (in case you forget which environment you are in!).
    
-   Also in the settings, you can exclude any fields or fieldtypes from page migrations that might cause problems and which are not needed. RuntimeMarkup and RuntimeOnly fields are excluded automatically (you will need to do this in each database).
+   Also in the settings, you can exclude any fields or fieldtypes from page migrations that might cause problems and which are not needed (you will need to do this in each database). RuntimeMarkup and RuntimeOnly fields are excluded automatically.
 5. Open the admin page &quot;Setup -> Database Migration&quot; to create your first migration. You will see that one (&quot;bootstrap&quot; is already installed) and cannot be modified (unless you unset the meta(&#39;installable&#39;)).
 
 ### Dependencies
@@ -76,7 +83,7 @@ The pic below illustrates the DB Migrations page in the source environment.
 
 The status of a migration (as a source page) can be &#39;pending&#39; or &#39;exported&#39;. &#39;Pending&#39; means either that the migration data have not yet been exported or that the current export files differ from the source database.
 
-To test your migration, one approach is to backup the dev database and restore a copy of the live (or test) database to the dev environment. Then install the module on the restored database (from step 2 above). On installation of the module, if the required database elements for the module (e.g. DbMigration template) are not present, a bootstrap method is called which creates them, according to the definition in ProcessDbMigrate/migrations/bootstrap. Then the admin page &quot;Database Migrations&quot; with process ProcessDbMigrateData is created at setup/dbmigrations. On opening this page, the individual Migration pages (type 2) are created from the definitions in their respective /new/migration.json file.
+To test your migration, one approach is to backup the dev database and restore a copy of the live (or test) database to the dev environment. Then install the module on the restored database (from step 2 above). On installation of the module, if the required database elements for the module (e.g. DbMigration template) are not present, a bootstrap method is called which creates them, according to the definition in ProcessDbMigrate/migrations/bootstrap. Then the admin page &quot;Database Migrations&quot; with process ProcessDbMigrateData is created at setup/dbmigrations. On opening this page, the individual Migration pages are created from the definitions in their respective /new/migration.json file.
 
 Your new migration should be listed (as &#39;indeterminate&#39; status) in the Database Migration admin page.
 
@@ -92,7 +99,7 @@ In a target environment, a migration status can usually be &#39;indeterminate&#3
 
 ## Usage
 
-When carrying out development work, keep a note of what fields, templates and pages you have added, changed or removed. The module does not track this for you – it is a declarative approach, not a macro recorder. Also (in version 0.0.1), it does not handle other components such as Hanna codes and Formbuilder forms. These come equipped with their own export/import functions, so use those.
+When carrying out development work, keep a note of what fields, templates and pages you have added, changed or removed. The module does not track this for you – it is a declarative approach, not a macro recorder. Also (in version 0.0.x), it does not handle other components such as Hanna codes and Formbuilder forms. These come equipped with their own export/import functions, so use those.
 
 You can update a migration page as you go along, rather than keep a separate note of changed components. The migration page also allows you to document the migration using a rich text box and also to add any number of &quot;snippets&quot;. These snippets do not do anything, but can be a convenient place to store (for example) Hanna code exports for pasting into the target environment and they help to make the page a comprehensive record of the migration.
 
@@ -102,15 +109,15 @@ See example below:
 
 On your migration page, enter the names of new and changed fields and templates, and enter the paths of pages (as /path/to/pagename/ ). Note that entry of names and paths is in text fields, not using dropdowns as names, paths and ids may be different in the source and target systems – there is limited real-time checking of these. If an item has a different name in the target system then provide it in the &#39;old name&#39; box, otherwise leave that blank.
 
-Note that **the sequence is very important** – if items are dependent on other items, they must be declared in the correct order for installation (when uninstalling, the order is reversed and &#39;new&#39; and &#39;removed&#39; are swapped). Note particularly for Repeater and PageTable field types, you need to define the components in the right order – e.g. the template before the field that uses it, in the case of new/changed components. You do not need to declare components that are unchanged.
+Note that **the sequence is very important** – if items are dependent on other items, they must be declared in the correct order for installation (when uninstalling, the order is automatically reversed and &#39;new&#39; and &#39;removed&#39; are swapped). Note particularly for Repeater and PageTable field types, you need to define the components in the right order – e.g. the template before the field that uses it, in the case of new/changed components. You do not need to declare components that are unchanged.
 
-_Selectors_: Only one item is permitted per entry, however pages may be selected by using a selector rather than individual path names. Selectors operate as follows:
+_Selectors_: Only one item is permitted per entry, however **pages** may be selected by using a selector rather than individual path names. Selectors operate as follows:
 
 1. For &#39;new&#39; and &#39;changed&#39; pages, the selector identifies the pages in the **source environment only**. If these pages also exist in the target environment, they will be changed, otherwise they will be created. There is no possibility of matching pages whose path name has changed.
 2. For &#39;removed&#39; pages, the selector identifies pages in the **target environment only**.
-3. The use of “sort=path” is permitted in selectors, even though this normally has no effect. If it is used, the pages will be sorted in parent-child order, using the ‘natural’ sort order (e.g. XYZ100 is greater than XYZ20). This means that parents should be installed before children. For ‘removed’ pages, the order is reversed so that children are deleted before parents.
+3. The use of “sort=path” is permitted in selectors, even though this normally has no effect. If it is used, the pages will be sorted in parent-child order, using the ‘natural’ sort order (e.g. XYZ100 is greater than XYZ20). This means that parents will be installed before children. For ‘removed’ pages, the order is reversed so that children are deleted before parents.
 
-So do make sure that your selector works in the source and/or target environments, as appropriate, before implementing it.
+Do make sure that your selector works in the source and/or target environments, as appropriate, before implementing it.
 
 Pages may have the scope of changes limited by restricting the fields to those specified in the &quot;Restrict Fields&quot; box. This restriction will apply to all pages selected but only in this migration; if you wish to exclude certain fields or fieldtypes globally, enter these in the module configuration.
 
@@ -120,7 +127,7 @@ Note that migration pages just define the scope of the migration. It is entirely
 
 The system will warn you, when saving a migration page in the source database, if the current migration scope overlaps with other exportable migrations. **Do not proceed to install such overlapping migrations**. They will interfere with each other, even if they are not making conflicting changes – once one has been installed, installing the other will create an &#39;old&#39; json file that reflects changes made by the first, so (for example) attempting to uninstall this second installation will appear not to be successful as it will not be able uninstall the changes made by the first. If two migrations necessarily overlap, then the correct process is to install the first one and lock it before installing the second migration. Locking a migration is carried out in the source environment. This creates a lockfile in the migrations directory which needs to be sync&#39;d to the target environment to lock the migration there.
 
-In addition, warnings will be given if you attempt to install &#39;new&#39; pages that already exist.
+In addition, warnings will be given if, for example, you attempt to install &#39;new&#39; pages that already exist.
 
 If you want to modify the bootstrap, you may need to remove the meta(&#39;installable&#39;) setting in the development environment – you can then modify the Migration template etc. (assuming you know what you are doing!). However, note that the original bootstrap files in the module directory will be unchanged by this. Also, reinstalling the module may over-write your changed bootstrap.
 
@@ -143,7 +150,7 @@ Note that you will now have the following files:
 
 To uninstall a migration, click the &quot;Uninstall&quot; button (again, you can preview beforehand). This should revert the database to the initial state, but again there may be reasons why this cannot complete fully – see the notes below.
 
-NB When re-installing and un-re-installing migrations, issues may arise with the &#39;old&#39; files being wrong unless you &#39;remove migration files&#39; before exporting a new version.
+NB When re-installing migrations, if the migration definition has changed, the system will require you to uninstall first - otherwise the “old” data.json will not properly reflect the new scope, affecting any future uninstallation. In these circumstances, a backup copy of the “old” directory is created.
 
 ### Troubleshooting / Technical notes
 
@@ -183,7 +190,7 @@ The module handles (I think) the following field types:
 - Images and files. 
 Similarly to the above, these are more complex fields. 
 Some special processing is required to deal with the likely differences between host page ids meaning that urls and paths will differ between the source and target environments.
-Images should be migrated along with the page that holds them. Any Rich Text Editor (textarea) fields with embedded images should migrate satisfactorily **provided** the pages which hold the images are included in the migration.
+Images should be migrated along with the page that holds them. Any Rich Text Editor (textarea) fields with embedded images or linked files should migrate satisfactorily **provided** the pages which hold the images/files are included in the migration.
 
 
 #### Subsequent installations
@@ -195,11 +202,11 @@ However, the user may wish to use a (migrated) test or live database as a new so
 - Use database naming (in the module settings page) to rename the imported database back to the name you were using for the development database.
 - Lock the completed migrations (by clicking on the &#39;lock&#39; icon on the migration page) before importing the database. They will then be there as a record only – the database can be copied to the development environment (after locking) and new migrations can be developed for export, knowing that the base system is in sync (except for user changes to the live system, which will normally only be to pages, not fields or templates). 
 
-The use of names for items (including the new|old syntax) rather than ids should mean that most user changes will not disrupt future migrations. Installation &#39;previews&#39; should highlight any difficulties. Overlapping scope detection on migrations only looks at unlocked migrations.
+The use of names for items rather than ids should mean that most user changes will not disrupt future migrations. Installation &#39;previews&#39; should highlight any difficulties. Overlapping scope detection on migrations only looks at unlocked migrations.
 
 It is also possible, in theory (not advised, but maybe necessary if the development environment is inaccessible) to make changes directly to the live database and &#39;export&#39; them for installation on the development system. These should be locked after installing them.
 Database naming is strongly recommended if you use this strategy.
 
 #### Rescue mode
 
-An additional use of the module is &#39;rescue&#39; mode. If a number of erroneous changes have occurred to a live database which need to be reverted, then a suitable backup copy can be restored to the development environment (after backing up the dev database!) and the relevant migration exported for installation in the live environment. After successful installation, the development database can be restored to the development environment – the &#39;rescue&#39; migration will then be loaded automatically as a (&#39;installable&#39; – i.e. non-editable or exportable) migration and can be installed if it makes sense to do so.
+An additional use of the module is &#39;rescue&#39; mode. If a number of erroneous changes have occurred to a live database which need to be reverted, then a suitable backup copy can be restored to the development environment (after backing up the dev database!), given a unique name, and the relevant migration exported for installation in the live environment. After successful installation, the development database can be restored to the development environment – the &#39;rescue&#39; migration will then be loaded automatically as a (&#39;installable&#39; – i.e. non-editable or exportable) migration and can be installed if it makes sense to do so.

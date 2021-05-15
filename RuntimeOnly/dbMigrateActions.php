@@ -112,6 +112,7 @@ This page will remain and can be re-exported based on the current database (and 
                     $btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=export&modal=1');
                     $btn->attr('id', "preview-diffs-export");
                     $btn->attr('value', __("Preview differences"));
+                    $btn->notes(__('No differences will be shown for "removed" actions as these objects do not exist here.'));
                     $btn->addClass("pw-modal");
                     $form->append($btn);
                 }

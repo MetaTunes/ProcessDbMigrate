@@ -30,7 +30,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'summary' => 'Maintain migration data',
             'comments' => '',
             'author' => 'Mark Evens',
-            'version' => "0.0.12",
+            'version' => "0.0.13",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
@@ -549,6 +549,7 @@ If it has been used in another environment and is no longer wanted then you will
      */
     protected function formatCompare($migrationPage, $value, $key, $newOld, $deep = 0) {
         if (!$value) return '';
+        /* @var $migrationPage DbMigrationPage */
         //bd($value, 'value in formatCompare');
 
 //        if (!is_array($value)) return '<td>' . $value . '</td><td>' . 'Unpaired item' . '</td>';
@@ -574,8 +575,13 @@ If it has been used in another environment and is no longer wanted then you will
                     //bd($value, 'depth 2 count 2 value where one element is a string');
                     foreach ($newOld as $col => $type) {
                         $v[$col] = (is_array($v[$col])) ? wireEncodeJSON($v[$col], true, true) : $v[$col];
-                        if ($type != 'current' and strpos($key, 'pages') === 0 and is_string($v[$col]) and $v[$col] != strip_tags($v[$col])) {
-                            $v[$col] = $migrationPage->replaceImgSrcPath($v[$col], $type, true);
+                        if (strpos($key, 'pages') === 0 and is_string($v[$col]) and $v[$col] != strip_tags($v[$col])) {
+                            // NB In this case $v[$col] is json so we need to fix quotes in img src
+                            if ($type != 'current') {
+                                $v[$col] = $migrationPage->replaceImgSrcPath($v[$col], $type, true);
+                            } else {
+                                $v[$col] = str_replace('\"', "'", $v[$col]);
+                            }
                         }
                     }
                     return '<td style="word-wrap: break-word">' . $v[0] . '</td><td style="word-wrap: break-word">' . $v[1] . '</td>';
@@ -767,7 +773,7 @@ If it has been used in another environment and is no longer wanted then you will
         $f_name = 'exclude_fieldnames';
         $f->name = $f_name;
         $f->label = $this->_('Exclude Fields');
-        $f->description = $this->_('Fields that are selected here will be excluded from page migrations. Enter the field name as text, (comma-separated for multiple types).');
+        $f->description = $this->_('Fields that are selected here will be excluded from page migrations. Enter the field name as text, (comma-separated for multiple field names).');
         $f->notes = $this->_('For example fields which do not hold data.');
         $f->columnWidth = 33;
         $f->value = $this->$f_name;
@@ -778,7 +784,7 @@ If it has been used in another environment and is no longer wanted then you will
         $f_name = 'exclude_attributes';
         $f->name = $f_name;
         $f->label = $this->_('Exclude Attributes');
-        $f->description = $this->_('Attributes that are selected here will be excluded from template and field migrations. Enter the attribute name as text, (comma-separated for multiple types).');
+        $f->description = $this->_('Attributes that are selected here will be excluded from template and field migrations. Enter the attribute name as text, (comma-separated for multiple attributes).');
         $f->notes = $this->_("For example differences in CKEditor plugins that you don't want reported.");
         $f->columnWidth = 33;
         $f->value = $this->$f_name;

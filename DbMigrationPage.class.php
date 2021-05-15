@@ -537,7 +537,7 @@ protected function shouldExist($action, $compareType) {
             $this->wire()->notices->error($this->_('Invalid name: ') . $itemName);
             return $empty;
         }
-        //bd($object, 'object is');
+       //bd($object, 'object is');
         // Check object existence if migration is not exported/installed
         if (!$this->meta('installedStatus') or !$this->meta('installedStatus')['installed']) {
             $shouldExist = $this->shouldExist($item['action'], $compareType); //should the item exist as a database object in this context?
@@ -568,6 +568,10 @@ protected function shouldExist($action, $compareType) {
                 }
             }
         } else {
+            if (!$object) {
+                $this->wire()->notices->error($this->_('No object for ' . $item['name'] . '.'));
+                return $empty;
+            }
             $objectData = $object->getExportData();
             if (isset($objectData['id'])) unset($objectData['id']);  // Don't want ids as they may be different in different dbs
             //bd($objectData, 'objectdata');
@@ -652,11 +656,12 @@ protected function shouldExist($action, $compareType) {
      * Remove url and path from reported differences in image fields
      * They will almost always be different in the source and target databases
      * @param $diffs
+     * @param $newOld
      * @return mixed
      * @throws WireException
      * @throws WirePermissionException
      */
-    public function pruneImageFields($diffs) {
+    public function pruneImageFields($diffs, $newOld) {
         //bd($diffs, 'Page diffs before unset');
         // Prune the result for any image/file fields with url/path mismatches (as this will probably always differ)
         foreach ($diffs as $pName => $data) {
@@ -665,7 +670,7 @@ protected function shouldExist($action, $compareType) {
                     $diffsRemain = [];
                     foreach ($data as $fName => $values) {
                         $diffsRemain[$pName][$fName] = true;
-                        //bd([$fName => $values], "[Field name => Values] in pruneImageFields for $pName");
+                       //bd([$fName => $values], "[Field name => Values] in pruneImageFields for $pName");
                         if (!$values or !is_array($values) or count($values) == 0) {
                             continue;
                         }
@@ -678,6 +683,16 @@ protected function shouldExist($action, $compareType) {
                                 //bd($diffs[$pName][$fName], 'remaining diffs in images');
                             } else {
                                 $diffsRemain[$pName][$fName] = false;
+                            }
+                        } elseif ($field and $field->type == 'FieldtypeTextarea') {
+                            if ($this->meta['idMap'] and count($values) == 2) {     // we have the different 2 vals and a map to fix the image/file links
+                                $newVals = [];
+                                foreach ($values as $value) {
+                                    $newVals[] = $this->replaceLink($value, $this->meta['idMap'], $newOld, true);
+                                };
+                                if ($newVals and $newVals[0] == $newVals[1]) {
+                                    $diffsRemain[$pName][$fName] = false;
+                                }
                             }
                         }
                     }
@@ -720,7 +735,7 @@ protected function shouldExist($action, $compareType) {
         if (!$this->ready) $this->ready();
         //bd($this, 'In exportData with newOld = ' . $newOld);
         $excludeFields = (isset($this->configData['exclude_fieldnames'])) ? str_replace(' ', '', $this->configData['exclude_fieldnames']) : '';
-        $excludeFields = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeFields), 'fieldName', ['delimiter' => ' ']);
+        $excludeFields = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeFields), 'fieldName');
         $excludeTypes = (isset($this->configData['exclude_fieldtypes'])) ? str_replace(' ', '', $this->configData['exclude_fieldtypes']) : '';
         $excludeTypes = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeTypes), 'fieldName');
         $excludeTypes = array_merge($excludeTypes, self::EXCLUDE_TYPES);
@@ -825,16 +840,18 @@ protected function shouldExist($action, $compareType) {
                 //bd('NEW');
 
                 $newArray = $this->compactArray(wireDecodeJSON($newFile));
+                //bd($newArray, 'newArray');
                 //bd('OLD');
                 $oldArrayFull = wireDecodeJSON($oldFile);
                 $oldArray = $this->compactArray($oldArrayFull);
                 //bd('New compare');
                 $cmpArray['new'] = $this->compactArray(wireDecodeJSON($objectJson['new']));
+                //bd($cmpArray['new'], 'cmpArray');
                 //bd('Old compare');
                 $cmpArrayFull['old'] = wireDecodeJSON($objectJson['old']);
                 $cmpArray['old'] = $this->compactArray($cmpArrayFull['old']);
                 $R = $this->array_compare($newArray, $cmpArray['new']);
-                $R = $this->pruneImageFields($R);
+                $R = $this->pruneImageFields($R, 'new');
                 //bd($R, 'new diffs');
                 //bd($R, ' array compare new->cmp');
                 $jsonR = wireEncodeJSON($R);
@@ -847,7 +864,7 @@ protected function shouldExist($action, $compareType) {
                 $oldIntersect = array_intersect($oldOldNames, $newOldNames);
                 $scopeChange = (count($oldIntersect) == count($oldOldNames) and  count($oldOldNames) == count($newOldNames)) ? false : true;
                 //bd([$scopeChange, $oldIntersect], 'Scope Change?');
-                $R2 = $this->pruneImageFields($R2);
+                $R2 = $this->pruneImageFields($R2, 'old');
                 //bd($R2, ' array compare old->cmp');
                 $jsonR2 = wireEncodeJSON($R2);
                 //bd($jsonR2, ' array compare json old->cmp');
@@ -857,7 +874,7 @@ protected function shouldExist($action, $compareType) {
                 if ($newFile and $oldFile) {
                     $R3 = $this->array_compare($newArray, $oldArray);
                     //bd($R3, 'R3 1');
-                    $R3 = $this->pruneImageFields($R3);
+                    $R3 = $this->pruneImageFields($R3, 'both');
                     //bd($R3, 'R3 2');
                     $reviewedDataDiffs = $R3;
                 } else {
@@ -888,11 +905,11 @@ protected function shouldExist($action, $compareType) {
                 $cmpMigFile = (file_exists($cachePath . 'migration.json')) ? file_get_contents($cachePath . 'migration.json') : null;
 
                 $R = $this->array_compare($this->compactArray(wireDecodeJSON($newMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
-                $R = $this->pruneImageFields($R);
+                $R = $this->pruneImageFields($R, 'new');
                 $installedMigration = (!$R);
                 $installedMigrationDiffs = $R;
                 $R2 = $this->array_compare($this->compactArray(wireDecodeJSON($oldMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
-                $R2 = $this->pruneImageFields($R2);
+                $R2 = $this->pruneImageFields($R2, 'old');
                 $uninstalledMigration = (!$R2);
                 $uninstalledMigrationDiffs = $R2;
             } else {
@@ -1135,7 +1152,7 @@ public function getRepeaters($values) {
                 }
             }
         }
-        if (!$this->name == 'dummy-bootstrap') {
+        if ($this->name != 'dummy-bootstrap') {
         // update any images in RTE fields
         $idMapArray = $this->setIdMap($pagesInstalled);
         //bd($idMapArray, 'idMapArray');
@@ -1147,7 +1164,7 @@ public function getRepeaters($values) {
                     //bd([$page, $field], 'RTE field Y');
                     //bd($page->$field, 'Initial html');
                     $html = $page->$field;
-                    $html = $this->replaceImgSrc($html, $idMapArray);
+                    $html = $this->replaceLink($html, $idMapArray, $newOld);
                     //bd($html, 'returned html');
                     $page->$field = $html;
                     $page->of(false);
@@ -1187,13 +1204,53 @@ public function getRepeaters($values) {
      * @return string|string[]|null
      * @throws WireException
      */
-    protected function replaceImgSrc($html, $idMapArray) {
+    protected function replaceLink($html, $idMapArray, $newOld, $checkFileEquality = false) {
+       //bd([$html,$idMapArray, $newOld, $checkFileEquality], 'In replaceLink with [$html,$idMapArray, $newOld, $checkFileEquality]');
         if (!$idMapArray) return $html;
-        if (strpos($html, '<img') === false) return $html; //return early if no images are embedded in html
+        if (strpos($html, '<img') === false and strpos($html, '<a') === false) return $html; //return early if no images or links are embedded in html
         foreach ($idMapArray as $origId => $destId) {
             //bd([$origId, $destId], 'Id pair');
-            $re = '/(<img.*' . str_replace('/', '\/', preg_quote($files = $this->wire()->config->urls->files)) . ')' . $origId . '(\/.*>)/mU';
+//            $re = '/(<img.*' . str_replace('/', '\/', preg_quote($this->wire()->config->urls->files)) . ')' . $origId . '(\/.*>)/mU';
+            $re = '/(' . str_replace('/', '\/', preg_quote($this->wire()->config->urls->files)) . ')' . $origId . '(\/)/mU';
             //bd($re, 'regex pattern');
+            if ($checkFileEquality) {
+                // check that the files in $destId directory are the same as in the migration directory
+                // If any (referenced in the html) are different then don't amend the html for the new path
+                if ($newOld == 'both') {
+                    $destPath = $this->wire()->config->paths->templates . self::MIGRATION_PATH . $this->name . '/' . 'old' . '/files/' . $destId . '/';
+                    $migPath = $this->wire()->config->paths->templates . self::MIGRATION_PATH . $this->name . '/' . 'new' . '/files/' . $origId . '/';
+                } else {
+                    $destPath = $this->wire()->config->paths->files . $destId . '/';
+                    $migPath = $this->wire()->config->paths->templates . self::MIGRATION_PATH . $this->name . '/' . $newOld . '/files/' . $origId . '/';
+                }
+                $destFiles = $this->wire()->files->find($destPath);
+                $migFiles = $this->wire()->files->find($migPath);
+                array_walk($destFiles, function(&$item, $k) {
+                    $item = basename($item);
+                });
+                array_walk($migFiles, function(&$item, $k) {
+                    $item = basename($item);
+                });
+               //bd([$destPath, $migPath], '[$destPath, $migPath]');
+               //bd([$destFiles, $migFiles], '[$destFiles, $migFiles]');
+                $commonFiles = array_intersect($destFiles, $migFiles);
+                $foundFiles = [];
+                foreach ($commonFiles as $commonFile) {
+                   //bd(basename($commonFile), 'checking file in html');
+                    if (strpos($html, basename($commonFile)) === false) continue;
+                    $foundFiles[] = $commonFile;
+                }
+               //bd($foundFiles, 'files in html');
+                foreach ($foundFiles as $foundFile) {
+                    $destFile = $destPath . $foundFile;
+                    $migFile = $migPath . $foundFile;
+                   //bd([$destFile, $migFile], 'Test file equality');
+                    if (filesize($destFile) != filesize($migFile)
+                        or md5_file($destFile) != md5_file($migFile)
+                    ) return $html;
+                   //bd([$destFile, $migFile], 'Files are equal');
+                }
+            }
             $html = preg_replace($re, '${1}' . $destId . '$2', $html);
         }
         return $html;
@@ -1208,14 +1265,19 @@ public function getRepeaters($values) {
      * @throws WireException
      */
     public function replaceImgSrcPath($html, $newOld, $json = false) {
-        if (strpos($html, '<img') === false) return $html; //return early if no images are embedded in html
+        if (strpos($html, '<img') === false and strpos($html, '<a') === false) return $html; //return early if no images are embedded in html
         $re = '/(<img.*)' . str_replace('/', '\/', preg_quote($this->wire()->config->urls->files)) . '(.*>)/mU';
         //bd($re, 'regex pattern');
         $newHtml = '';
         $count = 0;
         while ($newHtml != $html) {
-            $newHtml = preg_replace($re, '${1}' . $this->wire()->config->urls->templates . self::MIGRATION_PATH .
-                $this->name . '/' . $newOld . '/files/' . '$2', $html);
+//            $newHtml = preg_replace($re, '${1}' . $this->wire()->config->urls->templates . self::MIGRATION_PATH .
+//                $this->name . '/' . $newOld . '/files/' . '$2', $html);
+            $newHtml = str_replace(
+                $this->wire()->config->urls->files,
+                $this->wire()->config->urls->templates . self::MIGRATION_PATH . $this->name . '/' . $newOld . '/files/',
+                $html
+            );
             if ($count > 100) break;
             $count++;
         }
@@ -1367,7 +1429,7 @@ public function getRepeaters($values) {
                 $p->of(false);
                 $p->save();
                 $fields = $this->setAndSaveFiles($fields, $newOld, $p); // saves files and images, returning other fields
-                bd($fields, 'fields to save');
+               //bd($fields, 'fields to save');
                 $p->setAndSave($fields);
                 $this->setAndSaveRepeaters($repeaters, $p);
                 $this->wire()->notices->message($this->_('Set and saved page ') . $name);
@@ -2145,7 +2207,7 @@ protected function addVariants($migrationFilesPath, $basename, $page, $proposedI
         // ideally array_merge should remove duplication where $C and $D have identical elements, but it doesn't so remove them from $D first
         $R = array_merge_recursive($C, $this->arrayRecursiveDiff_key($D, $C));
        //$this->arrayRecursiveDiff_key($D, $C), 'arrayRecursiveDiff_key($D, $C)');
-       //$R, 'array $R');
+       //bd($R, 'array $R');
 //        uksort($R, function($a, $b) use ($A, $B) {
 //            if (array_key_exists($a, $A) and !array_key_exists($a, $B)) return -1;
 //            if (array_key_exists($a, $B) and !array_key_exists($a, $A)) return 1;
