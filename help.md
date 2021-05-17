@@ -99,9 +99,9 @@ In a target environment, a migration status can usually be &#39;indeterminate&#3
 
 ## Usage
 
-When carrying out development work, keep a note of what fields, templates and pages you have added, changed or removed. The module does not track this for you – it is a declarative approach, not a macro recorder. Also (in version 0.0.x), it does not handle other components such as Hanna codes and Formbuilder forms. These come equipped with their own export/import functions, so use those.
-
 ### Documentating the migration
+
+When carrying out development work, keep a note of what fields, templates and pages you have added, changed or removed. The module does not track this for you – it is a declarative approach, not a macro recorder. Also (in version 0.0.x), it does not handle other components such as Hanna codes and Formbuilder forms. These come equipped with their own export/import functions, so use those.
 
 You can update a migration page as you go along, rather than keep a separate note of changed components. The migration page also allows you to document the migration using a rich text box and it is recommended that you use this to add notes about the migration, including any pre- or post-migration checks and procedures to be carried out. 
 
