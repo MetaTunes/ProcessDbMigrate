@@ -101,7 +101,17 @@ In a target environment, a migration status can usually be &#39;indeterminate&#3
 
 When carrying out development work, keep a note of what fields, templates and pages you have added, changed or removed. The module does not track this for you – it is a declarative approach, not a macro recorder. Also (in version 0.0.x), it does not handle other components such as Hanna codes and Formbuilder forms. These come equipped with their own export/import functions, so use those.
 
-You can update a migration page as you go along, rather than keep a separate note of changed components. The migration page also allows you to document the migration using a rich text box and also to add any number of &quot;snippets&quot;. These snippets do not do anything, but can be a convenient place to store (for example) Hanna code exports for pasting into the target environment and they help to make the page a comprehensive record of the migration.
+### Documentating the migration
+
+You can update a migration page as you go along, rather than keep a separate note of changed components. The migration page also allows you to document the migration using a rich text box and it is recommended that you use this to add notes about the migration, including any pre- or post-migration checks and procedures to be carried out. 
+
+### Snippets
+
+On the migration page, you can  add any number of &quot;snippets&quot;. These snippets do not do anything, but can be a convenient place to store (for example) Hanna code exports for pasting into the target environment and they help to make the page a comprehensive record of the migration.
+
+You can also use snippets for php code to run before or after installation (or uninstallation). The code can then be copied into Tracy’s console log and run from there. Use the description box in the snippet to indicate when the code should be run. For example, say you have changed an address field to split out the post code into a separate field. The migration definition will specify the new field and the changed template. The code snippet (to be run after installation) will then include the code to extract postcodes and place them in the new field.
+
+### Populating the migration page
 
 See example below:
 
@@ -131,9 +141,13 @@ In addition, warnings will be given if, for example, you attempt to install &#39
 
 If you want to modify the bootstrap, you may need to remove the meta(&#39;installable&#39;) setting in the development environment – you can then modify the Migration template etc. (assuming you know what you are doing!). However, note that the original bootstrap files in the module directory will be unchanged by this. Also, reinstalling the module may over-write your changed bootstrap.
 
+### Exporting the migration
+
 When ready to test (or migrate to live), click the &quot;Export Data&quot; button on the migration page. Some informative messages should result. Your codebase will now contain the json files in site/templates/DbMigrate/migration/{your migration page name} – you can inspect them if you wish in your IDE.
 
 Sync code and go to your test/live environment (or restore the test database to your dev environment, making sure you back up the dev database first), install the module as described above, if necessary, and go to the Database Migration admin page. You should see your new migration listed.
+
+### Installing the migration
 
 Go to the migration page. Before installing you can use the &quot;preview&quot; button to see what changes will be implemented. If you are happy, click &quot;Install&quot;. This should result in various messages and maybe some errors, if the migration was not able to complete fully (see section below for how to deal with partial migrations). See example of the migration page in &#39;installation&#39; mode below:
 
