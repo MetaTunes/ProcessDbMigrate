@@ -558,6 +558,29 @@
         }
     },
     {
+        "fields": {
+            "new": {
+                "dbMigrateReady": {
+                    "name": "dbMigrateReady",
+                    "label": "ready.php",
+                    "flags": 0,
+                    "type": "FieldtypeRuntimeOnly",
+                    "description": "Contents of site/templates/DbMigrate/migrations/fix-booking-statuses/ready.php",
+                    "notes": "This migration-specific ready.php file is for hooks after install etc.",
+                    "collapsed": 1,
+                    "no_lister_render": "",
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": 100,
+                    "required": "",
+                    "requiredIf": ""
+                }
+            }
+        }
+    },
+    {
         "templates": {
             "new": {
                 "DbMigration": {
@@ -626,7 +649,8 @@
                         "dbMigrateAdditionalDetails",
                         "dbMigrateItem",
                         "dbMigrateRestrictFields",
-                        "dbMigrateSnippets"
+                        "dbMigrateSnippets",
+                        "dbMigrateReady"
                     ],
                     "fieldgroupContexts": {
                         "title": {
@@ -644,7 +668,8 @@
                         },
                         "dbMigrateItem": [],
                         "dbMigrateRestrictFields": [],
-                        "dbMigrateSnippets": []
+                        "dbMigrateSnippets": [],
+                        "dbMigrateReady": []
                     }
                 }
             }
@@ -731,6 +756,7 @@
                     "parent": "/processwire/",
                     "status": 1025,
                     "name": "dbmigrations",
+                    "id": 16481,
                     "title": "DB Migrations"
                 }
             }

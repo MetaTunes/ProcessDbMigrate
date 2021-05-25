@@ -16,12 +16,17 @@ if ($page->template == 'DbMigration') {
     $locked = ($page->meta('locked'));
 //bd($installedStatus, '$installedStatus in migration control');
     $display = wire('modules')->get("InputfieldMarkup");
+    $installedStatus = $page->meta('installedStatus');
     if ($locked) {
         $text = __('This page is locked and cannot be changed or actioned unless you unlock it.');
-        $text2 = '';
+        if ($page->meta('installable')) {
+            $text2 = __('The status of installation is') . ' "';
+            $text2 .= $installedStatus['status'] . '".';
+        } else {
+            $text2 = __('The status of the export is') . ' "';
+            $text2 .= $installedStatus['status'] . '".';
+        }
     } else {
-        //  compare before render
-        $installedStatus = $page->exportData('compare');
         if ($page->meta('installable')) {
             $text = __('This page is installable here. It cannot be amended.');
             $text2 = __('The status of installation is') . ' "';

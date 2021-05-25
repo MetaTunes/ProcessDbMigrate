@@ -24,6 +24,13 @@
     {
         "fields": {
             "removed": {
+                "dbMigrateReady": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
                 "dbMigrateActions": []
             }
         }

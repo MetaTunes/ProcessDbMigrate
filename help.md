@@ -69,7 +69,9 @@ Note that this module has only been tested on ProcessWire>=3.0.148 and requires 
 
 ## Upgrading
 
-Place the code in the modules directory, replacing the existing files, then refresh modules in the database.
+Place the code in the modules directory, replacing the existing files, then refresh modules in the database.  
+
+Check whether the bootstrap is still showing as ‘installed’. If not, then install it.
 
 ## Uninstalling
 
@@ -165,6 +167,76 @@ Note that you will now have the following files:
 To uninstall a migration, click the &quot;Uninstall&quot; button (again, you can preview beforehand). This should revert the database to the initial state, but again there may be reasons why this cannot complete fully – see the notes below.
 
 NB When re-installing migrations, if the migration definition has changed, the system will require you to uninstall first - otherwise the “old” data.json will not properly reflect the new scope, affecting any future uninstallation. In these circumstances, a backup copy of the “old” directory is created.
+
+### Hooks
+
+#### Available hooks
+Many of the ProcessDbMigrate methods are hookable:
+-	___execute() – Display the Database Migrations setup page
+-	___executeNewPage() – Create new migration
+-	___executeGetMigrations() – refreshes all migration pages
+-	___exportData($migrationPage) – creates the .json files for a migration
+-	___removeFiles($migrationPage) – removes the .json files for a migration
+-	___installMigration($migrationPage) – installs a migration in the target
+-	___uninstallMigration ($migrationPage) - uninstalls a migration in the target
+-	___lockMigration($migrationPage, $migrationFolder) – locks a migration (in the source)
+-	___unlockMigration($migrationPage, $migrationFolder) – unlocks a migration (in the source)
+-	___previewDiffs($migrationPage, $comparisonType) – previews migration changes where $comparisonType is one of: export, install, uninstall, review
+
+#### Placement
+You can place your hooks in site/ready.php. In this case you will need to check the name of the migration page before running – e.g.
+
+````
+wire()->addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
+    $migrationPage = $event->arguments(0);
+    if ($migrationPage->name == 'my-migration') {
+        ///code to run
+    }
+});
+````
+
+and then you use $migrationPage to further reference the migration page. This approach keeps all your hooks together and you have to remember to sync the site/ready.php as well as your migration files.
+
+Alternatively (the recommended approach), you can place a file called ready.php in the site/template/DbMigrate/migrations/my-migration/ directory, in which case your script would be
+
+````
+$this->addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
+// code to run
+});
+````
+
+and you can use $this to reference the migration page. This approach keeps all your migration-related data & code together and you only have to sync the migration folder. It also means that your migration-specific ready.php code will be displayed at the bottom of the migration page.  Also, if you ‘remove migration files’ it will remove your custom code as well (usually you will only be doing this as preparation to delete the migration, so that is what you want). With the first approach, your hook will remain in site/ready.php.
+
+#### Usage
+Of the available hooks, installMigration and uninstallMigration are likely to be the most useful. For example, a hook after ProcessDbMigrate::installMigration could be used to carry out database-wide changes following the amendment of the structure. Using the example given under ‘Snippets’ earlier, say you have changed an address field to split out the post code into a separate field. The migration definition will specify the new field and the changed template. The hook will then include the code to extract postcodes and place them in the new field.  You could place code to undo this as a hook before ProcessDbMigrate::uninstallMigration, so that executing the uninstall exactly reverses the install.
+
+In some circumstances you may not wish the code in your hook to run if (for example) the installation was not completely successful. You can test the status of a migration as follows (use $migrationPage = $event->arguments(0); instead of $this if your code is in site/ready.php):
+-	Test if $this->meta(‘installedStatus’)[‘status’] is ‘installed’ or ‘uninstalled’. This yields the installed status before the (un)installMigration method, regardless of whether the hook is before or after.
+-	For ‘after’ hooks, update the status by calling $this->refresh() before testing the status to get the status after running the (un)installMigration method.
+
+Note that $this->meta(‘installedStatus’) is an array as follows:
+-	'status' => (string) one of pending (not yet exported or different from exported data), exported, indeterminate (not installed or uninstalled – usually means not yet installed and no ‘old’ files yet exist to provide uninstall data), installed, uninstalled, superseded (locked migration which would otherwise be shown as pending or indeterminate***), void (installed and uninstalled),
+-	'scopeChange' => true if the proposed migration and old/data.json  reference different database elements (so the ‘old’ definition would no longer be a suitable basis for an uninstall action)**,
+-	'installed' => true if installedData and installedMigration are true,
+-	'uninstalled' => true if uninstalledData and uninstalledMigration are true,
+-	'installedData' => true if installedDataDiffs is empty,
+-	'uninstalledData' => true if uninstalledDataDiffs is empty,
+-	'installedDataDiffs' => (array) reportable* differences between the current state and the installation data (new/data.json),
+-	'uninstalledDataDiffs' => (array) reportable* differences between the current state and the uninstallation data (old/data.json),
+-	'installedMigration' => true if installedMigrationDiffs is empty,
+-	'installedMigrationDiffs' => (array) reportable* differences between the current migration definition and the installation migration definition (new/migration.json),
+-	'uninstalledMigration' => true if uninstalledMigrationDiffs is empty,
+-	'uninstalledMigrationDiffs' => (array) reportable* differences between the current migration definition and the uninstallation migration definition (old/migration.json) – it will be empty if the migration has not yet been installed and so no ‘old’ files yet exist,
+-	'reviewedDataDiffs' => (array) reportable* differences between the installation data (new/data.json) and the uninstallation data (old/data.json) – it will be empty if the migration has not yet been installed and so no ‘old’ files yet exist,
+
+*Reportable differences exclude any differences in excluded fields and also any differences that are purely caused by pages having different ids in the source and target databases. The array is multidimensional of varying depths with the bottom elements being 2-element arrays containing the differing values.
+
+**Note that it is perfectly possible for there to be a scope change even if there are no differences in the migration definition. For example, if a page selector is used and changes to the source database mean that there is a change in the pages found by the selector.
+
+***Locked migrations will have the status at the time they were locked, so will normally be ‘installed’ or ‘exported’.
+
+Use the Tracy console - d($page->meta('installedStatus')); - to inspect the installed status for any migration page. Call the method exportData() - $page->exportData('compare'); - first to update the meta if required.
+
 
 ### Troubleshooting / Technical notes
 

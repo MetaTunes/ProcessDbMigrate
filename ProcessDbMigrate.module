@@ -30,7 +30,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule
             'summary' => 'Maintain migration data',
             'comments' => '',
             'author' => 'Mark Evens',
-            'version' => "0.0.13",
+            'version' => "0.0.14",
             'autoload' => true,
             'singular' => true,
             'page' => array( 			// optionally install/uninstall a page for this process automatically
@@ -272,16 +272,16 @@ If it has been used in another environment and is no longer wanted then you will
         $migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-created, include=all");
         foreach ($migrationPages as $migrationPage) {
             /* @var $migrationPage DbMigrationPage */
+            $installedStatus = $migrationPage->meta('installedStatus');
+            $status = $installedStatus['status'];
             if (!$migrationPage->meta('locked')) {
-                $installedStatus = $migrationPage->exportData('compare');
-                $status = $installedStatus['status'];
                 if ($migrationPage->meta('installable')) {
                     $statusColour = ($status == 'installed') ? 'lightgreen' : (($status == 'uninstalled') ? 'salmon' : 'orange');
                 } else {
                     $statusColour = ($status == 'exported') ? 'lightgreen' : 'salmon';
                 }
             } else {
-                $status = 'Locked';
+//                $status = 'Locked';
                 $statusColour = 'LightGrey';
             }
             //bd($migrationPage, $status);
@@ -463,80 +463,104 @@ If it has been used in another environment and is no longer wanted then you will
     }
 
     /**
-     * Execute method for export - linked by button in runtime_markup_migrationActions
+     * Execute method for export - linked by button in dbMigrateActions
      * @throws WireException
      */
-    public function ___executeExportData() {
+    public function executeExportData() {
         $pageId = $this->wire()->input->get->int('id');
         $migrationPage = $this->wire()->pages->get($pageId);
         /* @var $migrationPage DbMigrationPage */
-        $migrationPage->exportData('new');
+        $this->exportData($migrationPage);
         $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
     }
 
     /**
-     * Execute method for removing files - linked by button in runtime_markup_migrationActions
+     * This is the hookable method - it has the migration page as an argument
+     * @param $migrationPage
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___exportData($migrationPage) {
+        /* @var $migrationPage DbMigrationPage */
+        $migrationPage->exportData('new');
+    }
+
+    /**
+     * Execute method for removing files - linked by button in dbMigrateActions
      * @throws WireException
      */
-    public function ___executeRemoveFiles() {
+    public function executeRemoveFiles() {
         $pageId = $this->wire()->input->get->int('id');
         $migrationPage = $this->wire()->pages->get($pageId);
+        /* @var $migrationPage DbMigrationPage */
+        $this->removeFiles($migrationPage);
+        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
+    }
+
+    /**
+     * This is the hookable method - it has the migration page as an argument
+     * @param $migrationPage
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___removeFiles($migrationPage) {
         /* @var $migrationPage DbMigrationPage */
         $migrationPath = $this->migrationsPath . $migrationPage->name . '/';
         if (is_dir($migrationPath)) {
             $this->wire()->files->rmdir($migrationPath, true);
         }
-        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
     }
 
 
     /**
-     * Execute method for install - linked by button in runtime_markup_migrationActions
+     * Execute method for install - linked by button in dbMigrateActions
      * @throws WireException
      * @throws WirePermissionException
      */
-    public function ___executeInstallMigration() {
+    public function executeInstallMigration() {
         $pageId = $this->wire()->input->get->int('id');
         $migrationPage = $this->wire()->pages->get($pageId);
+        /* @var $migrationPage DbMigrationPage */
+        $this->installMigration($migrationPage);
+        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
+    }
+
+    /**
+     * This is the hookable method - it has the migration page as an argument
+     * @param $migrationPage
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___installMigration($migrationPage) {
         /* @var $migrationPage DbMigrationPage */
         $migrationPage->installMigration('new');
-        $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
     }
 
 
     /**
-     * Execute method for uninstall - linked by button in runtime_markup_migrationActions
+     * Execute method for uninstall - linked by button in dbMigrateActions
      * @throws WireException
      * @throws WirePermissionException
      */
-    public function ___executeUninstallMigration() {
+    public function executeUninstallMigration() {
         $pageId = $this->wire()->input->get->int('id');
         $migrationPage = $this->wire()->pages->get($pageId);
         /* @var $migrationPage DbMigrationPage */
-        $migrationPage->installMigration('old');
+        $this->uninstallMigration($migrationPage);
         $this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
     }
 
-//    /**
-//     * @param $migrationPage
-//     * @param $values
-//     * @param $newOld
-//     * @return array
-//     * @throws WireException
-//     */
-//    protected function replaceImageSource($migrationPage, $values, $newOld) {
-//        // $value should be a 2-element array [current, proposed]
-//        /* @var $migrationPage DbMigrationPage */
-//        $newValues = [];
-//        foreach ($values as $value) {
-//            if (is_string($value) and $value != strip_tags($value)) {   // $value is html
-//                $newValues[] = $migrationPage->replaceImgSrcPath($value, $newOld);
-//            } else {
-//                $newValues[] = $value;
-//            }
-//        }
-//        return $newValues;
-//    }
+    /**
+     * This is the hookable method - it has the migration page as an argument
+     * @param $migrationPage
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___uninstallMigration($migrationPage) {
+        /* @var $migrationPage DbMigrationPage */
+        $migrationPage->installMigration('old');
+    }
+
 
     /**
      * Markup for the Preview modal
@@ -601,31 +625,28 @@ If it has been used in another environment and is no longer wanted then you will
     }
 
     /**
-     * Lock the migration linked by runtime_markup_migrationControl
+     * Lock the migration linked by dbMigrateControl
      * @throws WireException
      */
-    public function ___executeLock() {
+    public function executeLock() {
         $pageId = $this->wire()->input->get->int('id');
         $action = $this->wire()->input->get->text('action');
         $migrationPage = $this->wire()->pages->get($pageId);
         $migrationFolder = $this->migrationsPath . $migrationPage->name . '/';
-        $now = $this->wire()->datetime->date('Ymd-His');
         if ($action == 'lock') {
             //bd($migrationPage->meta('locked'), 'Meta locked');
             if (is_dir($migrationFolder)) {
                 if (!$migrationPage->meta('installable')) {
-                    $this->wire()->files->filePutContents($migrationFolder . 'lockfile.txt', $now);
-                    $migrationPage->meta('locked', true);
+                    $this->lockMigration($migrationPage, $migrationFolder);
                 }
             } else {
                 $this->wire()->notices->error(sprintf($this->_("Unable to lock migration as no directory named %s exists."), $migrationPage));
             }
         } else {   // 'unlock'
             $migrationFiles = $this->wire()->files->find($migrationFolder);
-            if (!$migrationPage->meta('installable')) {
-                $migrationPage->meta()->remove('locked');
-                if (is_dir($migrationFolder) and in_array($migrationFolder . 'lockfile.txt', $migrationFiles)) {
-                    $this->wire()->files->unlink($migrationFolder . 'lockfile.txt');
+            if (is_dir($migrationFolder) and in_array($migrationFolder . 'lockfile.txt', $migrationFiles)) {
+                if (!$migrationPage->meta('installable')) {
+                    $this->unlockMigration($migrationPage, $migrationFolder);
                 }
             }
         }
@@ -633,16 +654,60 @@ If it has been used in another environment and is no longer wanted then you will
     }
 
     /**
-     *  Execute method for Preview - linked by button in runtime_markup_migrationActions
+     * This is the hookable method for Lock - it has the migration page as an argument
+     * @param $migrationPage
+     * @param $migrationFolder
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___lockMigration($migrationPage, $migrationFolder) {
+        /* @var $migrationPage DbMigrationPage */
+        $migrationPage->exportData('compare'); // sets meta('installedStatus') to the latest status before locking
+        $now = $this->wire()->datetime->date('Ymd-His');
+        $this->wire()->files->filePutContents($migrationFolder . 'lockfile.txt', $now);
+        $migrationPage->meta('locked', true);
+    }
+
+    /**
+     * This is the hookable method for Unlock - it has the migration page as an argument
+     * @param $migrationPage
+     * @param $migrationFolder
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___unlockMigration($migrationPage, $migrationFolder) {
+        /* @var $migrationPage DbMigrationPage */
+        $this->wire()->files->unlink($migrationFolder . 'lockfile.txt');
+        $migrationPage->meta()->remove('locked');
+        $migrationPage->exportData('compare'); // sets meta('installedStatus') to the latest status after unlocking (May cause errors if unlocking superseded migration?)
+    }
+
+
+    /**
+     *  Execute method for Preview - linked by button in dbMigrateActions
      * @return string
      * @throws WireException
      */
-    public function ___executePreviewDiffs() {
+    public function executePreviewDiffs() {
         $pageId = $this->wire()->input->get->int('id');
-        $comparisonType = $target = $this->wire()->input->get->text('target');
-        $target = ($target == 'export') ? 'install' : $target;  // export comparison is same as install, but with different text
+        $comparisonType = $this->wire()->input->get->text('target');
         $migrationPage = $this->wire()->pages->get($pageId);
         /* @var $migrationPage DbMigrationPage */
+        return $this->previewDiffs($migrationPage, $comparisonType);
+    }
+
+    /**
+     * This is the hookable method for Preview - it has the migration page as an argument
+     * @param $migrationPage
+     * @param $target
+     * @param $migrationFolder
+     * @throws WireException
+     * @throws WirePermissionException
+     */
+    public function ___previewDiffs($migrationPage, $comparisonType) {
+        /* @var $migrationPage DbMigrationPage */
+        $target = $comparisonType;
+        $target = ($target == 'export') ? 'install' : $target;  // export comparison is same as install, but with different text
         $diffs = $target . 'edDataDiffs';  // e.g. uninstalledDataDiffs
         $newOld = [];
         switch ($target) {

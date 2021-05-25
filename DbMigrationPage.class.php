@@ -86,6 +86,9 @@ public function init() {
         $this->addHookBefore("Pages::trash(template=$this->migrationTemplate)", $this, 'beforeTrashThis');
         $this->addHookAfter("Pages::trashed(template=$this->migrationTemplate)", $this, 'afterTrashedThis');
 
+        $readyFile = $this->migrationsPath . '/' . $this->name . '/ready.php';
+        if (file_exists($readyFile)) include $readyFile;
+
         $this->set('ready', true);
     }
 
@@ -569,7 +572,8 @@ protected function shouldExist($action, $compareType) {
             }
         } else {
             if (!$object) {
-                $this->wire()->notices->error($this->_('No object for ' . $item['name'] . '.'));
+                $this->wire()->notices->error($this->_($this->name . ': No object for ' . $item['name'] . '.'));
+//                throw new WireException('missing object' . $item['name']); // for debugging
                 return $empty;
             }
             $objectData = $object->getExportData();
@@ -635,13 +639,14 @@ protected function shouldExist($action, $compareType) {
         foreach ($data as $entry) {
             if (is_array($entry)) foreach ($entry as $type => $line) {
                 if ($type == 'sourceDb') continue; // Ignore source database tags in comparisons
-                //bd([$type, $line], 'compact item');
+               //bd([$type, $line], 'compact item');
                 if (is_array($line)) foreach ($line as $action => $item) {
                     if (is_array($item)) foreach ($item as $name => $values) {
                         if ($type == 'pages' and $action == 'removed' and !$this->wire()->sanitizer->path($name)) {
                             // don't want removed pages with selector as they get expanded elsewhere (ToDo Consider deleting $action=='removed' condition as probably irrelevant)
                             continue;
                         }
+                        //bd([$name, $values], 'compact item - name, values');
                         if (isset($values['id'])) unset($values['id']);
                         $newData[$type. '->' . $action . '->' . $name] = $values;
                     }
@@ -840,7 +845,7 @@ protected function shouldExist($action, $compareType) {
                 //bd('NEW');
 
                 $newArray = $this->compactArray(wireDecodeJSON($newFile));
-                //bd($newArray, 'newArray');
+               //bd($newArray, 'newArray');
                 //bd('OLD');
                 $oldArrayFull = wireDecodeJSON($oldFile);
                 $oldArray = $this->compactArray($oldArrayFull);
@@ -893,31 +898,37 @@ protected function shouldExist($action, $compareType) {
              * MIGRATION COMPARISON
             */
             // Migration comparison is only required in source database, to flag migration scope changes as pending
-            if (!$this->meta('installable') and $this->data) {
-                $newMigFile = (file_exists($migrationPath . 'new/migration.json')) ? file_get_contents($migrationPath . 'new/migration.json') : null;
-                $oldMigFile = (file_exists($migrationPath . 'old/migration.json')) ? file_get_contents($migrationPath . 'old/migration.json') : null;
+//            if (!$this->meta('installable') and $this->data) {
+
+            // migration.json is just a single page, so json differs from data.json by missing square brackets.
+            // Add the square brackets to the migration.json so that we can use the same compactArray() method as we use for data.json
+            if ($this->data) {
+                $newMigFile = (file_exists($migrationPath . 'new/migration.json')) ? '[' . file_get_contents($migrationPath . 'new/migration.json') . ']' : null;
+                $oldMigFile = (file_exists($migrationPath . 'old/migration.json')) ? '[' . file_get_contents($migrationPath . 'old/migration.json') . ']' : null;
 
                 if ($migrationObjectJson) {
                     file_put_contents($cachePath . 'migration.json', $migrationObjectJson);
                 } else {
                     if (is_dir($cachePath) and file_exists($cachePath . 'migration.json')) unlink($cachePath . 'migration.json');
                 }
-                $cmpMigFile = (file_exists($cachePath . 'migration.json')) ? file_get_contents($cachePath . 'migration.json') : null;
-
+                $cmpMigFile = (file_exists($cachePath . 'migration.json')) ? '[' . file_get_contents($cachePath . 'migration.json') . ']' : null;
+                //bd('new migration');
                 $R = $this->array_compare($this->compactArray(wireDecodeJSON($newMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
                 $R = $this->pruneImageFields($R, 'new');
                 $installedMigration = (!$R);
                 $installedMigrationDiffs = $R;
+                //bd('old migration');
                 $R2 = $this->array_compare($this->compactArray(wireDecodeJSON($oldMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
                 $R2 = $this->pruneImageFields($R2, 'old');
                 $uninstalledMigration = (!$R2);
                 $uninstalledMigrationDiffs = $R2;
-            } else {
-                $installedMigration = true;
-                $uninstalledMigration = true;
-                $installedMigrationDiffs = [];
-                $uninstalledMigrationDiffs = [];
             }
+//            } else {
+//                $installedMigration = true;
+//                $uninstalledMigration = true;
+//                $installedMigrationDiffs = [];
+//                $uninstalledMigrationDiffs = [];
+//            }
 
 
             $installed = ($installedData and $installedMigration);
@@ -965,6 +976,8 @@ protected function shouldExist($action, $compareType) {
             ];
             //bd($result, 'result');
         }
+        $this->meta('installedStatus', $result);
+        if (!$this->meta('installable') and $newOld == 'new') $this->save();  // to ensure reload after export
         return $result;
 
     }
@@ -1154,26 +1167,27 @@ public function getRepeaters($values) {
         }
         if ($this->name != 'dummy-bootstrap') {
         // update any images in RTE fields
-        $idMapArray = $this->setIdMap($pagesInstalled);
-        //bd($idMapArray, 'idMapArray');
-        foreach($pagesInstalled as $page) {
-            //bd($page, 'RTE? page');
-            foreach ($page->getFields() as $field) {
-                //bd([$page, $field], 'RTE? field');
-                if ($field->type == 'FieldtypeTextarea') {
-                    //bd([$page, $field], 'RTE field Y');
-                    //bd($page->$field, 'Initial html');
-                    $html = $page->$field;
-                    $html = $this->replaceLink($html, $idMapArray, $newOld);
-                    //bd($html, 'returned html');
-                    $page->$field = $html;
-                    $page->of(false);
-                    $page->save($field);
+            $idMapArray = $this->setIdMap($pagesInstalled);
+            //bd($idMapArray, 'idMapArray');
+            foreach ($pagesInstalled as $page) {
+                //bd($page, 'RTE? page');
+                foreach ($page->getFields() as $field) {
+                    //bd([$page, $field], 'RTE? field');
+                    if ($field->type == 'FieldtypeTextarea') {
+                        //bd([$page, $field], 'RTE field Y');
+                        //bd($page->$field, 'Initial html');
+                        $html = $page->$field;
+                        $html = $this->replaceLink($html, $idMapArray, $newOld);
+                        //bd($html, 'returned html');
+                        $page->$field = $html;
+                        $page->of(false);
+                        $page->save($field);
+                    }
                 }
             }
+            $this->exportData('compare'); // sets meta('installedStatus')
         }
-        }
-
+        $this->save(['noHooks' => true, 'quiet' => true]);
         if ($message) $this->wire()->notices->message(implode(', ', $message));
         if ($warning) $this->wire()->notices->warning(implode(', ', $warning));
         //bd($newOld, 'finished install');
@@ -1584,6 +1598,10 @@ public function getRepeaters($values) {
     public function refresh($found=null) {
         //bd('IN REFRESH');
         if (!$this->ready) $this->ready();
+        if ($this->meta('locked')) return false;
+
+        // Continue only for unlocked pages
+        $this->exportData('compare'); // sets meta('installedStatus')
         // get the migration details
         $migrationPath = $this->migrationsPath . $this->name;
         if (!$found) {
@@ -1599,14 +1617,14 @@ public function getRepeaters($values) {
         // set installable status according to database name
         $sourceDb = (isset($fileContents['sourceDb']) and $fileContents['sourceDb']) ? $fileContents['sourceDb'] : null;
         if ($sourceDb) {
-            if ($this->configData['database_name'] and $sourceDb == $this->configData['database_name']) {
+            if (isset($this->configData['database_name']) and $this->configData['database_name'] and $sourceDb == $this->configData['database_name']) {
                 if ($this->meta('installable')) $this->meta()->remove('installable');
             } else {
                 if (!$this->meta('installable')) $this->meta('installable', true);
             }
             $this->meta('sourceDb', $sourceDb);
         }
-        if (isset($fileContents['sourceDb'])) unset($fileContents['sourceDb']);
+        if (isset($fileContents['sourceDb'])) unset($fileContents['sourceDb']);  // temporary so we don't attempt to process it
         // set lock status according to presence of lockfile
         $migrationFolder = $this->migrationsPath . $this->name . '/';
         $migrationFiles = $this->wire()->files->find($migrationFolder);
@@ -1635,65 +1653,68 @@ public function getRepeaters($values) {
                     if ($this->name != $pageName) $this->wire()->notices->warning($this->_('Page name in migrations file is not the same as the host folder.'));
                     $p = $this->migrations->get("name=$pageName, include=all");
                     /* @var $p MigrationPage */
-                    // check if the definition has changed
-                    $oldFile = $migrationPath . '/old/migration.json';
-                    $fileTestCompare = [];
-                    $fileCompare = [];
-                    // only compare fields that actually affect the migration
-                    $fieldsToCompare = [
-                        'dbMigrateItem',
-                        'dbMigrateRestrictFields'];
-                    if (file_exists($oldFile)) {
-                        $oldContents = wireDecodeJSON(file_get_contents($oldFile));
+                    // bootstrap must always refresh because on upgrade, the old/migration.json will have been updated as uninstall is not permitted
+                    if ($this->name != 'bootstrap') {
+                        // check if the definition has changed
+                        $oldFile = $migrationPath . '/old/migration.json';
+                        $fileTestCompare = [];
+                        $fileCompare = [];
+                        // only compare fields that actually affect the migration
+                        $fieldsToCompare = [
+                            'dbMigrateItem',
+                            'dbMigrateRestrictFields'];
+                        if (file_exists($oldFile)) {
+                            $oldContents = wireDecodeJSON(file_get_contents($oldFile));
 //                        $test1 = $this->reindexRepeaterItems($oldContents);
 //                        $test2 = $this->getRepeaterItem($oldContents, '/images/');
 //                        //bd($test1, 'TEST1');
 //                        //bd($test2, 'TEST2');
 // in practice there is only one item in the array (after 'sourceDb' has been unset) as it is just for the migration page itself
-                        if (isset($oldContents['sourceDb'])) unset($oldContents['sourceDb']);
-                        foreach ($oldContents as $oldType => $oldContent) {
-                            foreach ($oldContent as $oldLine) {
-                                foreach ($oldLine as $oldPathName => $oldValues) {
+                            if (isset($oldContents['sourceDb'])) unset($oldContents['sourceDb']);
+                            foreach ($oldContents as $oldType => $oldContent) {
+                                foreach ($oldContent as $oldLine) {
+                                    foreach ($oldLine as $oldPathName => $oldValues) {
 
 //                                    $oldValues = (isset($oldContents[$type]['new'][$pathName])) ? $oldContents[$type]['new'][$pathName] : [];
-                                    $oldTestValues = $oldValues;
-                                    foreach ($oldTestValues as $k => $oldTestValue) {
-                                        if (!in_array($k, $fieldsToCompare)) unset($oldTestValues[$k]);
+                                        $oldTestValues = $oldValues;
+                                        foreach ($oldTestValues as $k => $oldTestValue) {
+                                            if (!in_array($k, $fieldsToCompare)) unset($oldTestValues[$k]);
+                                        }
+                                        $testValues = $values;
+                                        foreach ($testValues as $k => $testValue) {
+                                            if (!in_array($k, $fieldsToCompare)) unset($testValues[$k]);
+                                        }
+                                        $fileTestCompare = $this->array_compare($testValues, $oldTestValues);  // just the important changes
+                                        $fileCompare = $this->array_compare($values, $oldValues); // all the changes
+                                        //bd($fileTestCompare, '$fileTestCompare in refresh');
+                                        //bd($fileCompare, '$fileCompare in refresh');
                                     }
-                                    $testValues = $values;
-                                    foreach ($testValues as $k => $testValue) {
-                                        if (!in_array($k, $fieldsToCompare)) unset($testValues[$k]);
-                                    }
-                                    $fileTestCompare = $this->array_compare($testValues, $oldTestValues);  // just the important changes
-                                    $fileCompare = $this->array_compare($values, $oldValues); // all the changes
-                                    //bd($fileTestCompare, '$fileTestCompare in refresh');
-                                    //bd($fileCompare, '$fileCompare in refresh');
                                 }
                             }
                         }
-                    }
-                    /*
-                     * Need to add a further check here, for migrations which reference page selectors
-                     * The migration page may be unchanged, but database changes may mean that different pages are within the scope, so we need to recreate the 'old' data
-                     * Method is to compare the pages in the scope as evidenced by the previous old.json file and the one that would be created from the new migration
-                     * This is done in exportData(). If there is a difference, the result array element 'scopeChange' is set to true.
-                     */
-                    $installedStatus = $this->exportData('compare');
-                    $this->meta('installedStatus', $installedStatus); // used in exportData() to prevent recursion
-                    $scopeChange = $installedStatus['scopeChange'];
-                    //bd([$fileTestCompare, $scopeChange], '[fileTestCompare, scopeChange]');
-                    if ((file_exists($oldFile)) and ($fileTestCompare or $scopeChange) and !$installedStatus['uninstalled'] and $this->name != 'bootstrap') {
-                        $this->wire()->notices->warning(sprintf($this->_("Migration definition has changed for %s \nYou must fully uninstall the current migration before refreshing the definition and installing the new migration."), $pageName));
-                        return false;
-                    }
-                    if (file_exists($oldFile) and !$fileCompare and !$scopeChange) continue;   // nothing changed at all so no action required
-                    // So now we should have a new migration definition where the previous version has been uninstalled or the changes are only 'cosmetic'
-                    // Delete the old files before continuing - a new version of these will be created when the new version of the migration is installed
-                    // BUT only do this if the migration is fully uninstalled - do not do it when we are just updating cosmetic changes
-                    if (is_dir($migrationPath . '/old/') and $installedStatus['uninstalled']) {
-                        // Do not remove the old directory - retain as backup with date and time appended
-                        $timeStamp = $this->wire()->datetime->date('Ymd-Gis');
-                        $this->wire()->files->rename($migrationPath . '/old/', $migrationPath . 'old-' . $timeStamp . '/');
+                        /*
+                         * Need to add a further check here, for migrations which reference page selectors
+                         * The migration page may be unchanged, but database changes may mean that different pages are within the scope, so we need to recreate the 'old' data
+                         * Method is to compare the pages in the scope as evidenced by the previous old.json file and the one that would be created from the new migration
+                         * This is done in exportData(). If there is a difference, the result array element 'scopeChange' is set to true.
+                         */
+
+                        $installedStatus = $this->meta('installedStatus');
+                        $scopeChange = $installedStatus['scopeChange'];
+                        //bd([$fileTestCompare, $scopeChange], '[fileTestCompare, scopeChange]');
+                        if ((file_exists($oldFile)) and ($fileTestCompare or $scopeChange) and !$installedStatus['uninstalled']) {
+                            $this->wire()->notices->warning(sprintf($this->_("Migration definition has changed for %s \nYou must fully uninstall the current migration before refreshing the definition and installing the new migration."), $pageName));
+                            return false;
+                        }
+                        if (file_exists($oldFile) and !$fileCompare and !$scopeChange) continue;   // nothing changed at all so no action required
+                        // So now we should have a new migration definition where the previous version has been uninstalled or the changes are only 'cosmetic'
+                        // Delete the old files before continuing - a new version of these will be created when the new version of the migration is installed
+                        // BUT only do this if the migration is fully uninstalled - do not do it when we are just updating cosmetic changes
+                        if (is_dir($migrationPath . '/old/') and $installedStatus['uninstalled']) {
+                            // Do not remove the old directory - retain as backup with date and time appended
+                            $timeStamp = $this->wire()->datetime->date('Ymd-Gis');
+                            $this->wire()->files->rename($migrationPath . '/old/', $migrationPath . 'old-' . $timeStamp . '/');
+                        }
                     }
                     //bd($values, ' in page refresh with $values');
                     unset($values['parent']);

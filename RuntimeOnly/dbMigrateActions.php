@@ -18,7 +18,7 @@ This page will remain and can be re-exported based on the current database (and 
     } else {
 
         //  compare before render
-        $installedStatus = $page->exportData('compare');
+        $installedStatus = $page->meta('installedStatus');
         $form = wire(new InputfieldWrapper());
         $form->attr('id', 'actions_form');
         // Only show if unlocked
