@@ -1186,8 +1186,8 @@ public function getRepeaters($values) {
                 }
             }
             $this->exportData('compare'); // sets meta('installedStatus')
+            $this->save(['noHooks' => true, 'quiet' => true]);
         }
-        $this->save(['noHooks' => true, 'quiet' => true]);
         if ($message) $this->wire()->notices->message(implode(', ', $message));
         if ($warning) $this->wire()->notices->warning(implode(', ', $warning));
         //bd($newOld, 'finished install');
