@@ -1,3 +1,3 @@
 $(document).ready(function () {
-     $('.description').html(ProcessWire.config.dbMigrateReady.description);
+     $('.Inputfield_dbMigrateReady .description').html(ProcessWire.config.dbMigrateReady.description);
 });
