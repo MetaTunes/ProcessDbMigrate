@@ -5,25 +5,14 @@
                 "dbMigrateType": {
                     "name": "dbMigrateType",
                     "label": "Object type",
-                    "flags": 0,
+                    "flags": 8,
                     "type": "FieldtypeOptions",
                     "inputfieldClass": "InputfieldSelect",
                     "tags": "dbMigrate",
-                    "initValue": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeInputSize": "",
-                    "themeInputWidth": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredIf": "",
-                    "defaultValue": "",
                     "export_options": {
                         "default": "1=fields|Field\n2=templates|Template\n3=pages|Page"
-                    }
+                    },
+                    "initValue": ""
                 }
             }
         }
@@ -34,25 +23,14 @@
                 "dbMigrateAction": {
                     "name": "dbMigrateAction",
                     "label": "Action",
-                    "flags": 0,
+                    "flags": 8,
                     "type": "FieldtypeOptions",
                     "inputfieldClass": "InputfieldSelect",
                     "tags": "dbMigrate",
-                    "initValue": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeInputSize": "",
-                    "themeInputWidth": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredIf": "",
-                    "defaultValue": "",
                     "export_options": {
                         "default": "1=new|New\n2=changed|Changed\n3=removed|Removed"
-                    }
+                    },
+                    "initValue": ""
                 }
             }
         }
@@ -62,30 +40,15 @@
             "new": {
                 "dbMigrateName": {
                     "name": "dbMigrateName",
-                    "label": "Name (path or selector for pages)",
-                    "flags": 0,
+                    "label": "Name (path for pages) or selector",
+                    "flags": 8,
                     "type": "FieldtypeText",
-                    "minlength": 0,
                     "maxlength": 2048,
+                    "tags": "dbMigrate",
+                    "minlength": 0,
                     "showCount": 0,
                     "size": 0,
-                    "tags": "dbMigrate",
-                    "textformatters": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeInputSize": "",
-                    "themeInputWidth": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "themeBlank": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredAttr": "",
-                    "requiredIf": "",
-                    "stripTags": "",
-                    "placeholder": "",
-                    "pattern": ""
+                    "textformatters": ""
                 }
             }
         }
@@ -96,29 +59,11 @@
                 "dbMigrateOldName": {
                     "name": "dbMigrateOldName",
                     "label": "Old name if different (n/a for selectors)",
-                    "flags": 0,
+                    "flags": 8,
                     "type": "FieldtypeText",
                     "tags": "dbMigrate",
-                    "textformatters": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeInputSize": "",
-                    "themeInputWidth": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "themeBlank": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredAttr": "",
-                    "requiredIf": "",
-                    "minlength": 0,
                     "maxlength": 2048,
-                    "showCount": 0,
-                    "size": 0,
-                    "stripTags": "",
-                    "placeholder": "",
-                    "pattern": ""
+                    "textformatters": ""
                 }
             }
         }
@@ -214,33 +159,25 @@
                 "dbMigrateItem": {
                     "name": "dbMigrateItem",
                     "label": "Migration item",
-                    "flags": 0,
+                    "flags": 8,
                     "type": "FieldtypeRepeater",
-                    "parent_id": 0,
                     "repeaterFields": [
                         "dbMigrateType",
                         "dbMigrateAction",
                         "dbMigrateName",
                         "dbMigrateOldName"
                     ],
-                    "repeaterCollapse": 0,
                     "repeaterLoading": 1,
-                    "collapsed": 0,
                     "repeaterTitle": "#n: {dbMigrateAction} {dbMigrateType}: {dbMigrateName}",
                     "tags": "dbMigrate",
+                    "parent_id": 0,
+                    "repeaterCollapse": 0,
                     "repeaterAddLabel": "",
                     "rememberOpen": "",
                     "accordionMode": "",
                     "repeaterMaxItems": "",
                     "repeaterMinItems": "",
                     "repeaterDepth": "",
-                    "showIf": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredIf": "",
                     "fieldContexts": {
                         "dbMigrateType": {
                             "columnWidth": 10
@@ -261,37 +198,126 @@
         }
     },
     {
+        "templates": {
+            "new": {
+                "repeater_dbMigrateComparisonItem": {
+                    "name": "repeater_dbMigrateComparisonItem",
+                    "fieldgroups_id": "repeater_dbMigrateComparisonItem",
+                    "flags": 8,
+                    "cache_time": 0,
+                    "useRoles": 0,
+                    "noInherit": 0,
+                    "childrenTemplatesID": 0,
+                    "sortfield": "",
+                    "noChildren": 1,
+                    "noParents": 1,
+                    "childTemplates": [],
+                    "parentTemplates": [],
+                    "allowPageNum": 0,
+                    "allowChangeUser": 0,
+                    "redirectLogin": 0,
+                    "urlSegments": 0,
+                    "https": 0,
+                    "slashUrls": 1,
+                    "slashPageNum": 0,
+                    "slashUrlSegments": 0,
+                    "altFilename": "",
+                    "guestSearchable": 0,
+                    "pageClass": "RepeaterPage",
+                    "childNameFormat": "",
+                    "pageLabelField": "",
+                    "noGlobal": 1,
+                    "noMove": 0,
+                    "noTrash": 0,
+                    "noSettings": 0,
+                    "noChangeTemplate": 0,
+                    "noShortcut": 0,
+                    "noUnpublish": 0,
+                    "noLang": 0,
+                    "compile": 3,
+                    "nameContentTab": 0,
+                    "noCacheGetVars": "",
+                    "noCachePostVars": "",
+                    "useCacheForUsers": 0,
+                    "cacheExpire": 0,
+                    "cacheExpirePages": [],
+                    "cacheExpireSelector": "",
+                    "label": "",
+                    "tags": "",
+                    "titleNames": 0,
+                    "noPrependTemplateFile": 0,
+                    "noAppendTemplateFile": 0,
+                    "prependFile": "",
+                    "appendFile": "",
+                    "pagefileSecure": false,
+                    "tabContent": "",
+                    "tabChildren": "",
+                    "nameLabel": "",
+                    "contentType": "",
+                    "errorAction": 0,
+                    "connectedFieldID": null,
+                    "ns": "",
+                    "_exportMode": true,
+                    "fieldgroupFields": [
+                        "dbMigrateType",
+                        "dbMigrateName"
+                    ],
+                    "fieldgroupContexts": {
+                        "dbMigrateType": [],
+                        "dbMigrateName": []
+                    }
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateComparisonItem": {
+                    "name": "dbMigrateComparisonItem",
+                    "label": "Comparison item",
+                    "flags": 8,
+                    "type": "FieldtypeRepeater",
+                    "parent_id": 0,
+                    "repeaterFields": [
+                        "dbMigrateType",
+                        "dbMigrateName"
+                    ],
+                    "repeaterCollapse": 0,
+                    "repeaterLoading": 1,
+                    "tags": "dbMigrate",
+                    "repeaterTitle": "#1: {dbMigrateType} - {dbMigrateName}",
+                    "repeaterAddLabel": "",
+                    "rememberOpen": "",
+                    "accordionMode": "",
+                    "repeaterMaxItems": "",
+                    "repeaterMinItems": "",
+                    "repeaterDepth": "",
+                    "fieldContexts": {
+                        "dbMigrateType": [],
+                        "dbMigrateName": []
+                    },
+                    "template_name": "repeater_dbMigrateComparisonItem"
+                }
+            }
+        }
+    },
+    {
         "fields": {
             "new": {
                 "dbMigrateSummary": {
                     "name": "dbMigrateSummary",
                     "label": "Summary",
-                    "flags": 0,
+                    "flags": 8,
                     "type": "FieldtypeTextarea",
                     "textformatters": [
                         "TextformatterEntities"
                     ],
                     "inputfieldClass": "InputfieldTextarea",
-                    "contentType": 0,
-                    "minlength": 0,
-                    "maxlength": 0,
-                    "showCount": 0,
                     "rows": 5,
                     "tags": "dbMigrate",
-                    "htmlOptions": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeInputSize": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "themeBlank": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredAttr": "",
-                    "requiredIf": "",
-                    "stripTags": "",
-                    "placeholder": ""
+                    "contentType": 0,
+                    "htmlOptions": ""
                 }
             }
         }
@@ -302,19 +328,15 @@
                 "dbMigrateAdditionalDetails": {
                     "name": "dbMigrateAdditionalDetails",
                     "label": "Additional details",
-                    "flags": 0,
+                    "flags": 8,
                     "type": "FieldtypeTextarea",
                     "textformatters": [
                         "TextformatterHannaCode"
                     ],
                     "inputfieldClass": "InputfieldCKEditor",
                     "contentType": 1,
-                    "minlength": 0,
-                    "maxlength": 0,
-                    "showCount": 0,
                     "rows": 8,
                     "toolbar": "Format, Styles, -, Bold, Italic, -, RemoveFormat\nNumberedList, BulletedList, -, Blockquote\nPWLink, Unlink, Anchor\nPWImage, Table, HorizontalRule, SpecialChar\nPasteText, PasteFromWord\nTextColor, BGColor\nScayt, -, Sourcedialog",
-                    "inlineMode": 0,
                     "useACF": 1,
                     "usePurifier": 1,
                     "toggles": [
@@ -332,24 +354,7 @@
                     "removePlugins": "image,magicline",
                     "extraAllowedContent": "br\ntd(box-top,box-middle,box-bottom,box-total)\ntable(uk-table)\ndiv(uk-overflow-auto)\nth(uk-table-shrink)\ntd(uk-table-shrink)\nblockquote(clearfix)",
                     "tags": "dbMigrate",
-                    "htmlOptions": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredAttr": "",
-                    "requiredIf": "",
-                    "imageFields": "",
-                    "contentsCss": "",
-                    "contentsInlineCss": "",
-                    "stylesSet": "",
-                    "customOptions": "",
-                    "plugin_colorbutton": "",
-                    "plugin_justify": "",
-                    "plugin_sourcedialog": ""
+                    "htmlOptions": ""
                 }
             }
         }
@@ -360,7 +365,7 @@
                 "dbMigrateRestrictFields": {
                     "name": "dbMigrateRestrictFields",
                     "label": "Restrict fields",
-                    "flags": 0,
+                    "flags": 8,
                     "type": "FieldtypeTextarea",
                     "description": "Enter list of field names (comma-separated) that will be migrated for selected pages (leave blank to migrate all except globally excluded fields)",
                     "notes": "This only affects this migration. To exclude specific fields  or field types from all page migrations, use the module config settings.",
@@ -368,26 +373,10 @@
                         "TextformatterEntities"
                     ],
                     "inputfieldClass": "InputfieldTextarea",
-                    "contentType": 0,
-                    "minlength": 0,
-                    "maxlength": 0,
-                    "showCount": 0,
                     "rows": 5,
                     "tags": "dbMigrate",
-                    "collapsed": 0,
-                    "htmlOptions": "",
-                    "showIf": "",
-                    "themeInputSize": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "themeBlank": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredAttr": "",
-                    "requiredIf": "",
-                    "stripTags": "",
-                    "placeholder": ""
+                    "contentType": 0,
+                    "htmlOptions": ""
                 }
             }
         }
@@ -475,31 +464,23 @@
                 "dbMigrateSnippets": {
                     "name": "dbMigrateSnippets",
                     "label": "Snippets",
-                    "flags": 0,
+                    "flags": 8,
                     "type": "FieldtypeRepeater",
                     "parent_id": 0,
                     "repeaterFields": [
                         "title",
                         "dbMigrateSummary"
                     ],
-                    "repeaterCollapse": 0,
                     "repeaterLoading": 1,
                     "repeaterTitle": "#n: {title}",
                     "tags": "dbMigrate",
                     "repeaterAddLabel": "",
+                    "repeaterCollapse": 0,
                     "rememberOpen": "",
                     "accordionMode": "",
                     "repeaterMaxItems": "",
                     "repeaterMinItems": "",
                     "repeaterDepth": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredIf": "",
                     "fieldContexts": {
                         "title": {
                             "label": "Description"
@@ -516,21 +497,12 @@
     {
         "fields": {
             "new": {
-                "dbMigrateControl": {
-                    "name": "dbMigrateControl",
-                    "label": "Page status",
-                    "flags": 0,
-                    "type": "FieldtypeRuntimeOnly",
-                    "tags": "dbMigrate",
-                    "no_lister_render": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredIf": ""
+                "dbMigrateRuntimeControl": {
+                    "name": "dbMigrateRuntimeControl",
+                    "label": "Page Status",
+                    "flags": 8,
+                    "type": "FieldtypeDbMigrateRuntime",
+                    "tags": "dbMigrate"
                 }
             }
         }
@@ -538,21 +510,12 @@
     {
         "fields": {
             "new": {
-                "dbMigrateActions": {
-                    "name": "dbMigrateActions",
-                    "label": "Migrate Actions",
-                    "flags": 0,
-                    "type": "FieldtypeRuntimeOnly",
-                    "tags": "dbMigrate",
-                    "no_lister_render": "",
-                    "collapsed": 0,
-                    "showIf": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredIf": ""
+                "dbMigrateRuntimeAction": {
+                    "name": "dbMigrateRuntimeAction",
+                    "label": "Migration Actions",
+                    "flags": 8,
+                    "type": "FieldtypeDbMigrateRuntime",
+                    "tags": "dbMigrate"
                 }
             }
         }
@@ -560,22 +523,14 @@
     {
         "fields": {
             "new": {
-                "dbMigrateReady": {
-                    "name": "dbMigrateReady",
+                "dbMigrateRuntimeReady": {
+                    "name": "dbMigrateRuntimeReady",
                     "label": "ready.php",
-                    "flags": 0,
-                    "type": "FieldtypeRuntimeOnly",
-                    "description": "Contents of site/templates/DbMigrate/migrations/fix-booking-statuses/ready.php",
+                    "flags": 8,
+                    "type": "FieldtypeDbMigrateRuntime",
+                    "description": "Contents of site/templates/DbMigrate/migrations/{migration name}/ready.php",
                     "notes": "This migration-specific ready.php file is for hooks after install etc.",
-                    "collapsed": 1,
-                    "no_lister_render": "",
-                    "showIf": "",
-                    "themeOffset": "",
-                    "themeBorder": "",
-                    "themeColor": "",
-                    "columnWidth": 100,
-                    "required": "",
-                    "requiredIf": ""
+                    "tags": "dbMigrate"
                 }
             }
         }
@@ -643,23 +598,23 @@
                     "_exportMode": true,
                     "fieldgroupFields": [
                         "title",
-                        "dbMigrateControl",
-                        "dbMigrateActions",
+                        "dbMigrateRuntimeControl",
+                        "dbMigrateRuntimeAction",
                         "dbMigrateSummary",
                         "dbMigrateAdditionalDetails",
                         "dbMigrateItem",
                         "dbMigrateRestrictFields",
                         "dbMigrateSnippets",
-                        "dbMigrateReady"
+                        "dbMigrateRuntimeReady"
                     ],
                     "fieldgroupContexts": {
                         "title": {
                             "columnWidth": 50
                         },
-                        "dbMigrateControl": {
+                        "dbMigrateRuntimeControl": {
                             "columnWidth": 50
                         },
-                        "dbMigrateActions": [],
+                        "dbMigrateRuntimeAction": [],
                         "dbMigrateSummary": {
                             "columnWidth": 50
                         },
@@ -669,7 +624,86 @@
                         "dbMigrateItem": [],
                         "dbMigrateRestrictFields": [],
                         "dbMigrateSnippets": [],
-                        "dbMigrateReady": []
+                        "dbMigrateRuntimeReady": {
+                            "collapsed": "1"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "templates": {
+            "new": {
+                "DbComparison": {
+                    "name": "DbComparison",
+                    "fieldgroups_id": "DbComparison",
+                    "flags": 8,
+                    "cache_time": 0,
+                    "useRoles": 0,
+                    "noInherit": 0,
+                    "childrenTemplatesID": 0,
+                    "sortfield": "",
+                    "noChildren": "",
+                    "noParents": "",
+                    "childTemplates": [],
+                    "parentTemplates": [],
+                    "allowPageNum": 0,
+                    "allowChangeUser": 0,
+                    "redirectLogin": 0,
+                    "urlSegments": 0,
+                    "https": 0,
+                    "slashUrls": 1,
+                    "slashPageNum": 0,
+                    "slashUrlSegments": 0,
+                    "altFilename": "",
+                    "guestSearchable": 0,
+                    "pageClass": "ProcessWire\\DbComparisonPage",
+                    "childNameFormat": "",
+                    "pageLabelField": "",
+                    "noGlobal": 0,
+                    "noMove": 0,
+                    "noTrash": 0,
+                    "noSettings": 0,
+                    "noChangeTemplate": 0,
+                    "noShortcut": 0,
+                    "noUnpublish": 0,
+                    "noLang": 0,
+                    "compile": 3,
+                    "nameContentTab": 0,
+                    "noCacheGetVars": "",
+                    "noCachePostVars": "",
+                    "useCacheForUsers": 0,
+                    "cacheExpire": 0,
+                    "cacheExpirePages": [],
+                    "cacheExpireSelector": "",
+                    "label": "",
+                    "tags": "dbMigrate",
+                    "titleNames": 0,
+                    "noPrependTemplateFile": 0,
+                    "noAppendTemplateFile": 0,
+                    "prependFile": "",
+                    "appendFile": "",
+                    "pagefileSecure": false,
+                    "tabContent": "",
+                    "tabChildren": "",
+                    "nameLabel": "",
+                    "contentType": "",
+                    "errorAction": 0,
+                    "connectedFieldID": null,
+                    "ns": "",
+                    "_exportMode": true,
+                    "fieldgroupFields": [
+                        "title",
+                        "dbMigrateRuntimeAction",
+                        "dbMigrateSummary",
+                        "dbMigrateComparisonItem"
+                    ],
+                    "fieldgroupContexts": {
+                        "title": [],
+                        "dbMigrateRuntimeAction": [],
+                        "dbMigrateSummary": [],
+                        "dbMigrateComparisonItem": []
                     }
                 }
             }
@@ -690,7 +724,8 @@
                     "noChildren": "",
                     "noParents": "",
                     "childTemplates": [
-                        "DbMigration"
+                        "DbMigration",
+                        "DbComparison"
                     ],
                     "parentTemplates": [],
                     "allowPageNum": 0,
@@ -758,6 +793,20 @@
                     "name": "dbmigrations",
                     "id": 16481,
                     "title": "DB Migrations"
+                }
+            }
+        }
+    },
+    {
+        "pages": {
+            "new": {
+                "/processwire/dbcomparisons/": {
+                    "template": "DbMigrations",
+                    "parent": "/processwire/",
+                    "status": 1025,
+                    "name": "dbcomparisons",
+                    "id": 16885,
+                    "title": "DB Comparisons"
                 }
             }
         }

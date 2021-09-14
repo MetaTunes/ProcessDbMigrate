@@ -2,11 +2,10 @@
     {
         "pages": {
             "removed": {
-                "/processwire/dbmigrations/": []
+                "template=DbMigrations, include=all": []
             }
         }
     },
-
     {
         "templates": {
             "removed": {
@@ -22,23 +21,30 @@
         }
     },
     {
-        "fields": {
+        "templates": {
             "removed": {
-                "dbMigrateReady": []
+                "DbComparison": []
             }
         }
     },
     {
         "fields": {
             "removed": {
-                "dbMigrateActions": []
+                "dbMigrateRuntimeReady": []
             }
         }
     },
     {
         "fields": {
             "removed": {
-                "dbMigrateControl": []
+                "dbMigrateRuntimeAction": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateRuntimeControl": []
             }
         }
     },
@@ -85,9 +91,23 @@
         }
     },
     {
+        "fields": {
+            "removed": {
+                "dbMigrateComparisonItem": []
+            }
+        }
+    },
+    {
         "templates": {
             "removed": {
                 "repeater_dbMigrateItem": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "repeater_dbMigrateComparisonItem": []
             }
         }
     },

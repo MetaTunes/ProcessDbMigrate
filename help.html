@@ -1,0 +1,702 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='UTF-8'><meta name='viewport' content='width=device-width initial-scale=1'>
+
+<link href='https://fonts.loli.net/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext' rel='stylesheet' type='text/css' /><style type='text/css'>html {overflow-x: initial !important;}:root { --bg-color:#ffffff; --text-color:#333333; --select-text-bg-color:#B5D6FC; --select-text-font-color:auto; --monospace:"Lucida Console",Consolas,"Courier",monospace; --title-bar-height:20px; }
+.mac-os-11 { --title-bar-height:28px; }
+html { font-size: 14px; background-color: var(--bg-color); color: var(--text-color); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+body { margin: 0px; padding: 0px; height: auto; inset: 0px; font-size: 1rem; line-height: 1.42857; overflow-x: hidden; background: inherit; tab-size: 4; }
+iframe { margin: auto; }
+a.url { word-break: break-all; }
+a:active, a:hover { outline: 0px; }
+.in-text-selection, ::selection { text-shadow: none; background: var(--select-text-bg-color); color: var(--select-text-font-color); }
+#write { margin: 0px auto; height: auto; width: inherit; word-break: normal; overflow-wrap: break-word; position: relative; white-space: normal; overflow-x: visible; padding-top: 36px; }
+#write.first-line-indent p { text-indent: 2em; }
+#write.first-line-indent li p, #write.first-line-indent p * { text-indent: 0px; }
+#write.first-line-indent li { margin-left: 2em; }
+.for-image #write { padding-left: 8px; padding-right: 8px; }
+body.typora-export { padding-left: 30px; padding-right: 30px; }
+.typora-export .footnote-line, .typora-export li, .typora-export p { white-space: pre-wrap; }
+.typora-export .task-list-item input { pointer-events: none; }
+@media screen and (max-width: 500px) {
+  body.typora-export { padding-left: 0px; padding-right: 0px; }
+  #write { padding-left: 20px; padding-right: 20px; }
+  .CodeMirror-sizer { margin-left: 0px !important; }
+  .CodeMirror-gutters { display: none !important; }
+}
+#write li > figure:last-child { margin-bottom: 0.5rem; }
+#write ol, #write ul { position: relative; }
+img { max-width: 100%; vertical-align: middle; image-orientation: from-image; }
+button, input, select, textarea { color: inherit; font: inherit; }
+input[type="checkbox"], input[type="radio"] { line-height: normal; padding: 0px; }
+*, ::after, ::before { box-sizing: border-box; }
+#write h1, #write h2, #write h3, #write h4, #write h5, #write h6, #write p, #write pre { width: inherit; }
+#write h1, #write h2, #write h3, #write h4, #write h5, #write h6, #write p { position: relative; }
+p { line-height: inherit; }
+h1, h2, h3, h4, h5, h6 { break-after: avoid-page; break-inside: avoid; orphans: 4; }
+p { orphans: 4; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.6rem; }
+h4 { font-size: 1.4rem; }
+h5 { font-size: 1.2rem; }
+h6 { font-size: 1rem; }
+.md-math-block, .md-rawblock, h1, h2, h3, h4, h5, h6, p { margin-top: 1rem; margin-bottom: 1rem; }
+.hidden { display: none; }
+.md-blockmeta { color: rgb(204, 204, 204); font-weight: 700; font-style: italic; }
+a { cursor: pointer; }
+sup.md-footnote { padding: 2px 4px; background-color: rgba(238, 238, 238, 0.7); color: rgb(85, 85, 85); border-radius: 4px; cursor: pointer; }
+sup.md-footnote a, sup.md-footnote a:hover { color: inherit; text-transform: inherit; text-decoration: inherit; }
+#write input[type="checkbox"] { cursor: pointer; width: inherit; height: inherit; }
+figure { overflow-x: auto; margin: 1.2em 0px; max-width: calc(100% + 16px); padding: 0px; }
+figure > table { margin: 0px; }
+tr { break-inside: avoid; break-after: auto; }
+thead { display: table-header-group; }
+table { border-collapse: collapse; border-spacing: 0px; width: 100%; overflow: auto; break-inside: auto; text-align: left; }
+table.md-table td { min-width: 32px; }
+.CodeMirror-gutters { border-right: 0px; background-color: inherit; }
+.CodeMirror-linenumber { user-select: none; }
+.CodeMirror { text-align: left; }
+.CodeMirror-placeholder { opacity: 0.3; }
+.CodeMirror pre { padding: 0px 4px; }
+.CodeMirror-lines { padding: 0px; }
+div.hr:focus { cursor: none; }
+#write pre { white-space: pre-wrap; }
+#write.fences-no-line-wrapping pre { white-space: pre; }
+#write pre.ty-contain-cm { white-space: normal; }
+.CodeMirror-gutters { margin-right: 4px; }
+.md-fences { font-size: 0.9rem; display: block; break-inside: avoid; text-align: left; overflow: visible; white-space: pre; background: inherit; position: relative !important; }
+.md-fences-adv-panel { width: 100%; margin-top: 10px; text-align: center; padding-top: 0px; padding-bottom: 8px; overflow-x: auto; }
+#write .md-fences.mock-cm { white-space: pre-wrap; }
+.md-fences.md-fences-with-lineno { padding-left: 0px; }
+#write.fences-no-line-wrapping .md-fences.mock-cm { white-space: pre; overflow-x: auto; }
+.md-fences.mock-cm.md-fences-with-lineno { padding-left: 8px; }
+.CodeMirror-line, twitterwidget { break-inside: avoid; }
+.footnotes { opacity: 0.8; font-size: 0.9rem; margin-top: 1em; margin-bottom: 1em; }
+.footnotes + .footnotes { margin-top: 0px; }
+.md-reset { margin: 0px; padding: 0px; border: 0px; outline: 0px; vertical-align: top; background: 0px 0px; text-decoration: none; text-shadow: none; float: none; position: static; width: auto; height: auto; white-space: nowrap; cursor: inherit; -webkit-tap-highlight-color: transparent; line-height: normal; font-weight: 400; text-align: left; box-sizing: content-box; direction: ltr; }
+li div { padding-top: 0px; }
+blockquote { margin: 1rem 0px; }
+li .mathjax-block, li p { margin: 0.5rem 0px; }
+li blockquote { margin: 1rem 0px; }
+li { margin: 0px; position: relative; }
+blockquote > :last-child { margin-bottom: 0px; }
+blockquote > :first-child, li > :first-child { margin-top: 0px; }
+.footnotes-area { color: rgb(136, 136, 136); margin-top: 0.714rem; padding-bottom: 0.143rem; white-space: normal; }
+#write .footnote-line { white-space: pre-wrap; }
+@media print {
+  body, html { border: 1px solid transparent; height: 99%; break-after: avoid; break-before: avoid; font-variant-ligatures: no-common-ligatures; }
+  #write { margin-top: 0px; padding-top: 0px; border-color: transparent !important; }
+  .typora-export * { -webkit-print-color-adjust: exact; }
+  .typora-export #write { break-after: avoid; }
+  .typora-export #write::after { height: 0px; }
+  .is-mac table { break-inside: avoid; }
+  .typora-export-show-outline .typora-export-sidebar { display: none; }
+}
+.footnote-line { margin-top: 0.714em; font-size: 0.7em; }
+a img, img a { cursor: pointer; }
+pre.md-meta-block { font-size: 0.8rem; min-height: 0.8rem; white-space: pre-wrap; background: rgb(204, 204, 204); display: block; overflow-x: hidden; }
+p > .md-image:only-child:not(.md-img-error) img, p > img:only-child { display: block; margin: auto; }
+#write.first-line-indent p > .md-image:only-child:not(.md-img-error) img { left: -2em; position: relative; }
+p > .md-image:only-child { display: inline-block; width: 100%; }
+#write .MathJax_Display { margin: 0.8em 0px 0px; }
+.md-math-block { width: 100%; }
+.md-math-block:not(:empty)::after { display: none; }
+.MathJax_ref { fill: currentcolor; }
+[contenteditable="true"]:active, [contenteditable="true"]:focus, [contenteditable="false"]:active, [contenteditable="false"]:focus { outline: 0px; box-shadow: none; }
+.md-task-list-item { position: relative; list-style-type: none; }
+.task-list-item.md-task-list-item { padding-left: 0px; }
+.md-task-list-item > input { position: absolute; top: 0px; left: 0px; margin-left: -1.2em; margin-top: calc(1em - 10px); border: none; }
+.math { font-size: 1rem; }
+.md-toc { min-height: 3.58rem; position: relative; font-size: 0.9rem; border-radius: 10px; }
+.md-toc-content { position: relative; margin-left: 0px; }
+.md-toc-content::after, .md-toc::after { display: none; }
+.md-toc-item { display: block; color: rgb(65, 131, 196); }
+.md-toc-item a { text-decoration: none; }
+.md-toc-inner:hover { text-decoration: underline; }
+.md-toc-inner { display: inline-block; cursor: pointer; }
+.md-toc-h1 .md-toc-inner { margin-left: 0px; font-weight: 700; }
+.md-toc-h2 .md-toc-inner { margin-left: 2em; }
+.md-toc-h3 .md-toc-inner { margin-left: 4em; }
+.md-toc-h4 .md-toc-inner { margin-left: 6em; }
+.md-toc-h5 .md-toc-inner { margin-left: 8em; }
+.md-toc-h6 .md-toc-inner { margin-left: 10em; }
+@media screen and (max-width: 48em) {
+  .md-toc-h3 .md-toc-inner { margin-left: 3.5em; }
+  .md-toc-h4 .md-toc-inner { margin-left: 5em; }
+  .md-toc-h5 .md-toc-inner { margin-left: 6.5em; }
+  .md-toc-h6 .md-toc-inner { margin-left: 8em; }
+}
+a.md-toc-inner { font-size: inherit; font-style: inherit; font-weight: inherit; line-height: inherit; }
+.footnote-line a:not(.reversefootnote) { color: inherit; }
+.md-attr { display: none; }
+.md-fn-count::after { content: "."; }
+code, pre, samp, tt { font-family: var(--monospace); }
+kbd { margin: 0px 0.1em; padding: 0.1em 0.6em; font-size: 0.8em; color: rgb(36, 39, 41); background: rgb(255, 255, 255); border: 1px solid rgb(173, 179, 185); border-radius: 3px; box-shadow: rgba(12, 13, 14, 0.2) 0px 1px 0px, rgb(255, 255, 255) 0px 0px 0px 2px inset; white-space: nowrap; vertical-align: middle; }
+.md-comment { color: rgb(162, 127, 3); opacity: 0.8; font-family: var(--monospace); }
+code { text-align: left; vertical-align: initial; }
+a.md-print-anchor { white-space: pre !important; border-width: initial !important; border-style: none !important; border-color: initial !important; display: inline-block !important; position: absolute !important; width: 1px !important; right: 0px !important; outline: 0px !important; background: 0px 0px !important; text-decoration: initial !important; text-shadow: initial !important; }
+.os-windows.monocolor-emoji .md-emoji { font-family: "Segoe UI Symbol", sans-serif; }
+.md-diagram-panel > svg { max-width: 100%; }
+[lang="flow"] svg, [lang="mermaid"] svg { max-width: 100%; height: auto; }
+[lang="mermaid"] .node text { font-size: 1rem; }
+table tr th { border-bottom: 0px; }
+video { max-width: 100%; display: block; margin: 0px auto; }
+iframe { max-width: 100%; width: 100%; border: none; }
+.highlight td, .highlight tr { border: 0px; }
+mark { background: rgb(255, 255, 0); color: rgb(0, 0, 0); }
+.md-html-inline .md-plain, .md-html-inline strong, mark .md-inline-math, mark strong { color: inherit; }
+.md-expand mark .md-meta { opacity: 0.3 !important; }
+mark .md-meta { color: rgb(0, 0, 0); }
+@media print {
+  .typora-export h1, .typora-export h2, .typora-export h3, .typora-export h4, .typora-export h5, .typora-export h6 { break-inside: avoid; }
+}
+.md-diagram-panel .messageText { stroke: none !important; }
+.md-diagram-panel .start-state { fill: var(--node-fill); }
+.md-diagram-panel .edgeLabel rect { opacity: 1 !important; }
+.md-require-zoom-fix { height: auto; margin-top: 16px; margin-bottom: 16px; }
+.md-require-zoom-fix foreignobject { font-size: var(--mermaid-font-zoom); }
+.md-fences.md-fences-math { font-size: 1em; }
+.md-fences-advanced:not(.md-focus) { padding: 0px; white-space: nowrap; border: 0px; }
+.md-fences-advanced:not(.md-focus) { background: inherit; }
+.typora-export-show-outline .typora-export-content { max-width: 1440px; margin: auto; display: flex; flex-direction: row; }
+.typora-export-sidebar { width: 300px; font-size: 0.8rem; margin-top: 80px; margin-right: 18px; }
+.typora-export-show-outline #write { --webkit-flex:2; flex: 2 1 0%; }
+.typora-export-sidebar .outline-content { position: fixed; top: 0px; max-height: 100%; overflow: hidden auto; padding-bottom: 30px; padding-top: 60px; width: 300px; }
+@media screen and (max-width: 1024px) {
+  .typora-export-sidebar, .typora-export-sidebar .outline-content { width: 240px; }
+}
+@media screen and (max-width: 800px) {
+  .typora-export-sidebar { display: none; }
+}
+.outline-content li, .outline-content ul { margin-left: 0px; margin-right: 0px; padding-left: 0px; padding-right: 0px; list-style: none; }
+.outline-content ul { margin-top: 0px; margin-bottom: 0px; }
+.outline-content strong { font-weight: 400; }
+.outline-expander { width: 1rem; height: 1.42857rem; position: relative; display: table-cell; vertical-align: middle; cursor: pointer; padding-left: 4px; }
+.outline-expander::before { content: ""; position: relative; font-family: Ionicons; display: inline-block; font-size: 8px; vertical-align: middle; }
+.outline-item { padding-top: 3px; padding-bottom: 3px; cursor: pointer; }
+.outline-expander:hover::before { content: ""; }
+.outline-h1 > .outline-item { padding-left: 0px; }
+.outline-h2 > .outline-item { padding-left: 1em; }
+.outline-h3 > .outline-item { padding-left: 2em; }
+.outline-h4 > .outline-item { padding-left: 3em; }
+.outline-h5 > .outline-item { padding-left: 4em; }
+.outline-h6 > .outline-item { padding-left: 5em; }
+.outline-label { cursor: pointer; display: table-cell; vertical-align: middle; text-decoration: none; color: inherit; }
+.outline-label:hover { text-decoration: underline; }
+.outline-item:hover { border-color: rgb(245, 245, 245); background-color: var(--item-hover-bg-color); }
+.outline-item:hover { margin-left: -28px; margin-right: -28px; border-left: 28px solid transparent; border-right: 28px solid transparent; }
+.outline-item-single .outline-expander::before, .outline-item-single .outline-expander:hover::before { display: none; }
+.outline-item-open > .outline-item > .outline-expander::before { content: ""; }
+.outline-children { display: none; }
+.info-panel-tab-wrapper { display: none; }
+.outline-item-open > .outline-children { display: block; }
+.typora-export .outline-item { padding-top: 1px; padding-bottom: 1px; }
+.typora-export .outline-item:hover { margin-right: -8px; border-right: 8px solid transparent; }
+.typora-export .outline-expander::before { content: "+"; font-family: inherit; top: -1px; }
+.typora-export .outline-expander:hover::before, .typora-export .outline-item-open > .outline-item > .outline-expander::before { content: "−"; }
+.typora-export-collapse-outline .outline-children { display: none; }
+.typora-export-collapse-outline .outline-item-open > .outline-children, .typora-export-no-collapse-outline .outline-children { display: block; }
+.typora-export-no-collapse-outline .outline-expander::before { content: "" !important; }
+.typora-export-show-outline .outline-item-active > .outline-item .outline-label { font-weight: 700; }
+.md-inline-math-container mjx-container { zoom: 0.95; }
+
+
+.CodeMirror { height: auto; }
+.CodeMirror.cm-s-inner { background: inherit; }
+.CodeMirror-scroll { overflow: auto hidden; z-index: 3; }
+.CodeMirror-gutter-filler, .CodeMirror-scrollbar-filler { background-color: rgb(255, 255, 255); }
+.CodeMirror-gutters { border-right: 1px solid rgb(221, 221, 221); background: inherit; white-space: nowrap; }
+.CodeMirror-linenumber { padding: 0px 3px 0px 5px; text-align: right; color: rgb(153, 153, 153); }
+.cm-s-inner .cm-keyword { color: rgb(119, 0, 136); }
+.cm-s-inner .cm-atom, .cm-s-inner.cm-atom { color: rgb(34, 17, 153); }
+.cm-s-inner .cm-number { color: rgb(17, 102, 68); }
+.cm-s-inner .cm-def { color: rgb(0, 0, 255); }
+.cm-s-inner .cm-variable { color: rgb(0, 0, 0); }
+.cm-s-inner .cm-variable-2 { color: rgb(0, 85, 170); }
+.cm-s-inner .cm-variable-3 { color: rgb(0, 136, 85); }
+.cm-s-inner .cm-string { color: rgb(170, 17, 17); }
+.cm-s-inner .cm-property { color: rgb(0, 0, 0); }
+.cm-s-inner .cm-operator { color: rgb(152, 26, 26); }
+.cm-s-inner .cm-comment, .cm-s-inner.cm-comment { color: rgb(170, 85, 0); }
+.cm-s-inner .cm-string-2 { color: rgb(255, 85, 0); }
+.cm-s-inner .cm-meta { color: rgb(85, 85, 85); }
+.cm-s-inner .cm-qualifier { color: rgb(85, 85, 85); }
+.cm-s-inner .cm-builtin { color: rgb(51, 0, 170); }
+.cm-s-inner .cm-bracket { color: rgb(153, 153, 119); }
+.cm-s-inner .cm-tag { color: rgb(17, 119, 0); }
+.cm-s-inner .cm-attribute { color: rgb(0, 0, 204); }
+.cm-s-inner .cm-header, .cm-s-inner.cm-header { color: rgb(0, 0, 255); }
+.cm-s-inner .cm-quote, .cm-s-inner.cm-quote { color: rgb(0, 153, 0); }
+.cm-s-inner .cm-hr, .cm-s-inner.cm-hr { color: rgb(153, 153, 153); }
+.cm-s-inner .cm-link, .cm-s-inner.cm-link { color: rgb(0, 0, 204); }
+.cm-negative { color: rgb(221, 68, 68); }
+.cm-positive { color: rgb(34, 153, 34); }
+.cm-header, .cm-strong { font-weight: 700; }
+.cm-del { text-decoration: line-through; }
+.cm-em { font-style: italic; }
+.cm-link { text-decoration: underline; }
+.cm-error { color: red; }
+.cm-invalidchar { color: red; }
+.cm-constant { color: rgb(38, 139, 210); }
+.cm-defined { color: rgb(181, 137, 0); }
+div.CodeMirror span.CodeMirror-matchingbracket { color: rgb(0, 255, 0); }
+div.CodeMirror span.CodeMirror-nonmatchingbracket { color: rgb(255, 34, 34); }
+.cm-s-inner .CodeMirror-activeline-background { background: inherit; }
+.CodeMirror { position: relative; overflow: hidden; }
+.CodeMirror-scroll { height: 100%; outline: 0px; position: relative; box-sizing: content-box; background: inherit; }
+.CodeMirror-sizer { position: relative; }
+.CodeMirror-gutter-filler, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-vscrollbar { position: absolute; z-index: 6; display: none; outline: 0px; }
+.CodeMirror-vscrollbar { right: 0px; top: 0px; overflow: hidden; }
+.CodeMirror-hscrollbar { bottom: 0px; left: 0px; overflow: auto hidden; }
+.CodeMirror-scrollbar-filler { right: 0px; bottom: 0px; }
+.CodeMirror-gutter-filler { left: 0px; bottom: 0px; }
+.CodeMirror-gutters { position: absolute; left: 0px; top: 0px; padding-bottom: 10px; z-index: 3; overflow-y: hidden; }
+.CodeMirror-gutter { white-space: normal; height: 100%; box-sizing: content-box; padding-bottom: 30px; margin-bottom: -32px; display: inline-block; }
+.CodeMirror-gutter-wrapper { position: absolute; z-index: 4; background: 0px 0px !important; border: none !important; }
+.CodeMirror-gutter-background { position: absolute; top: 0px; bottom: 0px; z-index: 4; }
+.CodeMirror-gutter-elt { position: absolute; cursor: default; z-index: 4; }
+.CodeMirror-lines { cursor: text; }
+.CodeMirror pre { border-radius: 0px; border-width: 0px; background: 0px 0px; font-family: inherit; font-size: inherit; margin: 0px; white-space: pre; overflow-wrap: normal; color: inherit; z-index: 2; position: relative; overflow: visible; }
+.CodeMirror-wrap pre { overflow-wrap: break-word; white-space: pre-wrap; word-break: normal; }
+.CodeMirror-code pre { border-right: 30px solid transparent; width: fit-content; }
+.CodeMirror-wrap .CodeMirror-code pre { border-right: none; width: auto; }
+.CodeMirror-linebackground { position: absolute; inset: 0px; z-index: 0; }
+.CodeMirror-linewidget { position: relative; z-index: 2; overflow: auto; }
+.CodeMirror-wrap .CodeMirror-scroll { overflow-x: hidden; }
+.CodeMirror-measure { position: absolute; width: 100%; height: 0px; overflow: hidden; visibility: hidden; }
+.CodeMirror-measure pre { position: static; }
+.CodeMirror div.CodeMirror-cursor { position: absolute; visibility: hidden; border-right: none; width: 0px; }
+.CodeMirror div.CodeMirror-cursor { visibility: hidden; }
+.CodeMirror-focused div.CodeMirror-cursor { visibility: inherit; }
+.cm-searching { background: rgba(255, 255, 0, 0.4); }
+span.cm-underlined { text-decoration: underline; }
+span.cm-strikethrough { text-decoration: line-through; }
+.cm-tw-syntaxerror { color: rgb(255, 255, 255); background-color: rgb(153, 0, 0); }
+.cm-tw-deleted { text-decoration: line-through; }
+.cm-tw-header5 { font-weight: 700; }
+.cm-tw-listitem:first-child { padding-left: 10px; }
+.cm-tw-box { border-style: solid; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-color: inherit; border-top-width: 0px !important; }
+.cm-tw-underline { text-decoration: underline; }
+@media print {
+  .CodeMirror div.CodeMirror-cursor { visibility: hidden; }
+}
+
+
+:root {
+    --side-bar-bg-color: #fafafa;
+    --control-text-color: #777;
+}
+
+@include-when-export url(https://fonts.loli.net/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext);
+
+/* open-sans-regular - latin-ext_latin */
+  /* open-sans-italic - latin-ext_latin */
+    /* open-sans-700 - latin-ext_latin */
+    /* open-sans-700italic - latin-ext_latin */
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    font-family: "Open Sans","Clear Sans", "Helvetica Neue", Helvetica, Arial, 'Segoe UI Emoji', sans-serif;
+    color: rgb(51, 51, 51);
+    line-height: 1.6;
+}
+
+#write {
+    max-width: 860px;
+  	margin: 0 auto;
+  	padding: 30px;
+    padding-bottom: 100px;
+}
+
+@media only screen and (min-width: 1400px) {
+	#write {
+		max-width: 1024px;
+	}
+}
+
+@media only screen and (min-width: 1800px) {
+	#write {
+		max-width: 1200px;
+	}
+}
+
+#write > ul:first-child,
+#write > ol:first-child{
+    margin-top: 30px;
+}
+
+a {
+    color: #4183C4;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    position: relative;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    font-weight: bold;
+    line-height: 1.4;
+    cursor: text;
+}
+h1:hover a.anchor,
+h2:hover a.anchor,
+h3:hover a.anchor,
+h4:hover a.anchor,
+h5:hover a.anchor,
+h6:hover a.anchor {
+    text-decoration: none;
+}
+h1 tt,
+h1 code {
+    font-size: inherit;
+}
+h2 tt,
+h2 code {
+    font-size: inherit;
+}
+h3 tt,
+h3 code {
+    font-size: inherit;
+}
+h4 tt,
+h4 code {
+    font-size: inherit;
+}
+h5 tt,
+h5 code {
+    font-size: inherit;
+}
+h6 tt,
+h6 code {
+    font-size: inherit;
+}
+h1 {
+    font-size: 2.25em;
+    line-height: 1.2;
+    border-bottom: 1px solid #eee;
+}
+h2 {
+    font-size: 1.75em;
+    line-height: 1.225;
+    border-bottom: 1px solid #eee;
+}
+
+/*@media print {
+    .typora-export h1,
+    .typora-export h2 {
+        border-bottom: none;
+        padding-bottom: initial;
+    }
+
+    .typora-export h1::after,
+    .typora-export h2::after {
+        content: "";
+        display: block;
+        height: 100px;
+        margin-top: -96px;
+        border-top: 1px solid #eee;
+    }
+}*/
+
+h3 {
+    font-size: 1.5em;
+    line-height: 1.43;
+}
+h4 {
+    font-size: 1.25em;
+}
+h5 {
+    font-size: 1em;
+}
+h6 {
+   font-size: 1em;
+    color: #777;
+}
+p,
+blockquote,
+ul,
+ol,
+dl,
+table{
+    margin: 0.8em 0;
+}
+li>ol,
+li>ul {
+    margin: 0 0;
+}
+hr {
+    height: 2px;
+    padding: 0;
+    margin: 16px 0;
+    background-color: #e7e7e7;
+    border: 0 none;
+    overflow: hidden;
+    box-sizing: content-box;
+}
+
+li p.first {
+    display: inline-block;
+}
+ul,
+ol {
+    padding-left: 30px;
+}
+ul:first-child,
+ol:first-child {
+    margin-top: 0;
+}
+ul:last-child,
+ol:last-child {
+    margin-bottom: 0;
+}
+blockquote {
+    border-left: 4px solid #dfe2e5;
+    padding: 0 15px;
+    color: #777777;
+}
+blockquote blockquote {
+    padding-right: 0;
+}
+table {
+    padding: 0;
+    word-break: initial;
+}
+table tr {
+    border: 1px solid #dfe2e5;
+    margin: 0;
+    padding: 0;
+}
+table tr:nth-child(2n),
+thead {
+    background-color: #f8f8f8;
+}
+table th {
+    font-weight: bold;
+    border: 1px solid #dfe2e5;
+    border-bottom: 0;
+    margin: 0;
+    padding: 6px 13px;
+}
+table td {
+    border: 1px solid #dfe2e5;
+    margin: 0;
+    padding: 6px 13px;
+}
+table th:first-child,
+table td:first-child {
+    margin-top: 0;
+}
+table th:last-child,
+table td:last-child {
+    margin-bottom: 0;
+}
+
+.CodeMirror-lines {
+    padding-left: 4px;
+}
+
+.code-tooltip {
+    box-shadow: 0 1px 1px 0 rgba(0,28,36,.3);
+    border-top: 1px solid #eef2f2;
+}
+
+.md-fences,
+code,
+tt {
+    border: 1px solid #e7eaed;
+    background-color: #f8f8f8;
+    border-radius: 3px;
+    padding: 0;
+    padding: 2px 4px 0px 4px;
+    font-size: 0.9em;
+}
+
+code {
+    background-color: #f3f4f4;
+    padding: 0 2px 0 2px;
+}
+
+.md-fences {
+    margin-bottom: 15px;
+    margin-top: 15px;
+    padding-top: 8px;
+    padding-bottom: 6px;
+}
+
+
+.md-task-list-item > input {
+  margin-left: -1.3em;
+}
+
+@media print {
+    html {
+        font-size: 13px;
+    }
+    table,
+    pre {
+        page-break-inside: avoid;
+    }
+    pre {
+        word-wrap: break-word;
+    }
+}
+
+.md-fences {
+	background-color: #f8f8f8;
+}
+#write pre.md-meta-block {
+	padding: 1rem;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: #f7f7f7;
+    border: 0;
+    border-radius: 3px;
+    color: #777777;
+    margin-top: 0 !important;
+}
+
+.mathjax-block>.code-tooltip {
+	bottom: .375rem;
+}
+
+.md-mathjax-midline {
+    background: #fafafa;
+}
+
+#write>h3.md-focus:before{
+	left: -1.5625rem;
+	top: .375rem;
+}
+#write>h4.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+#write>h5.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+#write>h6.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+.md-image>.md-meta {
+    /*border: 1px solid #ddd;*/
+    border-radius: 3px;
+    padding: 2px 0px 0px 4px;
+    font-size: 0.9em;
+    color: inherit;
+}
+
+.md-tag {
+    color: #a7a7a7;
+    opacity: 1;
+}
+
+.md-toc { 
+    margin-top:20px;
+    padding-bottom:20px;
+}
+
+.sidebar-tabs {
+    border-bottom: none;
+}
+
+#typora-quick-open {
+    border: 1px solid #ddd;
+    background-color: #f8f8f8;
+}
+
+#typora-quick-open-item {
+    background-color: #FAFAFA;
+    border-color: #FEFEFE #e5e5e5 #e5e5e5 #eee;
+    border-style: solid;
+    border-width: 1px;
+}
+
+/** focus mode */
+.on-focus-mode blockquote {
+    border-left-color: rgba(85, 85, 85, 0.12);
+}
+
+header, .context-menu, .megamenu-content, footer{
+    font-family: "Segoe UI", "Arial", sans-serif;
+}
+
+.file-node-content:hover .file-node-icon,
+.file-node-content:hover .file-node-open-state{
+    visibility: visible;
+}
+
+.mac-seamless-mode #typora-sidebar {
+    background-color: #fafafa;
+    background-color: var(--side-bar-bg-color);
+}
+
+.md-lang {
+    color: #b4654d;
+}
+
+/*.html-for-mac {
+    --item-hover-bg-color: #E6F0FE;
+}*/
+
+#md-notification .btn {
+    border: 0;
+}
+
+.dropdown-menu .divider {
+    border-color: #e5e5e5;
+    opacity: 0.4;
+}
+
+.ty-preferences .window-content {
+    background-color: #fafafa;
+}
+
+.ty-preferences .nav-group-item.active {
+    color: white;
+    background: #999;
+}
+
+.menu-item-container a.menu-style-btn {
+    background-color: #f5f8fa;
+    background-image: linear-gradient( 180deg , hsla(0, 0%, 100%, 0.8), hsla(0, 0%, 100%, 0)); 
+}
+
+
+
+</style><title>DB Migrations module</title>
+</head>
+<body class='typora-export os-windows'><div class='typora-export-content'>
+<div id='write'  class=''><h1 id='db-migrations-module'><span>DB Migrations module</span></h1><!-- NB Technical comments are included as HTML comments so that they do not display in the normal view. --><!-- Export to HTML (with styles) for inclusion in site. The Typora export adds a spurious </div> after the <div style="display:none"> tag at the end of the user-visible section. This needs to be removed after each export --><h2 id='contents'><span>Contents</span></h2><div class='md-toc' mdtype='toc'><p class="md-toc-content" role="list"><span role="listitem" class="md-toc-item md-toc-h1" data-ref="n13540"><a class="md-toc-inner" href="#db-migrations-module">DB Migrations module</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13543"><a class="md-toc-inner" href="#contents">Contents</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13545"><a class="md-toc-inner" href="#introduction">Introduction</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13549"><a class="md-toc-inner" href="#concept">Concept</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13566"><a class="md-toc-inner" href="#uses">Uses</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13581"><a class="md-toc-inner" href="#design">Design</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13606"><a class="md-toc-inner" href="#health-warnings">Health warnings</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13609"><a class="md-toc-inner" href="#installation">Installation</a></span><span role="listitem" class="md-toc-item md-toc-h3" data-ref="n13633"><a class="md-toc-inner" href="#dependencies">Dependencies</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13635"><a class="md-toc-inner" href="#upgrading">Upgrading</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13638"><a class="md-toc-inner" href="#uninstalling">Uninstalling</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13640"><a class="md-toc-inner" href="#overview">Overview</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13651"><a class="md-toc-inner" href="#usage-1">Usage</a></span><span role="listitem" class="md-toc-item md-toc-h3" data-ref="n13663"><a class="md-toc-inner" href="#documenting-the-migration">Documenting the migration</a></span><span role="listitem" class="md-toc-item md-toc-h3" data-ref="n13666"><a class="md-toc-inner" href="#snippets">Snippets</a></span><span role="listitem" class="md-toc-item md-toc-h3" data-ref="n13670"><a class="md-toc-inner" href="#populating-the-migration-page">Populating the migration page</a></span><span role="listitem" class="md-toc-item md-toc-h3" data-ref="n13702"><a class="md-toc-inner" href="#exporting-the-migration">Exporting the migration</a></span><span role="listitem" class="md-toc-item md-toc-h3" data-ref="n13705"><a class="md-toc-inner" href="#installing-the-migration">Installing the migration</a></span><span role="listitem" class="md-toc-item md-toc-h3" data-ref="n13718"><a class="md-toc-inner" href="#database-comparisons">Database comparisons</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13728"><a class="md-toc-inner" href="#creating-a-migration-from-a-comparison">Creating a migration from a comparison</a></span><span role="listitem" class="md-toc-item md-toc-h3" data-ref="n13742"><a class="md-toc-inner" href="#hooks">Hooks</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13743"><a class="md-toc-inner" href="#available-hooks">Available hooks</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13766"><a class="md-toc-inner" href="#placement">Placement</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13773"><a class="md-toc-inner" href="#usage-2">Usage</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n13802"><a class="md-toc-inner" href="#troubleshooting--technical-notes">Troubleshooting / Technical notes</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13803"><a class="md-toc-inner" href="#guide-to-the-files">Guide to the files</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13814"><a class="md-toc-inner" href="#issues-with-page-migrations">Issues with page migrations</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13823"><a class="md-toc-inner" href="#partial--unsuccessful-migrations">Partial / Unsuccessful migrations</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13830"><a class="md-toc-inner" href="#field-types">Field types</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13855"><a class="md-toc-inner" href="#subsequent-installations">Subsequent installations</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13865"><a class="md-toc-inner" href="#rescue-mode">Rescue mode</a></span><span role="listitem" class="md-toc-item md-toc-h4" data-ref="n13867"><a class="md-toc-inner" href="#templatefield-flags">Template/field flags</a></span></p></div><h2 id='introduction'><span>Introduction</span></h2><p><span>ProcessWire is an outstanding content management system/framework owing to its flexibility, ease of use and outstanding API. However, it suffers from a common problem in database-oriented CMSs in that business logic may be explicitly or implicitly stored in the database rather than in code. This is particularly the case where it is used for a full-blooded app rather than just a simple CMS for a website. This is a shame because it is such a brilliant app-building tool.</span></p><p><span>The problem arises where the developer wishes to develop and test new or changed features in a development/test environment and then port those to the live environment. If the business logic is purely in the code and there are no database changes, then no issue arises, but if the changes involve database changes then typically the solution might be to test them, then replicate them manually (and hopefully accurately) in the live system. For large changes, this can be time-consuming and possibly error-prone. If a test environment is used as well as a development and live environment, then the problem is doubled.</span></p><p><span>The ProcessDbMigrate module is designed to make updating the test and/or live system as quick and error-free as possible.</span></p><h2 id='concept'><span>Concept</span></h2><p><span>Purely code-based migration approaches effectively eschew the use of PW’s GUI development environment. This is technically perfectly sensible but restricts usage to those who are happy not to use the GUI. PW is a great tool for enabling less experienced developers to build great apps. This module is aimed at that group, who wish to use the PW GUI but still be able to do controlled and accurate migrations.</span></p><p><span>The concept of this module is therefore to achieve the following:</span></p><ol start='' ><li><span>To allow development to take place (in a separate environment on a copy of the live database, or on a test database with the same structure) using the Admin UI. When finished, to permit a declarative approach to defining the migration and implementing it (again in the UI).</span></li><li><span>To allow testing of the migration in a test environment on a copy of the live database.</span></li><li><span>To allow roll-back of a migration if installation causes problems (ideally while testing rather than after implementation!).</span></li><li><span>To provide a record of changes applied.</span></li><li><span>Optionally, if changes are made directly on the live system (presumably simple, low-risk mods – although not best practice), to allow reverse migration to the development system in a similar fashion.</span></li><li><span>To provide a database comparison tool which can (if wished) be used to create a draft migration for the differences between the databases.</span></li></ol><h2 id='uses'><span>Uses</span></h2><p><span>The module has quite a wide range of applications. The original intention was just to handle the first of the examples below, but it has actually proved more useful than intended!</span></p><ol start='' ><li><span>Developments where database changes are involved (as well as possibly code changes). The changes can be fully tested in a dev environment. Installation of the migration can then easily be checked in a test environment (on a copy of the live database). Installation in the live environment is then very quick (sync code changes and migration files then one click to install the migration) resulting in little or no down time.</span></li><li><span>Updating of admin pages (not editable by general users), such as settings pages and help pages in the dev environment, then installing as a batch.</span></li><li><span>Updating of language pages (e.g. by a simple migration of pages with &#39;template=language&#39;) – the associated files will be updated along with the pages.</span></li><li><span>The selective reversion of parts of the database (by exporting migration data from a backup copy) for example where users have created numerous errors in the database.</span></li><li><span>Comparison of two databases (within a defined scope of fields, templates and pages) and optional creation of migration to align them. </span></li><li><span>Creation of a ‘blank canvas’ database from an existing working version. In other words, migrate the structure and all the necessary settings pages to a clean database.</span></li></ol><h2 id='design'><span>Design</span></h2><p><span>The module has the following principal components all within the ProcessDbMigrate folder:</span></p><ul><li><span>A PW module “ProcessDbMigrate” - the main autoload module which also provides the setup pages;</span></li><li><span>A Page Class “DbMigrationPage” - the class for the DbMigration template which defines the migration pages;</span></li><li><span>A bootstrap migration;</span></li><li><span>A Page Class “DbComparisonPage” which extends DbMigrationPage (see separate section on comparisons for further information about this);</span></li><li><span>A folder “RuntimeFields” containing php files dbMigrateActions.php, dbMigrateControl.php and dbMigrateReady.php along with javascript files dbMigrateActions.js, dbMigrateControl.js and dbMigrateReady.js. These runtime fields are used in migration pages to display status and provide controls;</span></li><li><span>A module FieldtypeDbMigrateRuntime to implement the above runtime fields (pre v0.1.0 versions required the FieldtypeRuntimeOnly module).</span></li></ul><p><span>Migration definitions are held in .json files in the site/templates/DbMigrate /migrations/{migration name} directory. This directory contains up to 3 sub-directories - “new”, “old”  and “archive”. The first two each may contain a file called a migration.json file, which defines the scope of the migration, and - once the migration been exported (for ‘new’) or installed (for ‘old’) – a file called data.json. The data.json file contains the data specifying the details of the installation (or uninstallation, in the case of the ‘old’ file). In addition, the “new” and “old” directories can contain “files” directories which hold the files associated with pages in the migration. The “old” directory may also contain an “orig-new-data.json” file for comparison purposes. The “archive” directory contains earlier versions of the “old” directory if migration definitions have changed. There may also be a file ‘lockfile.txt’ if the migration has been locked, which just holds a date &amp; time stamp of when it was locked.</span></p><p><span>The migration files described above are mirrored by pages of template </span>&quot;<span>DbMigration</span>&quot;<span> under a parent /{admin name/dbmigrations/ of template </span>&quot;<span>DbMigrations</span>&quot;<span>. The mirroring happens in two ways:</span></p><ol start='' ><li><span>If a new migration is created in the module (from the Setup -&gt; Database Migration menu – see below re installation), then initially no json files exist. The json files are created in the &quot;new&quot; directory, after the scope of the migration is defined on the page, by running </span>&quot;<span>Export Data</span>&quot;<span> from the eponymous button.</span></li><li><span>If (new) json files exist, but there is no matching migration page, then a page is created by the module on accessing the Database Migration admin setup page. In this case, we are in the </span>&quot;<span>target</span>&quot;<span> database so there is no </span>&quot;<span>Export Data</span>&quot;<span> button, but instead </span>&quot;<span>Install</span>&quot;<span> and/or </span>&quot;<span>Uninstall</span>&quot;<span> buttons.</span></li></ol><p><span>Migrations therefore either view the current database environment as a “source” or a “target”. This is determined by whether the $page-&gt;meta(‘installable’) for the page is set or not. (The terms ‘installable’ and ‘exportable’ are used in this help file to differentiate the two types). Thus, if required, a knowledgeable superuser can change the type of a migration by adding or removing this meta item (e.g. in the Tracy console), but this is deliberately not made easy. (See further notes below on source and target databases).</span></p><p><span>Migration items may be either fields, templates or pages. </span><!--As regards the API used for this, for fields, I am using a heavily modified copy of ProcessFieldExportImport::processImport() (although that has problems with options fields which I have had to fix), for templates, I call ProcessTemplatesExportImport::setImportData() and am just using the standard API for pages (there are ProcessPagesExportImport and PagesExportImport classes in the core, but these appear to be unfinished.--></p><h2 id='health-warnings'><span>Health warnings</span></h2><p><span>This module alters files and database elements. It is intended for superuser use only. </span><strong><span>Always take a backup before installing, updating or uninstalling it. Also take a backup before installing or uninstalling any migration.</span></strong></p><p><strong><span>Use at your own risk and test before implementing on the live system. Always have the same version of the module in source and target databases.</span></strong></p><h2 id='installation'><span>Installation</span></h2><p><span>Initially install the module in your dev (source) environment.</span></p><ol start='' ><li><p><span>Place the whole folder in your site/modules/ directory.</span></p></li><li><p><span>Install ProcessDbMigrate.</span></p></li><li><p><span>Installing the module runs a ‘bootstrap’ migration which creates (system) templates called DbMigration, DbComparison and DbMigrations and parent pages in the admin named ‘dbmigrations’ and ‘dbcomparisons’, so make sure you are not using those already and rename if required. It also creates some (system) fields which include “dbMigrate” in their name. All templates and fields have the ‘dbMigrate’ tag and are set as ‘system’ (i.e. flags=8) so they do not muddy the standard menus. The bootstrap migration files are copied by the installation process to the site/templates/DbMigrate directory, which will be created if it does not exist.</span></p></li><li><p><span>Configure the settings. Note that the settings are specific to the current database. </span></p><ul><li><em><span>Database name</span></em><span>: You can give the (current) database a name – in fact this is strongly recommended. If you do so, this name will be included as an item (‘sourceDb’) in the migration.json of any migration you create from this database. Any database with the same name will treat this migration as exportable rather than installable. This means, for example, that you can copy a production database and rename it to be the same as your original development database, so that any migrations sourced from that development database will be shown as exportable, not installable. </span></li><li><em><span>Show database name in notice</span></em><span>: The current database name is notified (as a PW message) in every admin page (in case you forget which environment you are in!) – this will only be shown to superusers or users with the admin-dbMigrate permission.</span></li><li><em><span>Exclude field types, fields, attributes</span></em><span>: You can exclude any fields or fieldtypes from page migrations that might cause problems and which are not needed (you will need to do this in each database). DbMigrateRuntime, RuntimeMarkup and RuntimeOnly fields are always excluded and do not need to be specified here. Similarly, you can exclude attributes from field and template migrations.</span></li><li><em><span>Auto-install bootstrap</span></em><span>: If selected (the default), the bootstrap will be automatically installed on an upgrade.</span></li><li><em><span>Prevent conflicting page saves</span></em><span>: It is strongly recommended that you do not make any direct changes in the target database to any objects which are the subject of a current (unlocked) migration as this can cause problems if you need to uninstall the migration (the stored original state will not reflect the changes you made). This option (selected by default) prevents any such page changes in the target which may otherwise happen inadvertantly. Field and template changes are not prevented, but inadvertant changes to these are less likely.</span></li></ul></li><li><p><span>Open the admin page “Setup -&gt; Database Migration” to create your first migration. You will see that one (“bootstrap”) is already installed and cannot be modified (unless you unset the meta(‘installable’) - see </span><a href='#amending-the-bootstrap'><span>Amending the Bootstrap</span></a><span>).</span></p></li></ol><h3 id='dependencies'><span>Dependencies</span></h3><p><span>Note that this module has only been tested on ProcessWire&gt;=3.0.148. A minimum of 3.0.165 is recommended.</span></p><h2 id='upgrading'><span>Upgrading</span></h2><p><span>Place the code in the modules directory, replacing the existing files, then refresh modules in the database. Check whether the bootstrap is still showing as ‘installed’. It should have been installed automatically; if not, then install it.</span></p><p><span>If you are upgrading from a version earlier than 0.1.0, then the RuntimeOnly module will no longer be required for this module so, unless you use it elsewhere, you can uninstall it after the upgrade.</span></p><h2 id='uninstalling'><span>Uninstalling</span></h2><p><span>Before uninstalling the module, all migration pages (other than the bootstrap) must be removed manually. Then, uninstalling the module uninstalls the bootstrap migration automatically; if that fails then the error will be reported, so that it can be fixed manually, before attempting to uninstall again.</span></p><h2 id='overview'><span>Overview</span></h2><p><span>The pic below illustrates the DB Migrations page in the &#39;source&#39; environment.</span></p><p><img src="help/Setup_page_source_v3.jpg" referrerpolicy="no-referrer" alt="DB Migrations page in the 'source' environment"></p><p><span>The status of a migration (as a source page) can be </span>&#39;<span>pending</span>&#39;<span> or </span>&#39;<span>exported</span>&#39;<span>. </span>&#39;<span>Pending</span>&#39;<span> means either that the migration data have not yet been exported or that the current export files differ from the source database.</span></p><p><span>To install on the live (or a separate test) environment, sync your source and target code environments. Then install the module in your target environment (from step 2 above). After installation of the module, on opening the admin page </span>&quot;<span>Database Migrations&quot;, the individual Migration pages are created from the definitions in their respective /new/migration.json file.</span></p><p><span>If you do not have a separate test environment, one approach is to backup the dev database and restore a copy of the live (or test) database to the dev environment. Then install the module on the restored database (from step 2). However, a separate test environment is better in that it more accurately mimics the live one and is less likely to cause confusion.</span></p><p><span>Your new migration should be listed (as </span>&#39;<span>indeterminate</span>&#39;<span> status) in the Database Migration admin page.</span></p><p><span>The pic below illustrates the Database Migrations page in the target environment.</span></p><p><img src="help/Setup_page_target_v3.jpg" referrerpolicy="no-referrer" alt="DB Migrations page in the 'target' environment"></p><p><span>In a target environment, a migration status can usually be </span>&#39;<span>indeterminate</span>&#39;<span>, </span>&#39;<span>installed</span>&#39;<span> or </span>&#39;<span>uninstalled</span>&#39;<span>. </span>&#39;<span>Indeterminate</span>&#39;<span> means either that the migration has not yet been installed (so no </span>&#39;<span>old</span>&#39;<span> files containing the uninstall definition exist yet) or that the current state matches neither the </span>&#39;<span>new</span>&#39;<span> or the </span>&#39;<span>old</span>&#39;<span> state. &#39;Installed&#39; means that the current state matches the </span>&#39;<span>new</span>&#39;<span> definition and </span>&#39;<span>uninstalled</span>&#39;<span> means that it matches the </span>&#39;<span>old</span>&#39;<span> definition (i.e. it has been actively uninstalled rather than not yet installed). There is also a </span>&#39;<span>void</span>&#39;<span> status which indicates that the migration achieves nothing.</span></p><p><strong><span>Note</span></strong><span> : If you can</span>&#39;<span>t remember whether you are working in a source or target environment (important! - you don</span>&#39;<span>t want to make developments in a test environment and then lose them!), make sure all databases have names in the module config and select “Show database name in notice”.</span></p><h2 id='usage-1'><span>Usage</span></h2><p><span>TLDR: </span></p><ul><li><span>Install the module in each database environment and enter the settings - give the databases different and meaningful names</span></li><li><span>Specify your migration in the source database and “export” it</span></li><li><span>Sync your code environments</span></li><li><span>Install the migration in your target environment</span></li></ul><h3 id='documenting-the-migration'><span>Documenting the migration</span></h3><p><span>When carrying out development work, keep a note of what fields, templates and pages you have added, changed or removed. The module does not track this for you – it is a declarative approach, not a macro recorder. Also, it does not handle other components such as Hanna codes and Formbuilder forms. These come equipped with their own export/import functions, so use those (see &quot;Snippets&quot;).</span></p><p><span>The best way to document the changes is to create and update a migration page as you go along, rather than keep a separate note of changed components. The migration page also allows you to document the migration using a rich text box, and it is recommended that you use this to add notes about the migration, including any pre- or post-migration checks and procedures to be carried out. (You may carry out some procedures automatically – see the section on hooks).</span></p><h3 id='snippets'><span>Snippets</span></h3><p><span>On the migration page, you can  add any number of </span>&quot;<span>snippets</span>&quot;<span>. These snippets do not do anything, but can be a convenient place to store (for example) Hanna code exports for pasting into the target environment and they help to make the page a comprehensive record of the migration.</span></p><p><span>You can also use snippets for php code to run before or after installation (or uninstallation). The code can then be copied into Tracy’s console log and run from there. Use the description box in the snippet to indicate when the code should be run. For example, say you have changed an address field to split out the post code into a separate field. The migration definition will specify the new field and the changed template. The code snippet (to be run after installation) will then include the code to extract postcodes and place them in the new field.</span></p><p><span>Alternatively, if you want code to run automatically, you can use hooks – see the separate section on this.</span></p><h3 id='populating-the-migration-page'><span>Populating the migration page</span></h3><p><span>See example below:</span></p><p><img src="help/Migration_page_source_full_v4.jpg" referrerpolicy="no-referrer"></p><p><span>On your migration page, enter the names of new and changed fields and templates, and enter the paths of pages (as /path/to/pagename/). Selectors may be used instead of paths or names (see box below). Note that entry of names and paths is in text fields, not using dropdowns, as names, paths and ids may be different in the source and target systems – there is limited real-time checking of these. If an item has a different name in the target database then provide it in the </span>&#39;<span>old name</span>&#39;<span> box, otherwise leave that blank.</span></p><p><span>Note that </span><strong><span>the sequence is very important</span></strong><span> – if items are dependent on other items, they must be declared in the correct order for installation (when uninstalling, the order is automatically reversed and </span>&#39;<span>new</span>&#39;<span> and </span>&#39;<span>removed</span>&#39;<span> are swapped). Note particularly for Repeater and PageTable field types, you need to define the components in the right order – e.g. the template before the field that uses it, in the case of new/changed components. You do not need to declare components that are unchanged.</span></p><hr /><p><strong><em><span>Selectors</span></em></strong><span>: </span></p><p><em><span>Only one object name is permitted per item, however objects may be selected by using a selector rather than individual names or paths. Selectors operate as follows:</span></em></p><ol start='' ><li><em><span>For ‘new’ and ‘changed’ objects, the selector identifies the objects in the</span></em><span> </span><strong><em><span>source environment only</span></em></strong><span>. </span><em><span>If these objects also exist in the target environment, they will be changed, otherwise they will be created (but avoid ambiguity – see 4 below). There is no possibility of matching objects whose name (or path) has changed.</span></em></li><li><em><span>For ‘removed’ objects, the selector identifies objects in the </span><strong><span>target environment only</span></strong><span>.</span></em><span> </span></li><li><em><span>The use of “sort=path” is permitted in page selectors, even though this normally has no effect. If it is used, the pages will be sorted in parent-child order, using the ‘natural’ sort order (e.g. XYZ100 is greater than XYZ20). This means that parents will be installed before children. For ‘removed’ pages, the order is automatically reversed so that children are deleted before parents (there is no need to use the inverse: sort=-path).</span></em></li><li><strong><em><span>Important</span></em></strong><span>: </span><em><span>Make sure that the scope of a selector works in both the source and target environments, i.e.:</span></em><span> </span></li></ol><ul><li><em><span>a.</span><span>	</span><span>If the action is ‘changed’ then it must be unambiguous – i.e. all the names/paths of the selection of objects must be the same in both environments. Do not use ‘changed’ with an ambiguous selector because, although it may appear to install correctly, it will not be possible to uninstall it - any moved or removed pages will not be removed and uninstallation will fail.</span></em></li><li><em><span>b.</span><span>	</span><span>If the action is ‘new’ then the selection of objects should only exist in the source environment;</span></em></li><li><em><span>c.</span><span>	</span><span>If the action is ‘removed’ then the selection of objects must only exist in the target environment.</span></em></li></ul><p><em><span>Do make sure that your selector works in the source and/or target environments, as appropriate, before implementing it (TracyDebugger is great for this).</span></em>
+<strong><em><span>A typical error is forgetting to add “include=…”.</span></em></strong></p><p><strong><em><span>Note</span></em></strong><span> </span><em><span>that if your selectors encompass a large number of objects, processing time may be extended.</span></em></p><hr /><p><span>You can limit the scope of changes to pages by </span><u><span>restricting</span></u><span> the fields to those specified in the </span>&quot;<span>Restrict Fields</span>&quot;<span> box. This restriction will apply to all pages within the scope of this migration, but only this migration; if you wish to </span><u><span>exclude</span></u><span> certain fields or fieldtypes globally, enter these in the module configuration.</span></p><p><span>You can preview the changes at any time, even before you export them, this will help you ensure that the data you are proposing to migrate is correct. You can also test as you go along, if you wish, and add to the migration in stages.</span></p><p><span>Note that migration pages just define the scope of the migration. It is entirely feasible for other parts of the dev database to be changed which are outside this scope and which will therefore not be migrated. If you are doing this intentionally, be careful to ensure that the scope of your migrations do not overlap, otherwise you may inadvertently make changes that you do not wish to do yet.</span></p><p><span>When saving a migration page in the source database, the system will warn you if the current migration scope overlaps with other exportable migrations. </span><strong><span>Do not proceed to install such overlapping migrations</span></strong><span>. They will interfere with each other, even if they are not making conflicting changes – once one has been installed, installing the other will create an ‘old’ json file that reflects changes made by the first, so (for example) attempting to uninstall this second installation will appear not to be successful as it will not be able uninstall the changes made by the first. If two migrations necessarily overlap, then the correct process is to install the first one and lock it before installing the second migration. Locking a migration is carried out in the source database. This creates a lockfile in the migration&#39;s directory which needs to be sync’d to the target environment to lock the migration there.</span></p><h3 id='exporting-the-migration'><span>Exporting the migration</span></h3><p><span>When ready to test (or migrate to live), click the </span>&quot;<span>Export Data</span>&quot;<span> button on the migration page. Some informative messages should result. Your codebase will now contain the json files in site/templates/DbMigrate/migration/{your migration page name} – you can inspect them if you wish in your IDE.</span></p><p><span>Sync the code files with your test/live environment (or restore the test database to your dev environment, </span><em><span>making sure you back up the dev database first</span></em><span>). In the test/live database, install the module as described above, if necessary, and go to the Database Migration admin page. You should see your new migration listed.</span></p><h3 id='installing-the-migration'><span>Installing the migration</span></h3><p><span>Go to the migration page. Before installing, you can use the </span>&quot;<span>preview</span>&quot;<span> button to see what changes will be implemented. If you are happy, click </span>&quot;<span>Install</span>&quot;<span>. This should result in various messages and maybe some errors, if the migration was not able to complete fully (see section below for how to deal with partial migrations). See example of the migration page in </span>&#39;<span>installation</span>&#39;<span> mode below:</span></p><p><img src="help/Migration_page_target.jpg" referrerpolicy="no-referrer"></p><p><span>and an example preview:</span></p><p><img src="help/Preview_differences_selector.jpg" referrerpolicy="no-referrer"></p><p><span>Note that you will now have the following files:</span></p><ul><li><span>A folder “old” in site/templates/DbMigrate/migration/{your migration page name} – this contains (as file data.json) the definition of the database (within the migration scope) before the migration was installed and is used for roll-back (uninstall). It also has the migration page definition that was used for the installation (as /old/migration.json) and the data.json file that was used (as old/orig-new-data.json) – these are used to detect whether the migration scope definition has changed since installation. The ‘old’ folder is used for uninstalling. If the migration scope is changed (in the source environment) then it cannot be installed in the target environment without first uninstalling the previous version of the migration scope and then installing the new version – in this way the ‘old’ files will reflect the revised scope.</span></li><li><span>A folder site/assets/cache/dbMigrations has the json files defining the current state of the database (within the scope of the migration)</span></li></ul><p><span>To uninstall a migration, click the </span>&quot;<span>Uninstall</span>&quot;<span> button (again, you can preview beforehand). This should revert the database to the initial state, but again there may be reasons why this cannot complete fully – see the notes below.</span></p><p><span>NB When re-installing migrations, if the migration definition has changed, the system will require you to uninstall first - otherwise the “old” data.json will not properly reflect the new scope, affecting any future uninstallation. In these circumstances, a backup copy of the “old” directory is created in the archive directory.</span></p><h3 id='database-comparisons'><span>Database comparisons</span></h3><p><span>Comparisons work in a similar way to migrations. First, make sure you are in the database which you wish to be the ‘source’ of the comparison (usually the development database – this will be assumed for the rest of this narrative). Also, make sure that your database is named (on the module settings page). </span></p><p><span>On the Database Migrations page, select the “Add New DbComparison” button. On the DbComparison page you can add a summary and a number of ‘comparison items’. Note that comparison items just comprise an object type (field/template/page) and a name/selector. These items define the scope of the comparison. In theory, you can compare entire databases by using a selector “id&gt;0” for each of pages, fields and templates. However, this is likely to be quite resource-hungry if the database is large, so it is better to use a scope that is more selective. In any case, you will probably want to exclude migration and database comparisons from the scope, together with the related repeater pages, otherwise it can be a bit self-referential (but shouldn’t crash). The example below compares all templates and fields (but not pages):</span></p><p><img src="help\Comparison_source.jpg" referrerpolicy="no-referrer" alt="Comparison - source"></p><p><span>After saving the page, click ‘export data’ (or preview first) and sync the templates/DbMigrate/Comparison/{name}/ directory to your target environment. Then go to the target database and open the comparison page (you may need to refresh the comparisons summary page first). Here you will see two ‘migrate actions’: </span></p><ul><li><span>click ‘Compare Database’ to see the differences between the current database and the source; </span></li><li><span>click ‘Create a Draft Migration For This Comparison’ to do exactly that (see below).</span></li></ul><h4 id='creating-a-migration-from-a-comparison'><span>Creating a migration from a comparison</span></h4><p><span>This process is only semi-automated. The system will work out the scope of the required migration (i.e. what fields, templates and pages require adding/changing/removing) but will not identify any dependencies, so the sequence of migration items might be wrong. Also, it will not identify any name changes – if names are different then this will result in a ‘new’ and a ‘removed’ item.</span></p><p><span>Therefore, clicking the ‘create draft migration’ button does only create a draft. You need to </span></p><ul><li><span>sync the migration files to the source environment;</span></li><li><span>review the migration page in the source database, resequencing the items as necessary. </span></li><li><span>For name changes, you can alter the ‘new’ item to be ‘changed’ and set the ‘old name’ to be the name of the ‘removed’ item; then delete the removed item (although the migration should still work without doing this, it is neater). </span></li><li><span>then export the migration from the source environment and install it in the usual way.</span></li></ul><p><span>If you have selected the whole database for comparison, then rather than create a migration, you are probably better just to do a backup and restore 😉.</span></p><p><em><span>Subsequent migrations</span></em><span>: </span>
+<span>Up until the point when migration created from a comparison has a /new/data.json file exported from the source system, it is considered to be ‘draft’ (signified by a meta(‘draft’) element). While in this draft state, it is replaced by any new draft migration created from the same comparison. After it is no longer draft, creating a draft migration from a comparison will result in a new draft migration, leaving the original in place. In this way, a comparison page can be left in place and used to create multiple migrations over time (provided, of course, that any new changes to the data are exported from the comparison page in the source database and sync’d to the target).</span></p><h3 id='hooks'><span>Hooks</span></h3><h4 id='available-hooks'><span>Available hooks</span></h4><p><span>Many of the ProcessDbMigrate methods are hookable:</span></p><ul><li><span>___execute() – Display the Database Migrations setup page</span></li><li><span>___newPage($template, $parent, $title, $values) – Create new migration or comparison (depending on $template)</span></li><li><span>___executeGetMigrations() – refreshes all migration pages</span></li><li><span>___exportData($migrationPage) – creates the .json files for a migration</span></li><li><span>___removeFiles($migrationPage, $oldOnly=false) – removes the .json files for a migration or comparison ($oldOnly=true will only remove the /old/ directory)</span></li><li><span>___installMigration($migrationPage) – installs a migration in the target</span></li><li><span>___uninstallMigration ($migrationPage) - uninstalls a migration in the target</span></li><li><span>___lockMigration($migrationPage, $migrationFolder) – locks a migration (in the source)</span></li><li><span>___unlockMigration($migrationPage, $migrationFolder) – unlocks a migration (in the source)</span></li><li><span>___previewDiffs($migrationPage, $comparisonType) – previews migration changes where $comparisonType is one of: export, install, uninstall, review</span></li></ul><h4 id='placement'><span>Placement</span></h4><p><span>You can place your hooks in site/ready.php. In this case you will need to check the name of the migration page before running – e.g.</span></p><pre class="md-fences md-end-block ty-contain-cm modeLoaded" spellcheck="false" lang=""><div class="CodeMirror cm-s-inner cm-s-null-scroll CodeMirror-wrap" lang=""><div style="overflow: hidden; position: relative; width: 3px; height: 0px; top: 9.5px; left: 8px;"><textarea autocorrect="off" autocapitalize="off" spellcheck="false" tabindex="0" style="position: absolute; bottom: -1em; padding: 0px; width: 1000px; height: 1em; outline: none;"></textarea></div><div class="CodeMirror-scrollbar-filler" cm-not-content="true"></div><div class="CodeMirror-gutter-filler" cm-not-content="true"></div><div class="CodeMirror-scroll" tabindex="-1"><div class="CodeMirror-sizer" style="margin-left: 0px; margin-bottom: 0px; border-right-width: 0px; padding-right: 0px; padding-bottom: 0px;"><div style="position: relative; top: 0px;"><div class="CodeMirror-lines" role="presentation"><div role="presentation" style="position: relative; outline: none;"><div class="CodeMirror-measure"><pre><span>xxxxxxxxxx</span></pre></div><div class="CodeMirror-measure"></div><div style="position: relative; z-index: 1;"></div><div class="CodeMirror-code" role="presentation" style=""><div class="CodeMirror-activeline" style="position: relative;"><div class="CodeMirror-activeline-background CodeMirror-linebackground"></div><div class="CodeMirror-gutter-background CodeMirror-activeline-gutter" style="left: 0px; width: 0px;"></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;">wire()-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {</span></pre></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp;  $migrationPage = $event-&gt;arguments(0);</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp;  if ($migrationPage-&gt;name == 'my-migration') {</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp; &nbsp; &nbsp;  ///code to run</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp;  }</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;">});</span></pre></div></div></div></div></div><div style="position: absolute; height: 0px; width: 1px; border-bottom: 0px solid transparent; top: 138px;"></div><div class="CodeMirror-gutters" style="display: none; height: 138px;"></div></div></div></pre><p><span>and then you use $migrationPage to further reference the migration page. This approach keeps all your hooks together and you have to remember to sync the site/ready.php as well as your migration files.</span></p><p><span>Alternatively (</span><strong><span>the recommended approach</span></strong><span>), you can place a file called ready.php in the site/template/DbMigrate/migrations/{my-migration}/ directory, in which case your script would be</span></p><pre class="md-fences md-end-block ty-contain-cm modeLoaded" spellcheck="false" lang=""><div class="CodeMirror cm-s-inner cm-s-null-scroll CodeMirror-wrap" lang=""><div style="overflow: hidden; position: relative; width: 3px; height: 0px; top: 9.5px; left: 8px;"><textarea autocorrect="off" autocapitalize="off" spellcheck="false" tabindex="0" style="position: absolute; bottom: -1em; padding: 0px; width: 1000px; height: 1em; outline: none;"></textarea></div><div class="CodeMirror-scrollbar-filler" cm-not-content="true"></div><div class="CodeMirror-gutter-filler" cm-not-content="true"></div><div class="CodeMirror-scroll" tabindex="-1"><div class="CodeMirror-sizer" style="margin-left: 0px; margin-bottom: 0px; border-right-width: 0px; padding-right: 0px; padding-bottom: 0px;"><div style="position: relative; top: 0px;"><div class="CodeMirror-lines" role="presentation"><div role="presentation" style="position: relative; outline: none;"><div class="CodeMirror-measure"><pre><span>xxxxxxxxxx</span></pre></div><div class="CodeMirror-measure"></div><div style="position: relative; z-index: 1;"></div><div class="CodeMirror-code" role="presentation"><div class="CodeMirror-activeline" style="position: relative;"><div class="CodeMirror-activeline-background CodeMirror-linebackground"></div><div class="CodeMirror-gutter-background CodeMirror-activeline-gutter" style="left: 0px; width: 0px;"></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;">$this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {</span></pre></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;">// code to run</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;">});</span></pre></div></div></div></div></div><div style="position: absolute; height: 0px; width: 1px; border-bottom: 0px solid transparent; top: 69px;"></div><div class="CodeMirror-gutters" style="display: none; height: 69px;"></div></div></div></pre><p><span>and you can use $this to reference the migration page. This approach keeps all your migration-related data &amp; code together and you only have to sync the migration folder. It also means that your migration-specific ready.php code will be displayed at the bottom of the migration page.  Also, if you ‘remove migration files’ it will remove your custom code as well (usually you will only be doing this as preparation to delete the migration, so that is what you want). With the first approach, your hook will remain in site/ready.php.</span></p><h4 id='usage-2'><span>Usage</span></h4><p><span>Of the available hooks, installMigration and uninstallMigration are likely to be the most useful. For example, a hook after ProcessDbMigrate::installMigration could be used to carry out database-wide changes following the amendment of the structure. Using the example given under ‘Snippets’ earlier, say you have changed an address field to split out the post code into a separate field. The migration definition will specify the new field and the changed template. The hook could then include the code to extract postcodes and place them in the new field.  You could place code to undo this as a hook before ProcessDbMigrate::uninstallMigration, so that executing the uninstall exactly reverses the install.</span></p><p><span>In some circumstances you may not wish the code in your hook to run if (for example) the installation was not completely successful. You can test the status of a migration as follows (</span><em><span>use $migrationPage = $event-&gt;arguments(0); instead of $this if your code is in site/ready.php</span></em><span>):</span></p><ul><li><span>Test if $this-&gt;meta(‘installedStatus’)[‘status’] is ‘installed’ or ‘uninstalled’. This yields the installed status before the (un)installMigration method, regardless of whether the hook is before or after.</span></li><li><span>For ‘after’ hooks, update the status by calling $this-&gt;refresh() before testing the status to get the status after running the (un)installMigration method.</span></li></ul><p><span>Note that $this-&gt;meta(‘installedStatus’) is an array as follows:</span></p><p><span>·     &#39;status&#39; =&gt; (string) one of </span><em><span>pending</span></em><span> (not yet exported or different from exported data), </span><em><span>exported</span></em><span>, </span><em><span>indeterminate</span></em><span> (not installed or uninstalled – usually means not yet installed and no ‘old’ files yet exist to provide uninstall data), </span><em><span>installed</span></em><span>, </span><em><span>uninstalled</span></em><span>, </span><em><span>superseded</span></em><span> (locked migration which would otherwise be shown as pending or indeterminate), </span><em><span>void</span></em><span> (installed and uninstalled),</span></p><p><span>·     &#39;scopeChange&#39; =&gt; </span><em><span>true</span></em><span> if the proposed migration and old/orig-new-data.json reference different database elements (so the ‘old’ definition would no longer be a suitable basis for an uninstall action)**,</span></p><p><span>·     ‘scopeDiffs’ =&gt; the differences between the new and previous migration, where there is a scope change</span></p><p><span>·     &#39;installed&#39; =&gt; </span><em><span>true</span></em><span> if installedData and installedMigration are true,</span></p><p><span>·     &#39;uninstalled&#39; =&gt; </span><em><span>true</span></em><span> if uninstalledData and uninstalledMigration are true,</span></p><p><span>·     &#39;installedData&#39; =&gt; </span><em><span>true</span></em><span> if installedDataDiffs is empty,</span></p><p><span>·     &#39;uninstalledData&#39; =&gt; </span><em><span>true</span></em><span> if uninstalledDataDiffs is empty,</span></p><p><span>·     &#39;installedDataDiffs&#39; =&gt; (array) reportable* differences between the current state and the installation data (new/data.json),</span></p><p><span>·     &#39;uninstalledDataDiffs&#39; =&gt; (array) reportable* differences between the current state and the uninstallation data (old/data.json),</span></p><p><span>·     &#39;installedMigration&#39; =&gt; </span><em><span>true</span></em><span> if installedMigrationDiffs is empty,</span></p><p><span>·     &#39;installedMigrationDiffs&#39; =&gt; (array) reportable* differences between the current migration definition and the installation migration definition (new/migration.json),</span></p><p><span>·     &#39;uninstalledMigration&#39; =&gt; </span><em><span>true</span></em><span> if uninstalledMigrationDiffs is empty,</span></p><p><span>·     &#39;uninstalledMigrationDiffs&#39; =&gt; (array) reportable* differences between the current migration definition and the uninstallation migration definition (old/migration.json) – it will be empty if the migration has not yet been installed and so no ‘old’ files yet exist,</span></p><p><span>·     &#39;uninstalledMigrationKey&#39; =&gt; </span><em><span>true</span></em><span> if uninstalledMigrationKeyDiffs is empty,</span></p><p><span>·     &#39;uninstalledMigrationKeyDiffs&#39; =&gt; (array) any &#39;key&#39; differences between the current and uninstallation migration definitions; &#39;key&#39; differences are those which affect the database (migration items and &#39;restrict fields&#39;)</span></p><p><span>·     &#39;reviewedDataDiffs&#39; =&gt; (array) reportable* differences between the installation data (new/data.json) and the uninstallation data (old/data.json) – it will be empty if the migration has not yet been installed and so no ‘old’ files yet exist,</span></p><p><span>·     ‘timestamp’ =&gt; just that – the time the installedStatus meta was created</span></p><p><span>*Reportable differences exclude any differences in excluded fields and also any differences that are purely caused by pages having different ids in the source and target databases. The array is multidimensional of varying depths with the bottom elements being 2-element arrays containing the differing values.</span></p><p><span>**Note that it is perfectly possible for there to be a scope change even if there are no differences in the migration definition. For example, if a page selector is used and changes to the source database mean that there is a change in the pages found by the selector.</span></p><p><span>Use the Tracy console - </span><em><span>d($page-&gt;meta(&#39;installedStatus&#39;));</span></em><span> - to inspect the installed status for any migration page. Call the method exportData() - </span><em><span>$page-&gt;exportData(&#39;compare&#39;);</span></em><span> - first to update the meta if required.</span></p><h2 id='troubleshooting--technical-notes'><span>Troubleshooting / Technical notes</span></h2><h4 id='guide-to-the-files'><span>Guide to the files</span></h4><p><span>The following files are created:</span></p><ol start='' ><li><span>Migrations files (template/DbMigrate/migrations) hold all details of migrations in directories named after the migration name. The bootstrap migration is created on installation. </span></li><li><span>Within each migration directory, the following may be found:</span>
+<span>a.</span><span>	</span><span>A ‘new’ directory which holds the exported details of a migration. This contains migration.json (the definition of the scope of the migration, derived from the source migration page), data.json (the definition of all the elements within the scope, derived from the source database) and a &#39;files&#39; directory containing directories for any files/images associated with migrated pages. To install a migration in a target environment, this ‘new’ directory needs to be copied there (in its parent migration directory).</span>
+<span>b.</span><span>	</span><span>An ‘old’ directory (created on installation of a migration in the target environment). This has a similar structure to ‘new’. Note that the migration.json file is a copy of the file that scoped the installation. The data.json file defines the pre-installation state as a ‘reverse migration’ (i.e. it reverses the actions of the data.json file that was used for the installation). The orig-new-data.json file stores a copy of the new/data.json file that was used to install the migration and create this old directory – it is used to check for scope changes. Note that subsequent installations do not change this directory unless the scope of the migration has been changed and the old installation is uninstalled (see c below).</span>
+<span>c.</span><span>	</span><span>An archive directory holding previous ‘old’ directories when migrations have changed.</span>
+<span>d.</span><span>	</span><span>A ready.php file if the user created it.</span>
+<span>e.</span><span>	</span><span>A lock file – lockfile.txt – if the migration is locked.</span></li><li><span>Temporary files are created in assets/cache/dbMigrate, related to the current (or most recently viewed) migration page: </span>
+<span>a.</span><span>	</span><span>migration.json is the current migration scope</span>
+<span>b.</span><span>	</span><span>new-data.json is  the current state for comparison with new/data.json and </span>
+<span>c.</span><span>	</span><span>old-data.json is the current state for comparison with old/data.json.</span></li><li><span>Comparison files (template/DbMigrate/comparisons) hold all details of comparisons in directories named after the comparison name. Theses directories have a &#39;new&#39; directory with a similar structure to migrations.</span></li></ol><h4 id='issues-with-page-migrations'><span>Issues with page migrations</span></h4><p><span>Issues may arise with page migration which are not possible to foresee fully. This is particularly the case if the user migrates pages with multiple complex field types and custom processing. The module was designed for migrating developments, not for mass updating of user pages. It is therefore assumed that any pages being migrated are of a ‘site-settings’ nature, not user pages. That said, it is possible to use the module more generally (e.g. in ‘rescue’ mode) but test carefully first.</span>
+<span>In particular, the host PW application may make use of page hooks. All page actions in the module allow hooks to run. To enable users to modify this behaviour, session variables are set for the duration of the following methods:</span></p><ul><li><span>installPages() – new/changed pages – ‘dbMigrate_installPages’ is set to true</span></li><li><span>removeItems() – all item removals – ‘dbMigrate_removeItems’ is set to true</span></li></ul><p><span>These can then be referenced in the user&#39;s application code as required.</span></p><h4 id='partial--unsuccessful-migrations'><span>Partial / Unsuccessful migrations</span></h4><p><span>In some circumstances, migrations may not complete properly. This will result in error messages when the migration is installed. Some typical examples and possible solutions are set out below. Occasionally, re-clicking </span>&#39;<span>install</span>&#39;<span> or </span>&#39;<span>uninstall</span>&#39;<span> may resolve this. Note that you cannot change a migration definition in the target environment, so any changes need to be done in the source environment and re-exported (and installed after uninstalling the previous version).</span></p><p><em><span>Fields not fully installed</span></em><span>: This may be because there are fieldtypes which cannot currently be handled by the module. It could also be caused by dependencies on pages (e.g. for page reference fields) where the pages have not been included in the migration ahead of the field.</span></p><p><em><span>Templates not fully installed</span></em><span>: You may not have included new fields, used by a template, within your migration page scope, ahead of including the template. You will need to go back to the dev system and do this (re-export and re-install)</span></p><p><em><span>Pages not fully installed</span></em><span>: This may be because you have not previously defined new templates or fields used by a page, in which case you will need to go back to the dev system and do this (re-export and re-install). It might also be because certain fieldtypes cannot be sync</span>&#39;<span>d but do not need to be and should be excluded. To exclude field types from the pages scope, go to the module config page. If there are field types that do not sync correctly, but which you do not wish to exclude, then you will need to update the target system manually (the preview should give you the details).</span></p><p><em><span>Components not removed</span></em><span>: This is most likely because you have misnamed the component or because it does not exist in the target database. Double check the naming and go back to the dev system to change as required.</span></p><p><span>Use the preview button to see what changes have not been fully implemented. You can also inspect and compare the json files to identify the issue (your IDE is probably the best place to do this). For example, compare templates/…/new/data.json (the required state) with assets/cache/dbMigrations/new-data.json (the current state). (Similarly, for uninstallation problems, compare ../old/data.json with assets/cache/dbMigrations/old-data.json).</span></p><h4 id='field-types'><span>Field types</span></h4><p><span>The module handles (I think) the following field types:</span></p><ol start='' ><li><p><span>Core fieldtypes. These have not all been tested, but most are straightforward:</span></p><ul><li><span>Select Page has been tested and should work – however there may be problems if a parent page name/path has changed, in which case the migration might need to be split into two successive installations.</span></li><li><span>RTE (Rich text editor) fields are fine, but a complication arises when they include a link to an image (or file), because the link will reference the files directory with the page id in the source environment. The module allows for different page ids in source and target systems.</span></li></ul><!-- -  In order to deal with the complications of different pages ids between source and target, two ‘sweeper’ actions are carried out at the end of the installation process. These use the $pagesInstalled variable which is an array of all pages installed during the process. The first ‘sweeper’ (setMapId() ) creates an array of original_Id => destination_Id pairs for each of the installed pages, where the original id is obtained from the meta value ‘origId’ which is set when the page is installed (from the id of the source page in the new.json) and the destination id is the id of the page in the target. This array is then stored in a meta value for the migration page -- ‘idMap’. The second ‘sweeper’ (replaceImgSrc() ) operates on all pages with a textarea field: it finds the source page ids in <img> tags and replaces them with the target (destination) id. Because RTE fields with embedded images most probably use image variants, it is also necessary to make sure that all of these are migrated. Consequently, all variations are logged during the export process and this log is used to copy the files into a separate ‘files’ directory in ‘new’. On installation (in setAndSaveFiles() ) the variants are added to the assets/files/pageId directory after the page has been saved.--></li><li><p><span>FieldtypeRepeater. This is more complicated because the field is actually linked to a template and multiple repeater pages. </span><!-- This is addressed in a number of ways:--></p><!--1. In migrating ‘field’ components, when exporting data to a data.json file, the standard field data is ‘enhanced’ with template_name.--><!--2. When comparing data.json files, the result is pruned for any repeater fields with template_id mismatches (template_name is used by the module because id may be different in source and target systems).--><!--3. In migrating pages, if the page has a repeater field, the sub-pages are exported as sub-arrays which can be used by setAndSaveRepeater() (see below);--><!--4. A method getRepeaters($values) finds $values which are repeaters and moves them out of $values into $repeaters. This is used when setting page values (on installing a page or refreshing a migration page) so that another method setAndSaveRepeaters() can be used rather than the setAndSave method used for ordinary fields. setAndSaveRepeaters($repeaters, $page=null, $remove=true) has the optional $page parameter as it needs to be used by any page; it takes an array $repeaters being an array of subarrays where each subarray is [fieldname => value, fieldname2 => value2, ...]. The array is compared to the existing page data and any matching sub-pages are updated. Existing non-matching sub-pages are removed (if $remove=true) and new sub-pages specified in the $repeaters array are added. Note that if $remove=true, it is necessary to define all the sub-pages in $repeaters, otherwise sub-pages will be removed in error.--><p><span>When defining a migration, the normal sequence is to define fields before templates which might use them. However, repeater fields are linked to their own templates, so the repeater_fieldName template needs to be included before fieldName.</span></p></li><li><p><span>FieldtypePageTable. This has a PageArray so requires special processing</span><!--, which is carried out by setAndSaveComplex($fields, $page=null). This sets the values of the PageTable field and saves them, returning the other (non-PageTable) fields--><span>. </span></p></li><li><p><span>FieldtypeStreetAddress. This is an object and requires special processing analagous to PageTable.</span><!-- Using an array to set it in setAndSave() does not work. Instead, the method setAndSaveComplex($fields, $page=null) is used. This sets the values of the street address field and saves them, returning the other (non-streetaddress) fields. Note that of(false) must be used before setting the values.--></p></li><li><p><span>Images and files. Similarly to the above, these are more complex fields. </span>
+<!--Processing is carried out using method setAndSaveFiles($fields, $page = null, $replace = true, $remove = true) - i.e. it saves the files, returning other fields. Some special processing is required to deal with the likely differences between host page ids meaning that urls and paths will differ between the source and target environments.-->
+<span>Images and files should be migrated along with the page that holds them. Any Rich Text Editor (textarea) fields with embedded images or linked files should migrate satisfactorily </span><strong><span>provided</span></strong><span> the pages which hold the images/files are included in the migration.</span>
+<span>If image/file fields use custom fields (defined in the template &quot;field-xxxx&quot; where xxxx is the image/file field name), then it is important that any new or changed field-xxxx template is specified in the migration before the page that uses the related image/file field. if the image/file field itself is unchanged, it does not need to be specified.</span></p></li></ol><h4 id='subsequent-installations'><span>Subsequent installations</span></h4><p><span>After an initial export from a source and installation in a target, the question arises as to how to deal with revised or additional migrations. If a migration is revised in the source, then it can be installed in the target once the previous version has been uninstalled. New migrations exported from the source are handled in the same way as initial migrations.</span></p><p><span>However, the user may wish to use a (migrated) test or live database as a new source for subsequent development (assuming the migrations so far are bug-free). In this case, use one (or both) of the following strategies:</span></p><ul><li><span>Use database naming (in the module settings page) to rename the imported database back to the name you were using for the development database.</span></li><li><span>Lock the completed migrations (by clicking on the </span>&#39;<span>lock</span>&#39;<span> icon on the migration page) before importing the database. They will then be there as a record only – the database can be copied to the development environment (after locking) and new migrations can be developed for export, knowing that the base system is in sync (except for user changes to the live system, which will normally only be to pages, not fields or templates). </span></li></ul><p><span>The use of names for items rather than ids should mean that most user changes will not disrupt future migrations. Installation </span>&#39;<span>previews</span>&#39;<span> should highlight any difficulties. Overlapping scope detection on migrations only looks at unlocked migrations.</span></p><p><span>It is also possible, in theory (not advised, but maybe necessary if the development environment is inaccessible) to make changes directly to the live database and </span>&#39;<span>export</span>&#39;<span> them for installation on the development system. These should be locked after installing them.</span>
+<span>Database naming is strongly recommended if you use this strategy.</span></p><h4 id='rescue-mode'><span>Rescue mode</span></h4><p><span>An additional use of the module is ‘rescue’ mode. If a number of erroneous changes have occurred to a live database which need to be reverted, then a suitable backup copy can be restored to the development environment (after backing up the dev database!), given a unique name, and the relevant migration exported for installation in the live environment. After successful installation, the development database can be restored to the development environment – the ‘rescue’ migration will then be loaded automatically as a (‘installable’ – i.e. non-editable or exportable) migration and can be installed if it makes sense to do so.</span></p><h4 id='templatefield-flags'><span>Template/field flags</span></h4><p><span>Note that all dbMigrate templates and fields are designated as ‘system’ – i.e. the flags is set to 8. This means that they are hidden from the setup dropdown and cannot be used in the front end. To unset the flags it is necessary to first set the override, viz:</span></p><p><span>$t-&gt;flags = Template::flagSystemOverride;</span></p><p><span>$t-&gt;flags = 0;</span></p><p><span>$t-&gt;save();</span></p><!-- END OF USER HELP SECTION --><div style="display:none"><p><strong><span>Additional material (not for user help)</span></strong>
+<strong><span>Amending the Bootstrap</span></strong></p><p><strong><span>(Here be dragons)</span></strong></p><p><span>It is possible to amend the bootstrap migration. However, note that the original bootstrap files in the module directory will be unchanged by this unless they are manually copied over. Also, reinstalling the module may over-write your changed bootstrap.</span></p><p><span>In order to amend a bootstrap, it is first necessary to make it ‘exportable’ rather than ‘installable’. This can be done by changing the templates/DbMigrate/migrations/bootstrap/new/migration.json file entry for “sourceDb” (at the end of the file) to be the name of the required source database and refreshing the bootstrap page. After changing the page, export it – this updates ..new/data.json as well as migration.json.</span></p><p><span>Because the ‘old’ bootstrap directory is not automatically updated, it needs to be amended manually if ‘migration items’ have been added, removed or re-ordered. Copy the migration.json file to the ‘old’ bootstrap directory. In the ../old.data.json, there needs to be a ‘removed’ entry for each of the ‘new’ items in the bootstrap.</span></p><p><span>Then copy the contents of templates/DbMigrate/migrations/bootstrap/ to modules/ProcessDbMigrate/bootstrap.</span></p><p><span>Assuming the change is part of a wider upgrade that also changes the version number of ProcessDbMigrate.module then placing the new files in the modules/ProcessDbMigrate/ directory of the target and refreshing modules should automatically copy the bootstrap directory to the templates/DbMigrate/migrations/ directory. Otherwise this needs to be done manually.</span></p><p><span>After refreshing modules in the target, go to the bootstrap migration and install it.</span></p><p><strong><span>PW API issues</span></strong></p><p><span>\1.    For certain fields (e.g. phits) exportData(‘new’) and exportData(‘compare’) gave different results in exactly the same situation. In that case, Inputfield::exportConfigData($data) replaced collapsed=4 by collapsed=0. A work-round has been used to lift a modified copy of Field::getExportData() and swap the order of the array_merge in </span></p><p><em><span>if</span></em><span>($object-&gt;type) {</span>
+<span>   $typeData = $object-&gt;type-&gt;exportConfigData($object, $data);</span>
+<span>   $data = </span><em><span>array_merge</span></em><span>($typeData, $data);</span>
+<span> }</span></p><p><span>so that $data now over-rides $typeData. Ideally the problem with exportConfigData should be identified and fixed. It seems to be something to do with there being (for some reason) different InputfieldWrappers when everything should be identical. The testbed for this is the ‘all’ database comparison in site-web.</span></p><p><span>It seems that the collapsed=0 result only happens when exportData() is called from the RuntimeOnly/dbMigrateActions.php, so the work-round is to place all calls in the module or class. </span></p><p><span>\2.    A possibly related problem seems to be inconsistent returns from FieldType::exportConfigData() yielding columnWidth=100 or absent, without any apparent reason. The problem disappeared before I could track it down to Inputfield::exportConfigData($data), but that may have been the source. I wonder if there is some caching going on?</span>
+<span> A hack has been implemented until a better solution is found – The following code is added at the start of DbMigrationPage::exportData() :</span></p><pre class="md-fences md-end-block ty-contain-cm modeLoaded" spellcheck="false" lang=""><div class="CodeMirror cm-s-inner cm-s-null-scroll CodeMirror-wrap" lang=""><div style="overflow: hidden; position: relative; width: 3px; height: 0px; top: 9.5px; left: 8px;"><textarea autocorrect="off" autocapitalize="off" spellcheck="false" tabindex="0" style="position: absolute; bottom: -1em; padding: 0px; width: 1000px; height: 1em; outline: none;"></textarea></div><div class="CodeMirror-scrollbar-filler" cm-not-content="true"></div><div class="CodeMirror-gutter-filler" cm-not-content="true"></div><div class="CodeMirror-scroll" tabindex="-1"><div class="CodeMirror-sizer" style="margin-left: 0px; margin-bottom: 0px; border-right-width: 0px; padding-right: 0px; padding-bottom: 0px;"><div style="position: relative; top: 0px;"><div class="CodeMirror-lines" role="presentation"><div role="presentation" style="position: relative; outline: none;"><div class="CodeMirror-measure"><pre><span>xxxxxxxxxx</span></pre></div><div class="CodeMirror-measure"></div><div style="position: relative; z-index: 1;"></div><div class="CodeMirror-code" role="presentation" style=""><div class="CodeMirror-activeline" style="position: relative;"><div class="CodeMirror-activeline-background CodeMirror-linebackground"></div><div class="CodeMirror-gutter-background CodeMirror-activeline-gutter" style="left: 0px; width: 0px;"></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;">$exportHookId = $this-&gt;addHookAfter("Inputfield::exportConfigData", function($event) {</span></pre></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp;  $dataIn = $event-&gt;arguments(0);</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp;  $dataOut = $event-&gt;return;</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp;  if (!isset($dataIn['columnWidth']) and isset($dataOut['columnWidth']) and $dataOut['columnWidth'] == 100) $dataOut['columnWidth'] = '';</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp;  $event-&gt;return = $dataOut;</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;">});</span></pre></div></div></div></div></div><div style="position: absolute; height: 0px; width: 1px; border-bottom: 0px solid transparent; top: 161px;"></div><div class="CodeMirror-gutters" style="display: none; height: 161px;"></div></div></div></pre><p><span>With the hook being removed at the end of the method:</span></p><p><span>$this-&gt;removeHook($exportHookId);</span></p><p><span>\3.    Problems were experienced in getting the bootstrap to auto-install on an upgrade. In particular, the upgrade to v0.1.0 required this. The problem arose in wire/modules/Inputfield/InputfieldSelector/InputfieldSelector.module line 622 which requires the $page API to be present. This is not available at the upgrade/install stage and needs to wait until ready(). It is probably not essential, but causes errors in Tracy, so I decided to set a session var (upgrade0.1.0) in the upgrade method and then place the bootstrap installation in ready().</span></p><p><span> </span><strong><span>ToDo</span></strong></p><p><span>\1.    Limit scope of pages migrations to certain fields only (see also below).</span></p><p><span>\2.    </span><strong><span>Add configuration to exclude certain fields</span></strong><span> from page migrations (particularly runtime markup).</span></p><p><span>a.    Extend this to field types?</span></p><p><span>\3.    Improve presentation in table of installed status.</span></p><p><span>\4.    </span><strong><span>Fix operation of installed</span></strong><span> status</span></p><p><span>\5.    </span><strong><span>Run compare (old vs new) before install</span></strong><span> (preview)?</span></p><p><span>\6.    </span><strong><span>Auto refresh table on load</span></strong><span> – rather than require use of ‘get migrations’</span></p><p><span>\7.    </span><strong><span>In Migration page, show fields, templates &amp; pages, which don’t yet exist, in body field</span></strong><span>.</span></p><p><span>\8.    Auto refresh (getMigrations) after install/uninstall. </span><strong><span>Important to do this after install and before compare otherwise compare does not work properly</span></strong><span>.</span></p><p><span>\9.    </span><strong><span>Add remove fields/templates/pages capability</span></strong><span> – this needs to work for uninstall to operate correctly, anyway.</span></p><p><span>\10.  Add locking capability – create lock file to import on demand in dev sys.</span></p><p><span>\11.  Add field to record related migration actions (for the record).</span></p><p><span>\12.  Add refresh button to installable migrations.</span></p><p><span>\13.  Experiment with 2-way migrations (i.e. changes made in live system migrated to dev before making further changes to dev system).</span></p><p><span>\14.  Detect overlap with other unlocked migrations on save or export.</span></p><p><span>\15.  Include Hanna codes [ and forms? – No: best dealt with separately as importing is not straightforward].</span></p><p><span>\16.  Complete documentation &amp; user notes.</span></p><p><span>\17.  Deal with image fields in pages</span></p><p><span>\18.  Longer term:</span></p><p><span>a.    How to deal with new versions of module – install in dev and live target</span></p><p><span>b.    Should we use ids not names for migration keys? NO</span></p><p><strong><span>PW Issues</span></strong></p><p><span>\1.    </span><span>_</span><span>__processImport() (stolen from ProcessFieldExportImport) doesn’t import options settings for FieldtypeOptions. Quote &#39;error&#39; =&gt; &#39;Import of options is not yet implemented. Though they can easily be imported from one site to another by copy/paste directly from the field edit screen.&#39; This was resolved by adding the following after the field-&gt;save() </span></p><pre class="md-fences md-end-block ty-contain-cm modeLoaded" spellcheck="false" lang=""><div class="CodeMirror cm-s-inner cm-s-null-scroll CodeMirror-wrap" lang=""><div style="overflow: hidden; position: relative; width: 3px; height: 0px; top: 9.5px; left: 8px;"><textarea autocorrect="off" autocapitalize="off" spellcheck="false" tabindex="0" style="position: absolute; bottom: -1em; padding: 0px; width: 1000px; height: 1em; outline: none;"></textarea></div><div class="CodeMirror-scrollbar-filler" cm-not-content="true"></div><div class="CodeMirror-gutter-filler" cm-not-content="true"></div><div class="CodeMirror-scroll" tabindex="-1"><div class="CodeMirror-sizer" style="margin-left: 0px; margin-bottom: 0px; border-right-width: 0px; padding-right: 0px; padding-bottom: 0px;"><div style="position: relative; top: 0px;"><div class="CodeMirror-lines" role="presentation"><div role="presentation" style="position: relative; outline: none;"><div class="CodeMirror-measure"><pre><span>xxxxxxxxxx</span></pre></div><div class="CodeMirror-measure"></div><div style="position: relative; z-index: 1;"></div><div class="CodeMirror-code" role="presentation" style=""><div class="CodeMirror-activeline" style="position: relative;"><div class="CodeMirror-activeline-background CodeMirror-linebackground"></div><div class="CodeMirror-gutter-background CodeMirror-activeline-gutter" style="left: 0px; width: 0px;"></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;">if ($field-&gt;type == 'FieldtypeOptions') {</span></pre></div><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp; $manager = $this-&gt;wire(new SelectableOptionManager());</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp; // get the options string from the data file array</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp; $options = $fieldData['export_options']['default'];</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp; // now set the options, removing any others that were there</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp; $manager-&gt;setOptionsString($field, $options, true);</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> &nbsp; $field-&gt;save();</span></pre><pre class=" CodeMirror-line " role="presentation"><span role="presentation" style="padding-right: 0.1px;"> }</span></pre></div></div></div></div></div><div style="position: absolute; height: 0px; width: 1px; border-bottom: 0px solid transparent; top: 184px;"></div><div class="CodeMirror-gutters" style="display: none; height: 184px;"></div></div></div></pre><p><span>See also the discussion here - </span><a href='https://processwire.com/talk/topic/14463-fieldtypeoptions-set-selectable-options-through-api/' target='_blank' class='url'>https://processwire.com/talk/topic/14463-fieldtypeoptions-set-selectable-options-through-api/</a><span> </span></p><p><span>\2.    $template-&gt;setImportData() doesn’t seem to remove ‘notes’ from field contexts on unistall. This may be a wider issue because it seems, if there is no ‘notes’ in the source system, it is omitted in the export and because it is omitted, the target is unaffected. So this could apply to more than just notes.</span>
+<span> </span><strong><span>Applying “Uninstall” twice seems to fix this. Why? Also some installs seem to need 2 attempts.</span></strong></p><p><span>\3.    Sometimes it seems necessary to manually save a page which has been updated by the migration, even though this has been done (twice or more) in the API.</span></p><p><span>\4.    The export of the bootstrap had “maxLength”:2048 for the text fields in the dbMigrateitem repeater and its template. For some reason, these do not import, so I manually removed them from the new data.json file.</span></div></p></div></div>
+</body>
+</html>

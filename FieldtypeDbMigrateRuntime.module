@@ -1,0 +1,193 @@
+<?php namespace ProcessWire;
+
+/**
+ * FieldtypeDbMigrateRuntime
+ *
+ * Not a proper fieldtype - it only exists to provide a convenient way to add an inputfield
+ * to templates that will render some markup at runtime.
+ * Based onm FieldtypeRuntimeOnly
+ *
+ */
+class InputfieldDbMigrateRuntime extends Inputfield {
+
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		$field = $this->hasField;
+		$config = $this->wire('config');
+		$js_path = "{$this->getPath($field)}.js";
+		if(file_exists($js_path)) {
+			$modified = filemtime($js_path);
+			$config->scripts->add("{$this->getUrl($field)}.js?v=$modified");
+		}
+		$css_path = "{$this->getPath($field)}.css";
+		if(file_exists($css_path)) {
+			$modified = filemtime($css_path);
+			$config->styles->add("{$this->getUrl($field)}.css?v=$modified");
+		}
+		return parent::renderReady($parent, $renderValueMode);
+	}
+
+	public function getPath(Field $field) {
+		return $this->wire('config')->paths->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name;
+	}
+
+	public function getUrl(Field $field) {
+		return $this->wire('config')->urls->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name;
+	}
+
+	public function ___render() {
+		return $this->value;
+	}
+
+	public function ___processInput(WireInputData $input) {
+		return $this;
+	}
+
+}
+
+
+class FieldtypeDbMigrateRuntime extends Fieldtype {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'DbMigrateRuntime',
+			'version' => '0.0.1',
+			'summary' => 'An inputfield, for use with ProcessDbMigrate, that renders at runtime, with no data saved to the database.',
+			'author' => 'Mark Evens, based on RuntimeOnly by Robin Sallis',
+			'icon' => 'code',
+			'requires' => 'ProcessWire>=3.0.0, PHP>=5.4.0, ProcessDbMigrate',
+		);
+	}
+
+	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
+		if($field->no_lister_render) {
+			return '';
+		} else {
+			return $this->renderMarkup($page, $field);
+		}
+	}
+
+	protected function renderMarkup(Page $page, Field $field) {
+		$php_file = wire('config')->paths->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name . ".php";
+//		$php_file = "{$this->wire('config')->paths->templates}RuntimeOnly/{$field->name}.php";
+		if(file_exists($php_file)) {
+			return $this->wire('files')->render($php_file, ['page' => $page, 'field' => $field, 'inputfield' => $this]);
+		} else {
+			return sprintf($this->_('No file found at <b>%s</b>'), wire('config')->urls->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name . ".php");
+		}
+	}
+
+	public function ___wakeupValue(Page $page, Field $field, $value) {
+		return $this->renderMarkup($page, $field);
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		$inputfield = $this->wire(new InputfieldDbMigrateRuntime());
+		$inputfield->class = $this->className();
+		return $inputfield;
+	}
+
+	public function ___getConfigInputfields(Field $field) {
+		$inputfields = parent::___getConfigInputfields($field);
+		$config = $this->wire('config');
+
+		// Rendering info
+		/* @var InputfieldMarkup $f */
+		$f = $this->wire('modules')->InputfieldMarkup;
+		$f->name = 'rendering';
+		$f->label = $this->_('Inputfield rendering');
+		$value = '<p><strong>' . $this->_('This inputfield is solely for use as part of the ProcessDbMigrate module. Use for other purposes is not recommended. This fieldtype will be uninstalled if ProcessBbMigrate is uninstalled.') . '</strong></p>';
+		$value .= '<p>' . sprintf($this->_('Inputfield markup will be rendered from a file at %s. In addition to the standard ProcessWire variables this file receives:'),
+				wire('config')->urls->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name . ".php") . '<br>';
+		$value .= '<strong>$page</strong> - ' . $this->_('The page being edited.') . '<br>';
+		$value .= '<strong>$field</strong> - ' . $this->_('the Field object.') . '<br>';
+		$value .= '<strong>$inputfield</strong> - ' . $this->_('the Inputfield object.') . '</p>';
+		$value .= '<p>' . sprintf($this->_('JS file %s will be added to admin if that file exists.'), wire('config')->urls->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name . ".js") . '<br>';
+		$value .= sprintf($this->_('CSS file %s will be added to admin if that file exists.'), wire('config')->urls->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name . ".js") . '<br>';
+		$value .= '</p>';
+		$f->value = $value;
+		$inputfields->add($f);
+
+//      // NOT USED //
+//		// Prevent field rendering in Lister
+//		/* @var InputfieldCheckbox $f */
+//		$f = $this->wire('modules')->InputfieldCheckbox;
+//		$f_name = 'no_lister_render';
+//		$f->name = $f_name;
+//		$f->label = $this->_('Lister rendering');
+//		$f->label2 = $this->_('Do not allow field to render inside a Lister column');
+//		$f->checked = $field->$f_name === 1 ? 'checked' : '';
+//		$inputfields->add($f);
+
+		return $inputfields;
+	}
+
+	public function ___getConfigAdvancedInputfields(Field $field) {
+		$inputfields = parent::___getConfigAdvancedInputfields($field);
+		// Remove config fields that are not applicable
+		$inputfields->remove($inputfields->get('autojoin'));
+		$inputfields->remove($inputfields->get('global'));
+		return $inputfields;
+	}
+
+	public function ___getCompatibleFieldtypes(Field $field) {
+		$fieldtypes = $this->wire(new Fieldtypes());
+		foreach($this->wire('fieldtypes') as $fieldtype) {
+			if($fieldtype instanceof FieldtypeDbMigrateRuntime) $fieldtypes->add($fieldtype);
+		}
+		return $fieldtypes;
+	}
+
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		// This field may not be queried
+		throw new WireException(sprintf($this->_("Field '%s' is runtime and not queryable"), $query->field->name));
+	}
+
+	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
+		return null;
+	}
+
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		return $value;
+	}
+
+	public function ___sleepValue(Page $page, Field $field, $value) {
+		return $value;
+	}
+
+	public function savePageField(Page $page, Field $field) {
+		return true;
+	}
+
+	public function loadPageField(Page $page, Field $field) {
+		return '';
+	}
+
+	public function getLoadQuery(Field $field, DatabaseQuerySelect $query) {
+		return $query;
+	}
+
+	public function ___savePageField(Page $page, Field $field) {
+		return true;
+	}
+
+	public function ___deletePageField(Page $page, Field $field) {
+		return true;
+	}
+
+	public function ___createField(Field $field) {
+		return true;
+	}
+
+	public function ___deleteField(Field $field) {
+		return true;
+	}
+
+	public function getDatabaseSchema(Field $field) {
+		return [];
+	}
+
+	public function ___install() {
+
+	}
+
+}

@@ -68,6 +68,24 @@
                     {
                         "template": "repeater_dbMigrateItem",
                         "data": {
+                            "dbMigrateType": 2,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "repeater_dbMigrateComparisonItem",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateComparisonItem",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
                             "dbMigrateType": 1,
                             "dbMigrateAction": 1,
                             "dbMigrateName": "dbMigrateSummary",
@@ -115,7 +133,7 @@
                         "data": {
                             "dbMigrateType": 1,
                             "dbMigrateAction": 1,
-                            "dbMigrateName": "dbMigrateControl",
+                            "dbMigrateName": "dbMigrateRuntimeControl",
                             "dbMigrateOldName": ""
                         }
                     },
@@ -124,7 +142,7 @@
                         "data": {
                             "dbMigrateType": 1,
                             "dbMigrateAction": 1,
-                            "dbMigrateName": "dbMigrateActions",
+                            "dbMigrateName": "dbMigrateRuntimeAction",
                             "dbMigrateOldName": ""
                         }
                     },
@@ -133,7 +151,7 @@
                         "data": {
                             "dbMigrateType": 1,
                             "dbMigrateAction": 1,
-                            "dbMigrateName": "dbMigrateReady",
+                            "dbMigrateName": "dbMigrateRuntimeReady",
                             "dbMigrateOldName": ""
                         }
                     },
@@ -143,6 +161,15 @@
                             "dbMigrateType": 2,
                             "dbMigrateAction": 1,
                             "dbMigrateName": "DbMigration",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 2,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "DbComparison",
                             "dbMigrateOldName": ""
                         }
                     },
@@ -161,6 +188,15 @@
                             "dbMigrateType": 3,
                             "dbMigrateAction": 1,
                             "dbMigrateName": "/processwire/dbmigrations/",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 3,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "/processwire/dbcomparisons/",
                             "dbMigrateOldName": ""
                         }
                     }
