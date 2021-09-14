@@ -21,4 +21,4 @@ Just put the new code in the ProcessDbMigrate folder. Then refresh Modules.
 Note that if you have hacked the bootstrap json, then updating will overwrite your hack.
 
 ## Usage
-I think the usage is quite logical, but it is fairly complex, so please read the [help file](help.md) first.
+I think the usage is quite logical, but it is fairly complex, so please read the [help file](https://metatunes.github.io/DbMigrate/help.html) first.
