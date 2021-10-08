@@ -69,7 +69,6 @@ class DbComparisonPage extends DbMigrationPage {
 		$this->addHookBefore("Pages::save(template=$this->comparisonTemplate)", $this, 'beforeSaveThis');
 
 		$this->set('ready', true);
-		//bd('READY');
 	}
 
 	/*

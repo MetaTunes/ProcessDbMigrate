@@ -23,12 +23,14 @@ if($page->template == ProcessDbMigrate::MIGRATION_TEMPLATE) {
 			__("\nPlease only proceed if you accept this.") . sprintf(__(' It may be advisable to take a copy of the current %s/old/ files before proceeding'), $page->name),
 
 	]);
+	echo ProcessDbMigrate::helpPopout('Help');
 	if($page->status != 1) {
 		echo __("Page must be published before any actions are available");
 	} else {
 		$installedStatus = $page->meta('installedStatus'); // set by DbMigrationPage::exportData('compare')
 		$form = wire(new InputfieldWrapper());
 		$form->attr('id', 'actions_form');
+
 		// Only show actions if unlocked
 		if(!$page->meta('locked')) {
 			$updated = $page->meta('updated');

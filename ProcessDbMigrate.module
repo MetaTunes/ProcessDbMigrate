@@ -72,6 +72,28 @@
  */
 class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 
+	public static function getModuleinfo() {
+		return [
+			'permanent' => false,        // true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
+			'title' => 'ProcessDbMigrate',
+			'summary' => 'Manage migrations via the PW GUI',
+			'comments' => 'Document and manage migrations. Allow roll-back and database comparisons.',
+			'author' => 'Mark Evens',
+			'version' => "0.1.3", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly
+			'autoload' => true,
+			'singular' => true,
+			'page' => array(            //install/uninstall a page for this process automatically
+				'name' => 'dbmigrations',    //name of page to create
+				'parent' => 'setup',    // parent name (under admin)
+				'title' => 'Database Migrations',    // title of page
+			),
+			'icon' => 'upload',
+			'requires' => ['ProcessWire>=3.0.148'],
+			'installs' => ['FieldtypeDbMigrateRuntime'], // Runtime field type for use with this module
+			'permission' => 'admin-dbMigrate',         // ToDo refine permissions?
+		];
+	}
+
 	/*
 	 * Name of template for migration pages
 	 *
@@ -88,12 +110,12 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 */
 	const MIGRATION_PARENT_TEMPLATE = 'DbMigrations';
 	/*
-	 * Name os parent page for migration pages
+	 * Name of parent page for migration pages
 	 *
 	 */
 	const MIGRATION_PARENT = 'dbmigrations/';
 	/*
-	 * Name os parent page for comparison pages
+	 * Name of parent page for comparison pages
 	 *
 	 */
 	const COMPARISON_PARENT = 'dbcomparisons/';
@@ -126,7 +148,8 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 * Field and template attributes to always ignore in migrations
 	 *
 	 */
-	const EXCLUDE_ATTRIBUTES = array('_importMode', 'template_id');
+	const EXCLUDE_ATTRIBUTES = array('_importMode');
+	// 'template_id' and 'template_ids' are handled specifically (replaced with 'template_name' and 'template_names')
 
 	/**
 	 * Construct
@@ -136,6 +159,72 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 		parent::__construct();
 		$this->set('auto_install', 1);
 		$this->set('prevent_overlap', 1);
+	}
+
+
+	/**
+	 * Initialize the module
+	 *
+	 * ProcessWire calls this method when the module is loaded. At this stage, all
+	 * module configuration values have been populated.
+	 *
+	 * For “autoload” modules (such as this one), this will be called before ProcessWire’s API is ready.
+	 * This is a good place to attach hooks (as is the “ready” method).
+	 *
+	 */
+	public function init() {
+		require_once('DbMigrationPage.class.php');
+		require_once('DbComparisonPage.class.php');
+		$this->wire()->modules->get('JqueryWireTabs');
+		// Set properties
+		$this->set('adminPath', wire('pages')->get(2)->path());
+		$this->set('adminUrl', wire('pages')->get(2)->url());
+		$this->set('adminHttpUrl', wire('pages')->get(2)->httpUrl());
+		$this->set('name', self::getModuleinfo()['page']['name']);
+		$this->set('parent', $this->adminPath . self::getModuleinfo()['page']['parent'] . '/');
+		$this->set('parentUrl', $this->adminUrl . self::getModuleinfo()['page']['parent'] . '/');
+		$this->set('parentHttpUrl', $this->adminHttpUrl . self::getModuleinfo()['page']['parent'] . '/');
+		$this->set('title', self::getModuleinfo()['page']['title']);
+		$this->set('adminProcess', str_replace(__NAMESPACE__ . '\\', '', get_class()));
+		$this->set('migrations', wire('pages')->get($this->adminPath . self::MIGRATION_PARENT));
+		$this->set('comparisons', wire('pages')->get($this->adminPath . self::COMPARISON_PARENT));
+		$this->set('migrationTemplate', wire('templates')->get(self::MIGRATION_TEMPLATE));
+		$this->set('comparisonTemplate', wire('templates')->get(self::COMPARISON_TEMPLATE));
+		$this->set('migrationsTemplate', wire('templates')->get(self::MIGRATION_PARENT_TEMPLATE));
+		$this->set('migrationsPath', wire('config')->paths->templates . self::MIGRATION_PATH);
+		$this->set('comparisonsPath', wire('config')->paths->templates . self::COMPARISON_PATH);
+		$this->set('modulePath', wire('config')->paths->siteModules . basename(__DIR__) . '/');
+		$this->set('bootstrapPath', $this->modulePath . 'bootstrap');
+		$this->set('bootstrap', wire()->pages->get("parent=$this->migrations, template=$this->migrationTemplate, name=bootstrap"));
+		// Need custom uninstall to uninstall bootstrap before uninstalling the module
+		$this->addHookBefore("Modules::uninstall", $this, "customUninstall");
+		// trigger init in Page class as it is not auto
+		if(class_exists('DbMigrationPage')) {
+			$p = $this->wire(new DbMigrationPage());
+			$p->init();
+		}
+		if(class_exists('DbComparisonPage')) {
+			$p = $this->wire(new DbComparisonPage());
+			$p->init();
+		}
+		// Make sure any migration page is refreshed before loading it and set the 'updated' meta (used to indicate if refresh completed fully)
+		$this->addHookBefore('ProcessPageEdit::loadPage', function(HookEvent $event) {
+			$id = $event->arguments(0);
+			$p = $this->pages->get($id);
+			if($p and $p->id and ($p->template == self::MIGRATION_TEMPLATE or $p->template == self::COMPARISON_TEMPLATE)) {
+				/* @var $p DbMigrationPage */
+				$p->meta('updated', false);
+				$updated = $p->refresh();
+				//bd($updated, 'meta updated');
+				$p->meta('updated', $updated);
+			}
+		});
+		// CONFIGURE HELP TEMPLATE
+		$t = $this->templates->get('DbMigrateHelp');
+		if(!$t) return;
+		$moduleName = basename(__DIR__);
+		$t->filename = $this->config->paths->$moduleName . 'DbMigrateHelp.php';
+		//bd('ProcessDbMigrate INIT DONE');
 	}
 
 	/**
@@ -151,8 +240,14 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 */
 	public function ready() {
 		$this->addHookBefore("Pages::save()", $this, 'beforeSave');
-
+		$this->addHookAfter("Pages::save()", $this, 'afterSave');
 		$this->addHookBefore("Inputfield::exportConfigData()", $this, 'beforeExportConfigData');
+		$this->addHookBefore('ProcessPageEdit::execute', $this, 'beforePageEditExecute');
+		$this->addHookAfter('ProcessPageEdit::buildFormContent', $this, 'afterBuildFormContent');
+		$this->addHookAfter('ProcessTemplate::buildEditForm', $this, 'afterTemplateBuildEditForm');
+		$this->addHookAfter('ProcessField::buildEditForm', $this, 'afterFieldBuildEditForm');
+		$this->addHookBefore('Templates::save()', $this, 'beforeSaveTemplate');
+		$this->addHookBefore('Fields::save()', $this, 'beforeSaveField');
 
 		// Trigger ready() in the Page Class (actually trigger all page classes)
 		$page = $this->wire()->page;
@@ -224,6 +319,42 @@ If it has been used in another environment and is no longer wanted then you will
 
 	/**
 	 *
+	 * Install/upgrade the module
+	 *
+	 * @param false $upgrade
+	 * @throws WireException
+	 * @throws WirePermissionException
+	 *
+	 */
+	public function ___install($upgrade = false) {
+		//bd('ProcessDbMigrate install');
+		$this->init();  // Need the properties to be loaded for the bootstrap, but init() is not called before install()
+		$this->bootstrap($upgrade);
+		$this->init();  // re-initialise now everything should be there
+		if(!$this->migrations or !$this->migrations->id) {
+			$this->wire->session->error($this->_('Bootstrap failed'));
+			return;
+		}
+		$setupPage = $this->wire->pages->get("name={$this->name}, parent={$this->parent}");
+		if(!$setupPage or !$setupPage->id) {
+			// Create the admin page
+			$p = $this->wire(new Page());
+			$p->template = 'admin';
+			$p->name = $this->name;
+			$p->parent = $this->parent;
+			$p->title = $this->title;
+			$p->process = $this->adminProcess;
+			$p->save();
+		}
+		/* CONSTRUCT HELP TEMPLATE AND PAGE
+		* Kept within the module directory  (see forum post https://processwire.com/talk/topic/2676-configuring-template-path/page/3/)
+		 */
+		$this->createTemplate('DbMigrateHelp', 'DbMigrateHelp');
+		$this->createPage('DbMigrate help', 'DbMigrateHelp');
+	}
+
+	/**
+	 *
 	 * Upgrade the module
 	 *
 	 * @param int|string $fromVersion
@@ -243,120 +374,6 @@ If it has been used in another environment and is no longer wanted then you will
 			$this->session->set('upgrade0.1.0', true); // session var set here is used in ready() as old fields cannot be removed until after bootstrap install
 		}
 		$this->___install(true);
-	}
-
-	/**
-	 *
-	 * Install/upgrade the module
-	 *
-	 * @param false $upgrade
-	 * @throws WireException
-	 * @throws WirePermissionException
-	 *
-	 */
-	public function ___install($upgrade = false) {
-		//bd('install');
-		$this->init();  // Need the properties to be loaded for the bootstrap, but init() is not called before install()
-		$this->bootstrap($upgrade);
-		$this->init();  // re-initialise now everything should be there
-		if(!$this->migrations or !$this->migrations->id) {
-			$this->wire->session->error($this->_('Bootstrap failed'));
-			return;
-		}
-		$setupPage = $this->wire->pages->get("name={$this->name}, parent={$this->parent}");
-		if(!$setupPage or !$setupPage->id) {
-			// Create the admin page
-			$p = $this->wire(new Page());
-			$p->template = 'admin';
-			$p->name = $this->name;
-			$p->parent = $this->parent;
-			$p->title = $this->title;
-			$p->process = $this->adminProcess;
-			$p->save();
-		}
-	}
-
-	/**
-	 * Initialize the module
-	 *
-	 * ProcessWire calls this method when the module is loaded. At this stage, all
-	 * module configuration values have been populated.
-	 *
-	 * For “autoload” modules (such as this one), this will be called before ProcessWire’s API is ready.
-	 * This is a good place to attach hooks (as is the “ready” method).
-	 *
-	 */
-	public function init() {
-		require_once('DbMigrationPage.class.php');
-		require_once('DbComparisonPage.class.php');
-		$this->wire()->modules->get('JqueryWireTabs');
-		// Set properties
-		$this->set('adminPath', wire('pages')->get(2)->path());
-		$this->set('adminUrl', wire('pages')->get(2)->url());
-		$this->set('adminHttpUrl', wire('pages')->get(2)->httpUrl());
-		$this->set('name', self::getModuleinfo()['page']['name']);
-		$this->set('parent', $this->adminPath . self::getModuleinfo()['page']['parent'] . '/');
-		$this->set('parentUrl', $this->adminUrl . self::getModuleinfo()['page']['parent'] . '/');
-		$this->set('parentHttpUrl', $this->adminHttpUrl . self::getModuleinfo()['page']['parent'] . '/');
-		$this->set('title', self::getModuleinfo()['page']['title']);
-		$this->set('adminProcess', str_replace(__NAMESPACE__ . '\\', '', get_class()));
-		$this->set('migrations', wire('pages')->get($this->adminPath . self::MIGRATION_PARENT));
-		$this->set('comparisons', wire('pages')->get($this->adminPath . self::COMPARISON_PARENT));
-		$this->set('migrationTemplate', wire('templates')->get(self::MIGRATION_TEMPLATE));
-		$this->set('comparisonTemplate', wire('templates')->get(self::COMPARISON_TEMPLATE));
-		$this->set('migrationsTemplate', wire('templates')->get(self::MIGRATION_PARENT_TEMPLATE));
-		$this->set('migrationsPath', wire('config')->paths->templates . self::MIGRATION_PATH);
-		$this->set('comparisonsPath', wire('config')->paths->templates . self::COMPARISON_PATH);
-		$this->set('modulePath', wire('config')->paths->siteModules . basename(__DIR__) . '/');
-		$this->set('bootstrapPath', $this->modulePath . 'bootstrap');
-		$this->set('bootstrap', wire()->pages->get("parent=$this->migrations, template=$this->migrationTemplate, name=bootstrap"));
-		// Need custom uninstall to uninstall bootstrap before uninstalling the module
-		$this->addHookBefore("Modules::uninstall", $this, "customUninstall");
-		// trigger init in Page class as it is not auto
-		if(class_exists('DbMigrationPage')) {
-			$p = $this->wire(new DbMigrationPage());
-			$p->init();
-		}
-		if(class_exists('DbComparisonPage')) {
-			$p = $this->wire(new DbComparisonPage());
-			$p->init();
-		}
-		// Make sure any migration page is refreshed before loading it and set the 'updated' meta (used to indicate if refresh completed fully)
-		$this->addHookBefore('ProcessPageEdit::loadPage', function(HookEvent $event) {
-			$id = $event->arguments(0);
-			$p = $this->pages->get($id);
-			if($p and $p->id and ($p->template == self::MIGRATION_TEMPLATE or $p->template == self::COMPARISON_TEMPLATE)) {
-				/* @var $p DbMigrationPage */
-				$p->meta('updated', false);
-				$updated = $p->refresh();
-				//bd($updated, 'meta updated');
-				$p->meta('updated', $updated);
-			}
-		});
-
-		//bd('INIT DONE');
-	}
-
-	public static function getModuleinfo() {
-		return [
-			'permanent' => false,        // true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
-			'title' => 'ProcessDbMigrate',
-			'summary' => 'Manage migrations via the PW GUI',
-			'comments' => 'Document and manage migrations. Allow roll-back and database comparisons.',
-			'author' => 'Mark Evens',
-			'version' => "0.1.0", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly
-			'autoload' => true,
-			'singular' => true,
-			'page' => array(            // optionally install/uninstall a page for this process automatically
-				'name' => 'dbmigrations',    // name of page to create
-				'parent' => 'setup',    // parent name (under admin) or omit or blank to assume admin root
-				'title' => 'Database Migrations',    // title of page, or omit to use the title already specified above
-			),
-			'icon' => 'upload',
-			'requires' => ['ProcessWire>=3.0.148'],
-			'installs' => ['FieldtypeDbMigrateRuntime'], // Runtime field type for use with this module
-			'permission' => 'admin-dbMigrate',         // ToDo refine permissions?
-		];
 	}
 
 	/**
@@ -430,7 +447,7 @@ If it has been used in another environment and is no longer wanted then you will
 		//Check all templates with dbMigrate tags to ensure there are no migration pages
 		$taggedTemplates = wire()->templates->find("tags=dbMigrate");
 		$templateList = $taggedTemplates->implode('|', 'name');
-		$pagesUsingTemplates = wire()->pages->find("template=$templateList");
+		$pagesUsingTemplates = wire()->pages->find("template=$templateList, include=all");
 		if($pagesUsingTemplates and $pagesUsingTemplates->count() > 0) {
 			foreach($pagesUsingTemplates as $pageUsingTemplate) {
 				if(($pageUsingTemplate->template == self::MIGRATION_TEMPLATE or $pageUsingTemplate->template == self::COMPARISON_TEMPLATE)
@@ -482,6 +499,7 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 	}
 
+
 	/**
 	 * Main admin page - list migrations & allows creation of new migration
 	 *
@@ -492,9 +510,8 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 	public function ___execute() {
 		$pageEdit = $this->wire('urls')->admin . 'page/edit/?id=';
-
 		$form = $this->modules->get("InputfieldForm");
-		$prepend = '<ul class="WireTabs uk-tab" uk-switcher>' .
+		$prepend = self::helpPopout('Help') . '<ul class="WireTabs uk-tab" uk-switcher>' .
 			'<li id="migrations-tab"><a href="#migrations">Migrations</a></li>' .
 			'<li id="database-comparisons-tab"><a href="#database-comparisons">Database comparisons</a></li>' .
 			'</ul>';
@@ -751,7 +768,6 @@ If it has been used in another environment and is no longer wanted then you will
 		$btnAddNew->showInHeader();
 		return $btnAddNew;
 	}
-
 
 	/**
 	 *
@@ -1010,7 +1026,8 @@ If it has been used in another environment and is no longer wanted then you will
 	}
 
 	/**
-	 * Lock the migration linked by dbMigrateControl
+	 * Lock the migration
+	 * NB linked by dbMigrateControl as URL hence PHPStorm does not show usage
 	 *
 	 * @throws WireException
 	 *
@@ -1074,7 +1091,8 @@ If it has been used in another environment and is no longer wanted then you will
 	}
 
 	/**
-	 *  Execute method for Preview - linked by button in dbMigrateActions
+	 *  Execute method for Preview
+	 * NB linked by button in dbMigrateActions hence PHPStorm does not show usage
 	 *
 	 * @return string
 	 * @throws WireException
@@ -1112,7 +1130,7 @@ If it has been used in another environment and is no longer wanted then you will
 		if($pageType == 'comparison' and $button == 'draft') {
 			// remove any existing draft before creating a new one
 			$nameRoot = self::XCPREFIX . $migrationPage->name;
-			$drafts = $this->wire()->pages->find("parent=$this->migrations, name^=$nameRoot");
+			$drafts = $this->wire()->pages->find("parent=$this->migrations, name^=$nameRoot, include=all");
 			//bd($this->migrations->path . $nameRoot, 'check existing');
 			/*
 			 * Delete any existing draft, but ONLY if it is still a draft (given by meta)
@@ -1366,7 +1384,6 @@ If it has been used in another environment and is no longer wanted then you will
 		return $draft;
 	}
 
-
 	/**
 	 * Config inputfields
 	 *
@@ -1386,18 +1403,16 @@ If it has been used in another environment and is no longer wanted then you will
 		$config->scripts->add($config->urls->$this . "{$this}.js?v=$version");
 
 		$moduleUrl = $this->wire()->urls->siteModules . 'ProcessDbMigrate/';
-		if(file_exists($this->modulePath . "help.html")) {
-			$help = file_get_contents($this->modulePath . "help.html");
-			$help = str_replace('src="help', 'src="' . $moduleUrl . 'help/', $help);
-			$help = '<span style="color:blue">' . $help . '</span>';
-		} else if(file_exists($this->modulePath . "help.md")) {
-			$help = file_get_contents($this->modulePath . "help.md");
-			$help = str_replace('](help/', '](' . $moduleUrl . 'help/', $help);
-			$help = $modules->TextformatterMarkdownExtra->markdown($help);
-			$help = '<span style="color:blue">' . $help . '</span>';
-		} else {
-			$help = '';
-		}
+//		if(file_exists($this->modulePath . "help.html")) {
+//			$help = file_get_contents($this->modulePath . "help.html");
+//			$help = str_replace('src="help', 'src="' . $moduleUrl . 'help/', $help);
+//			$help = '<span style="color:blue">' . $help . '</span>';
+//		} else if(file_exists($this->modulePath . "help.md")) {
+//			$help = file_get_contents($this->modulePath . "help.md");
+//			$help = str_replace('](help/', '](' . $moduleUrl . 'help/', $help);
+//			$help = $modules->TextformatterMarkdownExtra->markdown($help);
+//			$help = '<span style="color:blue">' . $help . '</span>';
+		$help = self::helpPopout('Popout indexed help', true);
 
 		// Wrapper to hold the tabs
 		/** @var InputfieldWrapper $tabs_container */
@@ -1487,10 +1502,9 @@ If it has been used in another environment and is no longer wanted then you will
 		$f = $modules->InputfieldCheckbox;
 		$f_name = 'prevent_overlap';
 		$f->name = $f_name;
-		$f->label = $this->_('Prevent conflicting page saves?');
-		$f->description = $this->_('Any changes to pages in a target database which are within the scope of unlocked installable migrations will be prevented.');
-		$f->notes = $this->_('Leave checked in normal use. Deselect if it causes problems - but be aware that this may affect the ability to uninstall the related migration(s). 
-		Note that saving of field and template changes is not prevented - avoid changing fields and templates in the target database, particularly if they are in the scope of an unlocked migration.');
+		$f->label = $this->_('Prevent conflicting saves?');
+		$f->description = $this->_('Any changes to objects in a target database which are within the scope of active installable migrations will be prevented.');
+		$f->notes = $this->_('Leave checked in normal use. Deselect if it causes problems - but be aware that this may affect the ability to uninstall the related migration(s). Note that a migration is deemed to be "active" after the first installation.');
 		$f->columnWidth = 50;
 		$f->value = $this->$f_name;
 		$f->checked = ($f->value == 1) ? 'checked' : '';
@@ -1533,30 +1547,199 @@ If it has been used in another environment and is no longer wanted then you will
 		/*
 		 * This hook only operates on pages saved outside the installPages method
 		 */
-		if(!$this->wire()->session->get('dbMigrate_installPages')) {
-			$p = $event->arguments(0);
-			$conflict = false;
-			foreach($this->migrations->find("template={$this->migrationTemplate}") as $migration) {
-				/* @var $migration DbMigrationPage */
-				if($migration->meta('locked')) continue;
-				if(!$migration->meta('installable')) continue;
-				if(!$this->prevent_overlap) continue; //config setting
-				$migrationList = $migration->listItems();
-				$migrationNames = $migration->extractElements($migrationList, 'name');
-				$migrationOldNames = array_filter($migration->extractElements($migrationList, 'oldName'));
-				$intersect = in_array($p->path, $migrationNames);
-				$intersectOld = in_array($p->path, $migrationOldNames);
-				if($intersect or $intersectOld) {
-					$conflict = true;
-					break;
+		if($this->prevent_overlap) { //config setting
+			if(!$this->wire()->session->get('dbMigrate_installPages') and !$this->wire()->session->get('dbMigrate_removeItems')) {
+				$p = $event->arguments(0);
+				$conflict = $this->preventConflict($p, 'save', 'page');
+				if($conflict) {
+					$this->error($conflict);
+					$event->replace = true;
+					$event->return;
 				}
 			}
-			if($conflict) {
-				$this->error("$p->name - " . $this->_("This page is within the scope of an unlocked (currently installable) migration and cannot be changed unless the migration is amended or locked."));
-				$event->replace = true;
-				$event->return;
+		}
+	}
+
+	/**
+	 * After save actions:
+	 * Create help file from page
+	 *
+	 * @param HookEvent $event
+	 * @throws WireException
+	 *
+	 */
+	protected function afterSave(HookEvent $event) {
+		$p = $event->arguments(0);
+		if($p->template == 'DbMigrateHelp') {
+			$p->export = true;  // set temp field so that render processing is correct for exported version of page
+			$html = $p->render();
+			file_put_contents($this->modulePath . 'help.html', $html);
+			$text = $p->dbMigrateAdditionalDetails;
+			file_put_contents($this->modulePath . 'helpText.html', $text);
+		}
+	}
+
+
+	/**
+	 * Before save template actions:
+	 * Disallow saving of templates which are inside the scope of unlocked installable migrations
+	 *
+	 * @param HookEvent $event
+	 * @throws WireException
+	 *
+	 */
+	protected function beforeSaveTemplate(HookEvent $event) {
+		/*
+		 * This hook only operates on pages saved outside the installTemplates method
+		 */
+		//bd('in beforeSaveTemplate hook');
+		if($this->prevent_overlap) { //config setting
+			if(!$this->wire()->session->get('dbMigrate_installTemplates') and !$this->wire()->session->get('dbMigrate_removeItems')) {
+				$t = $event->arguments(0);
+				bd($t, 't');
+				$conflict = $this->preventConflict($t, 'save', 'template');
+				if($conflict) {
+					$this->error($conflict);
+					$event->replace = true;
+					$event->return;
+				}
 			}
 		}
+	}
+
+	/**
+	 * Before save field actions:
+	 * Disallow saving of templates which are inside the scope of unlocked installable migrations
+	 *
+	 * @param HookEvent $event
+	 * @throws WireException
+	 *
+	 */
+	protected function beforeSaveField(HookEvent $event) {
+		/*
+		 * This hook only operates on pages saved outside the installTemplates method
+		 */
+		//bd('in beforeSaveField hook');
+		if($this->prevent_overlap) { //config setting
+			if(!$this->wire()->session->get('dbMigrate_installFields') and !$this->wire()->session->get('dbMigrate_removeItems')) {
+				$f = $event->arguments(0);
+				$conflict = $this->preventConflict($f, 'save', 'field');
+				if($conflict) {
+					$this->error($conflict);
+					$event->replace = true;
+					$event->return;
+				}
+			}
+		}
+	}
+
+	/**
+	 * After page edit build form:
+	 * Display warning re saving of pages which are inside the scope of unlocked installable migrations
+	 *
+	 * @param HookEvent $event
+	 * @throws WireException
+	 *
+	 */
+	protected function afterBuildFormContent(HookEvent $event) {
+		$page = page();
+		$type= 'page';
+		if ($page and $page->template == 'admin') {
+			$pId = wire()->input->get('id');
+			$page = wire('pages')->get($pId);
+		}
+		$conflict = $this->preventConflict($page, 'edit', $type);
+		if($conflict) {
+				$this->warning($conflict);
+		}
+	}
+
+	/**
+	 * Before page edit build form:
+	 * Load saved text into help field
+	 *
+	 * @param HookEvent $event
+	 * @throws WireException
+	 *
+	 */
+	protected function beforePageEditExecute(HookEvent $event) {
+//		$page = page();
+//		if ($page and $page->template == 'admin') {
+//			$pId = wire()->input->get('id');
+//			$page = wire('pages')->get($pId);
+//		}
+		$id = wire('input')->get->id;
+		if (!$id) return;
+		$page = wire('pages')->get($id);
+		// Help text is updated from module file even if page exists  - it should be the same as the saved value unless changed externally (e.g. update without version change)
+		if ($page and $page->template == 'DbMigrateHelp') {
+			if(file_exists($this->modulePath . 'helpText.html')) {
+				$page->dbMigrateAdditionalDetails = file_get_contents($this->modulePath . 'helpText.html');
+			}
+		}
+	}
+
+	/**
+	 * After template edit build form:
+	 * Display warning re saving of templates which are inside the scope of unlocked installable migrations
+	 *
+	 * @param HookEvent $event
+	 * @throws WireException
+	 *
+	 */
+	protected function afterTemplateBuildEditForm(HookEvent $event) {
+		$template = $event->arguments(0);
+		$type = 'template';
+		$conflict = $this->preventConflict($template, 'edit', $type);
+		if($conflict) {
+				$this->warning($conflict);
+		}
+	}
+
+	/**
+	 * After field edit build form:
+	 * Display warning re saving of templates which are inside the scope of unlocked installable migrations
+	 *
+	 * @param HookEvent $event
+	 * @throws WireException
+	 *
+	 */
+	protected function afterFieldBuildEditForm(HookEvent $event) {
+		$object = $event->object;
+		if ($object and get_class($object) == 'ProcessWire\ProcessField') {
+			$fId = wire()->input->get('id');
+			$field = wire('fields')->get($fId);
+			$type = 'field';
+			$conflict = $this->preventConflict($field, 'edit', $type);
+			if($conflict) {
+				$this->warning($conflict);
+			}
+		}
+	}
+
+	protected function preventConflict($object, $action, $type = 'page') {
+		$conflict = null;
+		foreach($this->migrations->find("template={$this->migrationTemplate}, include=all") as $migration) {
+			/* @var $migration DbMigrationPage */
+			if($migration->meta('locked')) continue;
+			if(!$migration->meta('installable')) continue;
+			if(!is_dir($this->migrationsPath . $migration->name . '/old/')) continue; // no conflict if old files not yet created
+			$migrationList = $migration->listItems();
+			$migrationNames = $migration->extractElements($migrationList, 'name');
+			$migrationOldNames = array_filter($migration->extractElements($migrationList, 'oldName'));
+			$name = ($type == 'page') ? $object->path : $object->name;
+			$intersect = in_array($name, $migrationNames);
+			$intersectOld = in_array($name, $migrationOldNames);
+			if($intersect or $intersectOld) {
+				if($action == 'edit') {
+					$conflict = sprintf($this->_('This %1$s "%2$s" is the target of an active migration: %3$s. Do not edit it here - edit in the source database instead.'), $type, $name, $migration->name);
+				} else {  // $action == 'save'
+					$conflict = sprintf($this->_('Unable to save %1$s "%2$s" as it is the target of an active migration: %3$s. See %4$s module settings.'), $type, $name, $migration->name, self::getModuleinfo()['title']);
+				}
+				break;
+			}
+		}
+		return $conflict;
 	}
 
 	/**
@@ -1572,6 +1755,96 @@ If it has been used in another environment and is no longer wanted then you will
 			$event->replace = true;
 			$event->return = $data;
 		}
+	}
+
+/*
+ ************************************
+ *********** HELP PAGE **************
+ ************************************
+ */
+ //NB See also afterSave and beforeBuildFormContent Hooks above
+
+	/**
+	 * Create template
+	 * Called on install / update
+	 *
+	 * @param $template_name
+	 * @param $template_label
+	 */
+	protected function createTemplate($template_name, $template_label) {
+		if($this->templates->get($template_name)) {
+			//$this->warning($this->_("Template '$template_name' already exists.")); // Warning removed to prevent it on update
+			return;
+		}
+		if($this->fieldgroups->get($template_name)) {
+			// Keep this warning in case fieldgroup exists when template doesn't - maybe a name already in use, or a previous botched install
+			$this->warning(sprintf($this->_('Fieldgroup %1$s already exists. To remove it, use "$fg = $fieldgroups->get(%2$s); $fieldgroups->delete($fg);" in Tracy console.'), $template_name, $template_name));
+			return;
+		}
+		$fg = new Fieldgroup();
+		$fg->name = $template_name;
+		$fg->add($this->wire()->fields->get('title'));
+		$fg->add($this->wire()->fields->get('dbMigrateAdditionalDetails'));
+		$fg->save();
+		$t = new Template();
+		$t->name = $template_name;
+		$t->label = $template_label;
+		$t->fieldgroup = $fg;
+		$t->compile = 0;
+		$t->noPrependTemplateFile = true;
+		$t->noAppendTemplateFile = true;
+		$t->flags = 8; // system
+		$t->set('tags', 'dbMigrate');  // Can't use addTag() prior to 3.0.172
+		$t->save();
+		$f = $t->fieldgroup->getField('dbMigrateAdditionalDetails', true);
+		$f->label = 'Help text';
+		$f->rows = 16;
+		$this->fields->saveFieldgroupContext($f, $fg);
+		$t->save();
+		$this->message("Created template '$template_name'.");
+	}
+
+	/**
+	 * Create page
+	 * Called on install / update
+	 *
+	 * @param $page_title
+	 * @param $template_name
+	 */
+	protected function createPage($page_title, $template_name) {
+		$page_name = $this->sanitizer->pageName($page_title, true);
+		$parent = $this->parent . $this->name . '/';
+		$p = $this->pages->get("parent=$parent, name=$page_name")->id;
+		if(!$p) {
+			$p = new Page();
+			$p->template = $template_name;
+			$p->parent = $parent;
+			$p->name = $page_name;
+			$p->title = $page_title;
+			$this->message("Created page '$page_name'.");
+		}
+		// Help text is updated from module file even if page exists (e.g. for update)
+		if(file_exists($this->modulePath . 'helpText.html')) {
+			$p->dbMigrateAdditionalDetails = file_get_contents($this->modulePath . 'helpText.html');
+		}
+		$p->of(false);
+		$p->save();
+
+	}
+
+	/*
+	 * Popout for various pages
+	 */
+	static function helpPopout($label, $fullText = false) {
+		$helpPagePath = wire('pages')->get(2)->path() . self::getModuleinfo()['page']['parent'] . '/' . self::getModuleinfo()['page']['name'] . '/dbmigrate-help/';
+		$helpPage = wire()->pages->get($helpPagePath);
+		if($helpPage and $helpPage->id) {
+			$help = "<span><a class='popout-help' href='{$helpPage->url}' title='Pop-out'>$label <i class='fa fa-external-link'></i></a></span>";
+			if($fullText) $help .= $helpPage->dbMigrateAdditionalDetails;
+		} else {
+			$help = '';
+		}
+		return $help;
 	}
 
 }

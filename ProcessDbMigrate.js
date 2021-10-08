@@ -14,6 +14,18 @@ function shortNotes(event) {
     }
 }
 
+/**
+ * Pop-out for help
+ *
+ * @param event
+ * @returns {boolean}
+ */
+function popOut(event) {
+    var link = $(this).attr('href');
+    window.open(link, 'popup', 'resizable= 1, height = 800, width=1200, scrollbars=1');
+    return false;
+}
+
 $(document).ready(function () {
 
     $('.AdminDataTable  .abbreviate').each(shortNotes);
@@ -41,5 +53,7 @@ $(document).ready(function () {
             }
         }
     });
+
+    $(document).on('click', 'a.popout-help', popOut);
 
 });

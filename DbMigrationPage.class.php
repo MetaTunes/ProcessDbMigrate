@@ -70,132 +70,9 @@ class DbMigrationPage extends DummyMigrationPage {
 	}
 
 	/**
-	 * After saved actions
-	 * Warn of missing elements in migration items
-	 *
-	 * @param HookEvent $event
-	 * @throws WireException
-	 *
-	 */
-	public function afterSaved(HookEvent $event) {
-		$p = $event->arguments(0);
-		if(!$p or !$p->id) return;
-		if($this->id != $p->id) return;
-		$k = 0;
-		foreach($this->dbMigrateItem as $item) {
-			/* @var $item RepeaterDbMigrateItemPage */
-			$k++;
-			if(!$item->dbMigrateType or !$item->dbMigrateAction or !$item->dbMigrateName) {
-				$this->wire()->session->warning($this->_('Missing values for item ') . $k);
-				//bd($item, 'missing values in item');
-			}
-		}
-	}
-
-	/**
-	 * This installs ('new') or uninstalls ('old') depending on directory with json files
-	 *
-	 * @param $newOld // 'new' to install, 'old' to uninstall
-	 * @throws WireException
-	 * @throws WirePermissionException
-	 *
-	 */
-	public function installMigration($newOld) {
-		if(!$this->ready and $this->name != 'dummy-bootstrap') $this->ready();  // don't call ready() for dummy-bootstrap as it has no template assigned at this point
-		//bd($this, 'In install with newOld = ' . $newOld);
-
-		// Backup the old installation first
-		if($newOld == 'new' and $this->name != 'dummy-bootstrap') $this->exportData('old');
-		/*
-		* NB The bootstrap is excluded from the above. A separate (manually constructed) 'old' file is provided
-		 * for the bootstrap as part of the module and is used when uninstalling the module.
-		*/
-		$name = ($this->name == 'dummy-bootstrap') ? 'bootstrap' : $this->name;
-
-		// Get the migration .json file for this migration
-		$migrationPath = $this->wire('config')->paths->templates . ProcessDbMigrate::MIGRATION_PATH . $name . '/';
-		// NB cannot use $this->migrationsPath because as it fails with dummy-bootstrap (no template yet!)
-
-		$migrationPathNewOld = $migrationPath . $newOld . '/';
-		if(!is_dir($migrationPathNewOld)) {
-			//bd($migrationPath, '$migrationPath. Name is ' . $name);
-			$error = ($newOld == 'new') ? $this->_('Cannot install - ') : $this->_('Cannot uninstall - ');
-			$error .= sprintf($this->_('No "%s" directory for this migration.'), $newOld);
-			$this->wire()->session->error($error);
-			return;
-		}
-		$dataFile = (file_exists($migrationPathNewOld . 'data.json'))
-			? file_get_contents($migrationPathNewOld . 'data.json') : null;
-		if(!$dataFile) {
-			$error = ($newOld == 'new') ? $this->_('Cannot install - ') : $this->_('Cannot uninstall - ');
-			$error .= sprintf($this->_('No "%s" data.json file for this migration.'), $newOld);
-			if($name == 'bootstrap') {
-				$error .= $this->_(' Copy the old/data.json file from the module directory into the templates directory then try again?');
-			}
-			$this->wire()->session->error($error);
-			return;
-		}
-		$dataArray = wireDecodeJSON($dataFile);
-
-		$message = [];
-		$warning = [];
-		$pagesInstalled = [];
-		foreach($dataArray as $repeat) {
-			foreach($repeat as $itemType => $itemLine) {
-				//bd($itemLine, 'itemline');
-				foreach($itemLine as $itemAction => $items) {
-					//bd($items, 'items');
-					if($itemAction != 'removed') {
-						switch($itemType) {
-							// NB code below should handle multiple instances of objects, but we only expect one at a time for fields and templates
-							case 'fields':
-								$this->installFields($items, $itemType);
-								break;
-							case 'templates' :
-								$this->installTemplates($items, $itemType);
-								break;
-							case 'pages' :
-								$pagesInstalled = array_merge($pagesInstalled, $this->installPages($items, $itemType, $newOld));
-								break;
-						}
-					} else {
-						$this->removeItems($items, $itemType);
-					}
-				}
-			}
-		}
-		if($this->name != 'dummy-bootstrap') {
-			// update any images in RTE fields (links may be different owing to different page ids in source and target dbs)
-			$idMapArray = $this->setIdMap($pagesInstalled);
-			//bd($idMapArray, 'idMapArray');
-			foreach($pagesInstalled as $page) {
-				//bd($page, 'RTE? page');
-				foreach($page->getFields() as $field) {
-					//bd([$page, $field], 'RTE? field');
-					if($field->type == 'FieldtypeTextarea') {
-						//bd([$page, $field], 'RTE field Y');
-						//bd($page->$field, 'Initial html');
-						$html = $page->$field;
-						$html = $this->replaceLink($html, $idMapArray, $newOld);
-						//bd($html, 'returned html');
-						$page->$field = $html;
-						$page->of(false);
-						$page->save($field);
-					}
-				}
-			}
-			$this->exportData('compare'); // sets meta('installedStatus')
-			$this->wire()->pages->___save($this, array('noHooks' => true, 'quiet' => true));
-			$this->meta('updated', true);
-		}
-		if($message) $this->wire()->session->message(implode(', ', $message));
-		if($warning) $this->wire()->session->warning(implode(', ', $warning));
-		//bd($newOld, 'finished install');
-	}
-
-	/**
 	 * Better to put hooks here rather than in ready.php
 	 * This is called from ready() in ProcessDbMigrate.module as that is autoloaded
+	 *
 	 * @throws WireException
 	 */
 	public function ready() {
@@ -217,9 +94,13 @@ class DbMigrationPage extends DummyMigrationPage {
 
 		$readyFile = $this->migrationsPath . '/' . $this->name . '/ready.php';
 		if(file_exists($readyFile)) include $readyFile;
-        //bd($this, 'Page ready');
+		//bd($this, 'Migration Page ready');
 		$this->set('ready', true);
 	}
+
+	/**************************************************
+	 *********** EXPORT SECTION ***********************
+	 *************************************************/
 
 	/**
 	 * Export migration data to json files and compare differences
@@ -357,7 +238,10 @@ class DbMigrationPage extends DummyMigrationPage {
 							foreach($copyFiles as $copyFile) {
 								if(file_exists($copyFile)) {
 									$this->wire()->files->copy($copyFile, $migrationPathNewOld . 'files/' . $id . '/');
-									$this->wire()->session->message(sprintf($this->_('Copied file %s to '), $copyFile) . $migrationPathNewOld . 'files/' . $id . '/');
+									$this->message(sprintf($this->_('Copied file %s to '), $copyFile) . $migrationPathNewOld . 'files/' . $id . '/');
+								} else {
+									$installType = ($newOld == 'new') ? 'Install' : 'Uninstall'; // $newOld is 'new' or 'old' in this context
+									$this->error(sprintf($this->_('File %1$s does not exist in this environment. %2$s will not be usable.'), $copyFile, $installType));
 								}
 							}
 						}
@@ -571,26 +455,39 @@ class DbMigrationPage extends DummyMigrationPage {
 	}
 
 	/**
-	 * Return a list of all fields of the given types
-	 * (used to convert excluded types into excluded names)
+	 * Cycle through items in a migration and get the data for each
+	 * If $compareType is 'old' then reverse the order and swap 'new' and 'removed' actions
 	 *
-	 * @param array $types
-	 * @return array
+	 * @param $itemRepeater // The migration item
+	 * @param $excludeAttributes
+	 * @param $excludeFields
+	 * @param $newOld // 'new'. 'old', or 'compare'
+	 * @param $compareType // 'new' to create install data; 'old' to create uninstall data
+	 * @return array|array[]
 	 * @throws WireException
+	 * @throws WirePermissionException
 	 *
 	 */
-	protected function excludeFieldsForTypes(array $types) {
-		$fullTypes = [];
-		foreach($types as $type) {
-			$fullTypes[] = (!strpos($type, 'Fieldtype')) ? 'Fieldtype' . $type : $type;
+	protected function cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, $compareType) {
+		$data = [];
+		$count = 0;
+		$item = [];
+		$files = [];
+		if(!$itemRepeater) return ['data' => '', 'files' => ''];
+		if($compareType == 'old') $itemRepeater = $itemRepeater->reverse();
+		foreach($itemRepeater as $repeaterItem) {
+			/* @var $repeaterItem RepeaterDbMigrateItemPage */
+			$item = $this->populateItem($repeaterItem, ($compareType == 'old')); // swap new and removed if compareType is 'old'
+			//bd($item, 'item');
+			$count++;
+			$migrationItem = $this->getMigrationItemData($count, $item, $excludeAttributes, $excludeFields, $newOld, $compareType);
+			$data[] = $migrationItem['data'];
+			//bd($migrationItem['files'], 'migrationItem files');
+			$files = array_merge_recursive($files, $migrationItem['files']);
+			//bd($files, 'files at end of cycleItems');
 		}
-		$exclude = [];
-		$fields = $this->wire()->fields->getAll();
-		foreach($fields as $field) {
-			if(in_array($field->type->name, $fullTypes)) $exclude[] = $field->name;
-			if(!is_object($field)) throw new WireException("bad field $field");
-		}
-		return $exclude;
+		//bd($data, 'data returned by cycleItems for ' . $newOld);
+		return ['data' => $data, 'files' => $files];
 	}
 
 	/**
@@ -678,7 +575,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		if($noFind and ($item['action'] == 'removed' or $item['action'] == 'new')) {
 			$data = [$item['type'] => [$item['action'] => [$itemName => []]]];
 			//bd($data, 'Returning data for new/removed which do not exist in current db');
-			if($item['action'] == 'new' and $newOld != 'compare') {
+			if($item['action'] == 'new' and $compareType == 'new' and $newOld != 'compare') {
 				$this->wire()->session->warning(sprintf($this->_('Selector "%s" did not select any items'), $item['name']));
 			}
 			return ['data' => $data, 'files' => []];
@@ -695,6 +592,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		 */
 		$objectData = [];
 		foreach($expandedItems as $expandedItem) {
+			//bd($expandedItem, 'expandedItem');
 			$object = $expandedItem['object'];
 			// (For non-draft migrations) check object existence if migration is not exported/installed (draft migrations are created from comparisons)
 			if(!$this->meta('draft') and (!$this->meta('installedStatus') or !$this->meta('installedStatus')['installed'])) {
@@ -735,6 +633,29 @@ class DbMigrationPage extends DummyMigrationPage {
 	}
 
 	/**
+	 * Return a list of all fields of the given types
+	 * (used to convert excluded types into excluded names)
+	 *
+	 * @param array $types
+	 * @return array
+	 * @throws WireException
+	 *
+	 */
+	protected function excludeFieldsForTypes(array $types) {
+		$fullTypes = [];
+		foreach($types as $type) {
+			$fullTypes[] = (!strpos($type, 'Fieldtype')) ? 'Fieldtype' . $type : $type;
+		}
+		$exclude = [];
+		$fields = $this->wire()->fields->getAll();
+		foreach($fields as $field) {
+			if(in_array($field->type->name, $fullTypes)) $exclude[] = $field->name;
+			if(!is_object($field)) throw new WireException("bad field $field");
+		}
+		return $exclude;
+	}
+
+	/**
 	 * Take migration items (provided as an array of attributes) and expand any which are selectors
 	 * Return the (expanded) item object(s) and name(s) in an array in format
 	 *   ['selector' => true/false, 'old' => true/false, 'items' => ['object' => object, 'name' => name, 'oldName' => oldName]]
@@ -764,7 +685,12 @@ class DbMigrationPage extends DummyMigrationPage {
 			//bd($itemArray['name'], 'Selector provided instead of path/name');
 			// we have a selector
 			try {
-				$objects = $this->wire($type)->find($itemArray['name']); // $itemArray['name'] is a selector
+				if($type == 'pages') {
+					$objects = $this->wire($type)->find($itemArray['name']. ", include=all"); // $itemArray['name'] is a selector
+				} else {
+					$objects = $this->wire($type)->find($itemArray['name']);
+				}
+
 				// for pages, sort by path if required
 				//bd($itemArray['name'], 'Name for sort path test');
 				$objects = $objects->getArray(); // convert to plain array
@@ -935,44 +861,37 @@ class DbMigrationPage extends DummyMigrationPage {
 				$contents = [];
 				$contents['url'] = $page->$field->url;
 				$contents['path'] = $page->$field->path;
-			$contents['items'] = [];
-			$contents['custom_fields'] = [];
-			if(get_class($page->$field) == "ProcessWire\Pageimage" or get_class($page->$field) == "ProcessWire\Pagefile") {
-				$items = [$page->$field];  // need it to be an array if only singular image or file
-			} else {
-				$items = $page->$field->getArray();
-			}
-			$files[$page->id] = [];
-			foreach($items as $item) {
-				$itemArray = $item->getArray();
-				// don't want these in item as they won't necessarily match in target system
-				unset($itemArray['modified']);
-				unset($itemArray['created']);
-				unset($itemArray['modified_users_id']);
-				unset($itemArray['created_users_id']);
-				unset($itemArray['formatted']);
-				$contents['items'][] = $itemArray; // sets remaining items - basename, description, tags, filesize
-				// If there are custom fields, capture these separately
-				$imageTemplate = $this->wire()->templates->get('field-' . $name);
-				if($imageTemplate) {
-					$imageTemplateName = $imageTemplate->name;
-					$contents['custom_fields']['template'] = $imageTemplateName;
-					$templateItems = $imageTemplate->fieldgroup;
-					foreach($templateItems as $templateItem) {
-						$templateItemName = $templateItem->name;
-						$contents['custom_fields']['items'][$templateItemName] = $item->$templateItemName;
-					}
-//					$repeaterItems = $this->dbMigrateItem;
-//					$foundTemplateInMigration = $repeaterItems->find("dbMigrateType=2, dbMigrateName=$imageTemplateName");
-//					if($foundTemplateInMigration->count() == 0) {;
-//						$this->wire()->session->warning($this->_("No custom fields template specified in migration for ") . $name .
-//							$this->_("\nIf there are new or changed custom fields for an image or file, be sure to include the template as an item in the migration BEFORE any pages which use the image or file field") .
-//							$this->_("\nThe template will be named ") . $imageTemplateName);
-//					}
+				$contents['items'] = [];
+				$contents['custom_fields'] = [];
+				if(get_class($page->$field) == "ProcessWire\Pageimage" or get_class($page->$field) == "ProcessWire\Pagefile") {
+					$items = [$page->$field];  // need it to be an array if only singular image or file
+				} else {
+					$items = $page->$field->getArray();
 				}
-				//
-				if($field->type == 'FieldtypeImage') {
-					$files[$page->id] = array_merge($files[$page->id], $item->getVariations(['info' => true, 'verbose' => false]));
+				$files[$page->id] = [];
+				foreach($items as $item) {
+					$itemArray = $item->getArray();
+					// don't want these in item as they won't necessarily match in target system
+					unset($itemArray['modified']);
+					unset($itemArray['created']);
+					unset($itemArray['modified_users_id']);
+					unset($itemArray['created_users_id']);
+					unset($itemArray['formatted']);
+					// If there are custom fields, capture these separately
+					$imageTemplate = $this->wire()->templates->get('field-' . $name);
+					if($imageTemplate) {
+						$imageTemplateName = $imageTemplate->name;
+						$itemArray['custom_fields']['template'] = $imageTemplateName;
+						$templateItems = $imageTemplate->fieldgroup;
+						foreach($templateItems as $templateItem) {
+							$templateItemName = $templateItem->name;
+							$itemArray['custom_fields']['items'][$templateItemName] = $item->$templateItemName;
+						}
+					}
+					$contents['items'][] = $itemArray; // sets unremoved items - basename, description, tags, filesize, as well as any custom fields
+					//
+					if($field->type == 'FieldtypeImage') {
+						$files[$page->id] = array_merge($files[$page->id], $item->getVariations(['info' => true, 'verbose' => false]));
 					}
 					$files[$page->id][] = $itemArray['basename'];
 					//bd($files, 'files for page ' . $page->name);
@@ -1097,14 +1016,28 @@ class DbMigrationPage extends DummyMigrationPage {
 		if(isset($objectData['id'])) unset($objectData['id']);  // Don't want ids as they may be different in different dbs
 		//bd($objectData, 'objectdata');
 		if($item['type'] == 'fields') {
-			// enhance repeater / custom field data
-			if($objectData['type'] == 'FieldtypeRepeater' or $objectData['type'] == 'FieldtypeImage' or $objectData['type'] == 'FieldtypeFile') {
+			// enhance repeater / page ref / custom field data
+			if($objectData['type'] == 'FieldtypeRepeater' or $objectData['type'] == 'FieldtypePage' or $objectData['type'] == 'FieldtypeImage' or $objectData['type'] == 'FieldtypeFile') {
 				$f = $this->wire('fields')->get($objectData['name']);
 				if($f) {
-					if($objectData['type'] == 'FieldtypeRepeater') {
+					if($objectData['type'] == 'FieldtypeRepeater' or $objectData['type'] == 'FieldtypePage') {
 						$templateId = $f->get('template_id');
-						$templateName = $this->wire('templates')->get($templateId)->name;
-						$objectData['template_name'] = $templateName;
+						if($templateId) {
+							$templateName = $this->wire('templates')->get($templateId)->name;
+							$objectData['template_name'] = $templateName;
+						}
+						unset($objectData['template_id']);
+
+						$templateIds = $f->get('template_ids');
+						if($templateIds) {
+							$objectData['template_names'] = [];
+							foreach($templateIds as $templateId) {
+								$templateName = $this->wire('templates')->get($templateId)->name;
+								$objectData['template_names'][] = $templateName;
+							}
+						}
+						unset($objectData['template_ids']);
+
 					} else {
 						$customFields = 'field-' . $objectData['name'];
 						if($this->wire()->templates->get($customFields)) {
@@ -1146,42 +1079,6 @@ class DbMigrationPage extends DummyMigrationPage {
 		$data[$key] = $objectData;
 		//bd($data, 'returning objectdata');
 		return ['data' => $data, 'files' => []];
-	}
-
-	/**
-	 * Cycle through items in a migration and get the data for each
-	 * If $compareType is 'old' then reverse the order and swap 'new' and 'removed' actions
-	 *
-	 * @param $itemRepeater // The migration item
-	 * @param $excludeAttributes
-	 * @param $excludeFields
-	 * @param $newOld // 'new'. 'old', or 'compare'
-	 * @param $compareType // 'new' to create install data; 'old' to create uninstall data
-	 * @return array|array[]
-	 * @throws WireException
-	 * @throws WirePermissionException
-	 *
-	 */
-	protected function cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, $compareType) {
-		$data = [];
-		$count = 0;
-		$item = [];
-		$files = [];
-		if(!$itemRepeater) return ['data' => '', 'files' => ''];
-		if($compareType == 'old') $itemRepeater = $itemRepeater->reverse();
-		foreach($itemRepeater as $repeaterItem) {
-			/* @var $repeaterItem RepeaterDbMigrateItemPage */
-			$item = $this->populateItem($repeaterItem, ($compareType == 'old')); // swap new and removed if compareType is 'old'
-			//bd($item, 'item');
-			$count++;
-			$migrationItem = $this->getMigrationItemData($count, $item, $excludeAttributes, $excludeFields, $newOld, $compareType);
-			$data[] = $migrationItem['data'];
-			//bd($migrationItem['files'], 'migrationItem files');
-			$files = array_merge_recursive($files, $migrationItem['files']);
-			//bd($files, 'files at end of cycleItems');
-		}
-		//bd($data, 'data returned by cycleItems for ' . $newOld);
-		return ['data' => $data, 'files' => $files];
 	}
 
 	/**
@@ -1526,6 +1423,112 @@ class DbMigrationPage extends DummyMigrationPage {
 		return $html;
 	}
 
+	/**************************************************************
+	 ******************* INSTALL SECTION **************************
+	 *************************************************************/
+
+
+	/**
+	 * This installs ('new') or uninstalls ('old') depending on directory with json files
+	 *
+	 * @param $newOld // 'new' to install, 'old' to uninstall
+	 * @throws WireException
+	 * @throws WirePermissionException
+	 *
+	 */
+	public function installMigration($newOld) {
+		if(!$this->ready and $this->name != 'dummy-bootstrap') $this->ready();  // don't call ready() for dummy-bootstrap as it has no template assigned at this point
+		//bd($this, 'In install with newOld = ' . $newOld);
+
+		// Backup the old installation first
+		if($newOld == 'new' and $this->name != 'dummy-bootstrap') $this->exportData('old');
+		/*
+		* NB The bootstrap is excluded from the above. A separate (manually constructed) 'old' file is provided
+		 * for the bootstrap as part of the module and is used when uninstalling the module.
+		*/
+		$name = ($this->name == 'dummy-bootstrap') ? 'bootstrap' : $this->name;
+
+		// Get the migration .json file for this migration
+		$migrationPath = $this->wire('config')->paths->templates . ProcessDbMigrate::MIGRATION_PATH . $name . '/';
+		// NB cannot use $this->migrationsPath because as it fails with dummy-bootstrap (no template yet!)
+
+		$migrationPathNewOld = $migrationPath . $newOld . '/';
+		if(!is_dir($migrationPathNewOld)) {
+			//bd($migrationPath, '$migrationPath. Name is ' . $name);
+			$error = ($newOld == 'new') ? $this->_('Cannot install - ') : $this->_('Cannot uninstall - ');
+			$error .= sprintf($this->_('No "%s" directory for this migration.'), $newOld);
+			$this->wire()->session->error($error);
+			return;
+		}
+		$dataFile = (file_exists($migrationPathNewOld . 'data.json'))
+			? file_get_contents($migrationPathNewOld . 'data.json') : null;
+		if(!$dataFile) {
+			$error = ($newOld == 'new') ? $this->_('Cannot install - ') : $this->_('Cannot uninstall - ');
+			$error .= sprintf($this->_('No "%s" data.json file for this migration.'), $newOld);
+			if($name == 'bootstrap') {
+				$error .= $this->_(' Copy the old/data.json file from the module directory into the templates directory then try again?');
+			}
+			$this->wire()->session->error($error);
+			return;
+		}
+		$dataArray = wireDecodeJSON($dataFile);
+
+		$message = [];
+		$warning = [];
+		$pagesInstalled = [];
+		foreach($dataArray as $repeat) {
+			foreach($repeat as $itemType => $itemLine) {
+				//bd($itemLine, 'itemline');
+				foreach($itemLine as $itemAction => $items) {
+					//bd($items, 'items');
+					if($itemAction != 'removed') {
+						switch($itemType) {
+							// NB code below should handle multiple instances of objects, but we only expect one at a time for fields and templates
+							case 'fields':
+								$this->installFields($items, $itemType);
+								break;
+							case 'templates' :
+								$this->installTemplates($items, $itemType);
+								break;
+							case 'pages' :
+								$pagesInstalled = array_merge($pagesInstalled, $this->installPages($items, $itemType, $newOld));
+								break;
+						}
+					} else {
+						$this->removeItems($items, $itemType);
+					}
+				}
+			}
+		}
+		if($this->name != 'dummy-bootstrap') {
+			// update any images in RTE fields (links may be different owing to different page ids in source and target dbs)
+			$idMapArray = $this->setIdMap($pagesInstalled);
+			//bd($idMapArray, 'idMapArray');
+			foreach($pagesInstalled as $page) {
+				//bd($page, 'RTE? page');
+				foreach($page->getFields() as $field) {
+					//bd([$page, $field], 'RTE? field');
+					if($field->type == 'FieldtypeTextarea') {
+						//bd([$page, $field], 'RTE field Y');
+						//bd($page->$field, 'Initial html');
+						$html = $page->$field;
+						$html = $this->replaceLink($html, $idMapArray, $newOld);
+						//bd($html, 'returned html');
+						$page->$field = $html;
+						$page->of(false);
+						$page->save($field);
+					}
+				}
+			}
+			$this->exportData('compare'); // sets meta('installedStatus')
+			$this->wire()->pages->___save($this, array('noHooks' => true, 'quiet' => true));
+			$this->meta('updated', true);
+		}
+		if($message) $this->wire()->session->message(implode(', ', $message));
+		if($warning) $this->wire()->session->warning(implode(', ', $warning));
+		//bd($newOld, 'finished install');
+	}
+
 	/**
 	 * Install fields in the migration
 	 *
@@ -1536,9 +1539,11 @@ class DbMigrationPage extends DummyMigrationPage {
 	 *
 	 */
 	protected function installFields($items, $itemType) {
+		$this->wire()->session->set('dbMigrate_installFields', true);  // for use by host app. also used in beforeSave hook in ProcessDbMigrate.module
 		$items = $this->pruneKeys($items, $itemType);
 		// repeater fields should be processed last as they may depend on earlier fields
 		$repeaters = [];
+		$pageRefs = [];
 		foreach($items as $name => $data) {
 			// Don't want items which are selectors (these may be present if the selector yielded no items)
 			if(!$this->wire()->sanitizer->validate($name, 'name')) continue;
@@ -1546,20 +1551,58 @@ class DbMigrationPage extends DummyMigrationPage {
 			if($data['type'] == 'FieldtypeRepeater') {
 				unset($items[$name]);
 				$repeaters[$name] = $data;
+			} else if($data['type'] == 'FieldtypePage') {
+				unset($items[$name]);
+				$pageRefs[$name] = $data;
 			}
 		}
-		// process the non-repeaters first
+		/*
+		 * Process the non-repeaters and non-pagerefs first
+		 */
 		// method below is largely from PW core
 		if($items) $this->processImport($items);
+
+		// now the page refs
+		//bd($pageRefs, 'page refs');
+		$newPageRefs = [];
+		foreach($pageRefs as $fName => $fData) {
+			if(isset($fData['template_name'])) {
+				$tName = $fData['template_name'];
+				$t = $this->wire('templates')->get($tName);
+				if($t) {
+					$fData['template_id'] = $t->id;
+				}
+				unset($fData['template_name']);  // it was just a temp variable - no meaning to PW
+			}
+
+			if(isset($fData['template_names'])) {
+				$tNames = $fData['template_names'];
+				if($tNames) {
+					$fData['template_ids'] = [];
+					foreach($tNames as $tName) {
+						$t = $this->wire('templates')->get($tName);
+						if($t) {
+							$fData['template_ids'][] = $t->id;
+						}
+					}
+				}
+				unset($fData['template_names']);  // it was just a temp variable - no meaning to PW
+			}
+
+			$newPageRefs[$fName] = $fData;
+		}
+		//bd($newPageRefs, 'new page refs');
+		if($newPageRefs) $this->processImport($newPageRefs);
+
 		// then check the templates for the repeaters - they should be before the related field in the process list
 		foreach($repeaters as $repeaterName => $repeater) {
 			$templateName = 'repeater_' . $repeater['name'];
 			$t = $this->wire()->templates->get($templateName);
 			if(!$t) {
 				$this->wire()->session->error(sprintf(
-					$this->_('Cannot install repeater %1$s because template %2$s is missing. Is it out of sequence in the installation list?'),
-					$repeaterName,
-					$templateName)
+						$this->_('Cannot install repeater %1$s because template %2$s is missing. Is it out of sequence in the installation list?'),
+						$repeaterName,
+						$templateName)
 				);
 				unset($repeaters[$repeaterName]);
 			}
@@ -1577,6 +1620,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			$newRepeaters[$fName] = $fData;
 		}
 		if($newRepeaters) $this->processImport($newRepeaters);
+		$this->wire()->session->remove('dbMigrate_installFields');
 	}
 
 	/**
@@ -1664,8 +1708,8 @@ class DbMigrationPage extends DummyMigrationPage {
 				$new = false;
 				//MDE added
 				//bd($fieldData, 'data in processImport before resetting');
-				// If field data is not set, remove it from original
 
+				// If field data is not set, remove it from original
 				$oldData = $field->getArray();
 				foreach($oldData as $key => $value) {
 					if(!isset($fieldData[$key]) and $key != 'id') {
@@ -1746,6 +1790,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 *
 	 */
 	protected function installTemplates($items, $itemType) {
+		$this->wire()->session->set('dbMigrate_installTemplates', true);  // for use by host app. also used in beforeSave hook in ProcessDbMigrate.module
 		$items = $this->pruneKeys($items, $itemType);
 		foreach($items as $name => $data) {
 			// Don't want items which are selectors (these may be present if the selector yielded no items)
@@ -1771,6 +1816,7 @@ class DbMigrationPage extends DummyMigrationPage {
 				}
 			}
 		}
+		$this->wire()->session->remove('dbMigrate_installPages');
 	}
 
 	/**
@@ -1980,7 +2026,7 @@ class DbMigrationPage extends DummyMigrationPage {
 						$page->$fieldName->add($pa);
 					} else if($f->type == 'FieldtypePage') {
 						$a = $this->wire(new PageArray());
-						//bd($fieldValue, 'field type page');
+						if(is_string($fieldValue)) $fieldValue = [$fieldValue]; // to deal with singleton pages
 						foreach($fieldValue as $item) {
 							$p = $this->wire()->pages->get($item);
 							if($p) $a->add($p);
@@ -2058,17 +2104,24 @@ class DbMigrationPage extends DummyMigrationPage {
 					// add the pageFile
 					// check that there are no orphan files
 					$this->removeOrphans($page, $item);
-					//bd($migrationFilesPath . $proposedId . '/' . $item['basename'], 'adding file');
-					$page->$f->add($migrationFilesPath . $proposedId . '/' . $item['basename']);
+					$addFile = $migrationFilesPath . $proposedId . '/' . $item['basename'];
+					//bd($addFile, 'adding file');
+					if(file_exists($addFile)) {
+						$page->$f->add($addFile);
+					} else {
+						$this->error(sprintf($this->_('Page %1$s: File %2$s does not exist in source environment'), $page->path, $addFile));
+					}
 					$pageFile = $page->$f->getFile($item['basename']);
 					$page->$f->$pageFile->description = $item['description'];
 					$page->$f->$pageFile->tags = $item['tags'];
 					$page->$f->$pageFile->filesize = $item['filesize'];
 //                    $page->$f->$pageFile->formatted = $item['formatted']; // NB Removed this as ->formatted does not seem to be consistent and may cause spurious mismatches
 					//bd($page->$f->$pageFile, 'Pagefile object');
-				}
-				foreach($fieldValue['custom_fields']['items'] as $customField => $customValue) {
-					$page->$f->$pageFile->$customField = $customValue;
+					if(isset($item['custom_fields'])) {
+						foreach($item['custom_fields']['items'] as $customField => $customValue) {
+							$page->$f->$pageFile->$customField = $customValue;
+						}
+					}
 				}
 				unset($fields[$fieldName]);
 				$page->save($fieldName);
@@ -2392,6 +2445,11 @@ class DbMigrationPage extends DummyMigrationPage {
 		return $newHtml;
 	}
 
+
+	/***********************************************
+	 ************ GENERAL SECTION ******************
+	 **********************************************/
+
 	/**
 	 * Refresh the migration page from migration.json data (applies to installable pages only - i.e. in target database)
 	 * If the page has been (partially) installed, then it will not refresh from changed migration.json because doing so resets the 'old' json to take account of the new scope
@@ -2418,7 +2476,11 @@ class DbMigrationPage extends DummyMigrationPage {
 			}
 		}
 		if(!file_exists($found)) {
-			if($this->meta('installable')) $this->wire()->session->error($this->_('migration.json not found'));
+			if($this->meta('installable')) {
+				$this->wire()->session->error($this->_('migration.json not found'));
+			} else {
+				if($this->meta('installedStatus')) $this->meta()->remove('installedStatus');  // in case exported files removed by user, reset meta
+			}
 			return false;
 		}
 		$fileContents = wireDecodeJSON(file_get_contents($found));
@@ -2645,7 +2707,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		$intersection = [];
 		$intersectionOld = [];
 		//bd($itemNames, ' Names for this');
-		foreach($this->migrations->find("template={$this->migrationTemplate}") as $migration) {
+		foreach($this->migrations->find("template={$this->migrationTemplate}, include=all") as $migration) {
 			/* @var $migration DbMigrationPage */
 			if($migration->id == $this->id) continue;
 			if($migration->meta('locked')) continue;
@@ -2687,6 +2749,48 @@ class DbMigrationPage extends DummyMigrationPage {
 		}
 		return $elements;
 	}
+
+	/**
+	 * Check migration items are valid
+	 *
+	 * @param $itemList
+	 * @return array
+	 * @throws WireException
+	 *
+	 */
+	protected function validateValues($itemList) {
+		$errors = [];
+		//bd($itemList, 'item list in validate');
+		foreach($itemList as $item)
+			if($item['type'] == 'pages') {
+				if(!$this->validPath($item['name']) or ($item['oldName'] and !$this->validPath($item['oldName']))) {
+					$errors[] = $this->_('Invalid path name (or old path name) for ') . $item['type'] . '->' . $item['action'] . '->' . $item['name'];
+				}
+			} else {
+				if(!$this->wire->sanitizer->fieldName($item['name']) or ($item['oldName'] and !$this->wire->sanitizer->fieldName($item['oldName']))) {
+					$errors[] = $this->_('Invalid name (or old name) for ') . $item['type'] . '->' . $item['action'] . '->' . $item['name'];
+				}
+			}
+		return $errors;
+	}
+
+	/**
+	 * Check path is valid
+	 * (standard sanitizer->path does not check for existence of leading and trailing slashes)
+	 *
+	 * @param $path
+	 * @return bool
+	 * @throws WireException
+	 *
+	 */
+	public function validPath($path) {
+		return ($this->wire()->sanitizer->path($path) and strpos($path, '/') == 0 and strpos($path, '/', -1) !== false);
+	}
+
+
+	/***********************************
+	 *********** HOOKS *****************
+	 **********************************/
 
 	/**
 	 * Before save actions:
@@ -2756,41 +2860,28 @@ class DbMigrationPage extends DummyMigrationPage {
 		}
 	}
 
-	/**
-	 * Check migration items are valid
-	 *
-	 * @param $itemList
-	 * @return array
-	 * @throws WireException
-	 *
-	 */
-	protected function validateValues($itemList) {
-		$errors = [];
-		//bd($itemList, 'item list in validate');
-		foreach($itemList as $item)
-			if($item['type'] == 'pages') {
-				if(!$this->validPath($item['name']) or ($item['oldName'] and !$this->validPath($item['oldName']))) {
-					$errors[] = $this->_('Invalid path name (or old path name) for ') . $item['type'] . '->' . $item['action'] . '->' . $item['name'];
-				}
-			} else {
-				if(!$this->wire->sanitizer->fieldName($item['name']) or ($item['oldName'] and !$this->wire->sanitizer->fieldName($item['oldName']))) {
-					$errors[] = $this->_('Invalid name (or old name) for ') . $item['type'] . '->' . $item['action'] . '->' . $item['name'];
-				}
-			}
-		return $errors;
-	}
 
 	/**
-	 * Check path is valid
-	 * (standard sanitizer->path does not check for existence of leading and trailing slashes)
+	 * After saved actions
+	 * Warn of missing elements in migration items
 	 *
-	 * @param $path
-	 * @return bool
+	 * @param HookEvent $event
 	 * @throws WireException
 	 *
 	 */
-	public function validPath($path) {
-		return ($this->wire()->sanitizer->path($path) and strpos($path, '/') == 0 and strpos($path, '/', -1) !== false);
+	public function afterSaved(HookEvent $event) {
+		$p = $event->arguments(0);
+		if(!$p or !$p->id) return;
+		if($this->id != $p->id) return;
+		$k = 0;
+		foreach($this->dbMigrateItem as $item) {
+			/* @var $item RepeaterDbMigrateItemPage */
+			$k++;
+			if(!$item->dbMigrateType or !$item->dbMigrateAction or !$item->dbMigrateName) {
+				$this->wire()->session->warning($this->_('Missing values for item ') . $k);
+				//bd($item, 'missing values in item');
+			}
+		}
 	}
 
 	protected function beforeTrashThis(HookEvent $event) {
@@ -2828,7 +2919,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		if($this->id != $p->id) return;  // only want this method to run on the current instance, not all instances of this class
 		if(!$this->wire()->session->get('trash-drafts')) { // drafts being deleted on creation of new draft - want to stay on page
 			// Find where the setup page is because it might have been moved after installation
-			$admins = wire()->pages->find("template=admin");
+			$admins = wire()->pages->find("template=admin, include=all");
 			$setupPage = null;
 			foreach($admins as $p) {
 				if($p->process == 'ProcessDbMigrate') {

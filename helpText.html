@@ -1,55 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-
-.sidenav {
-	height: 100%;
-	width: 20%;
-  position: fixed;
-  z-index: 1;
-  left: 0;
-  background-color: blue;
-  padding-top: 20px;
-  float: left;
-  overflow-y: scroll;
-  top: 0;
-  bottom: 0;
-}
-
-.sidenav a {
-	padding: 6px 8px 6px 16px;
-  text-decoration: none;
-  color: white;
-  display: block;
-}
-
-.sidenav a:hover {
-	color: #f1f1f1;
-}
-
-.sidenav ul {
-  margin-left: -30px;
-  list-style-type: none;
-}
-
-.main {
-	margin-left: 20%; /* Same as the width of the sidenav */
-  width: 80%;
-  padding: 0px 10px;
-  float: left;
-}
-
-@media screen and (max-height: 450px) {
-	.sidenav {padding-top: 15px;}
-}
-</style>
-</head>
-<body>
-<div class="sidenav">
-	<ul class='uk-nav uk-nav-default'><li><a style='padding-left: 0px' href='#summary'>Summary</a></li><li><a style='padding-left: 0px' href='#background'>Background</a></li><li><a style='padding-left: 0px' href='#concept'>Concept</a></li><li><a style='padding-left: 0px' href='#uses'>Uses</a></li><li><a style='padding-left: 0px' href='#design'>Design</a></li><li><a style='padding-left: 0px' href='#health-warnings'>Health warnings</a></li><li><a style='padding-left: 0px' href='#installation'>Installation</a></li><li><a style='padding-left: 10px' href='#dependencies'>Dependencies</a></li><li><a style='padding-left: 0px' href='#upgrading'>Upgrading</a></li><li><a style='padding-left: 0px' href='#uninstalling'>Uninstalling</a></li><li><a style='padding-left: 0px' href='#overview'>Overview</a></li><li><a style='padding-left: 0px' href='#using-the-module'>Using the module</a></li><li><a style='padding-left: 10px' href='#documenting-the-migration'>Documenting the migration</a></li><li><a style='padding-left: 10px' href='#populating-the-migration-page'>Populating the migration page</a></li><li><a style='padding-left: 20px' href='#snippets'>Snippets</a></li><li><a style='padding-left: 10px' href='#exporting-the-migration'>Exporting the migration</a></li><li><a style='padding-left: 10px' href='#installing-the-migration'>Installing the migration</a></li><li><a style='padding-left: 10px' href='#database-comparisons'>Database comparisons</a></li><li><a style='padding-left: 20px' href='#creating-a-migration-from-a-comparison'>Creating a migration from a comparison</a></li><li><a style='padding-left: 10px' href='#hooks'>Hooks</a></li><li><a style='padding-left: 20px' href='#available-hooks'>Available hooks</a></li><li><a style='padding-left: 20px' href='#placement'>Placement</a></li><li><a style='padding-left: 20px' href='#usage'>Usage</a></li><li><a style='padding-left: 0px' href='#troubleshooting-technical-notes'>Troubleshooting / Technical notes</a></li><li><a style='padding-left: 10px' href='#guide-to-the-files'>Guide to the files</a></li><li><a style='padding-left: 10px' href='#issues-with-page-migrations'>Issues with page migrations</a></li><li><a style='padding-left: 10px' href='#partial-unsuccessful-migrations'>Partial / Unsuccessful migrations</a></li><li><a style='padding-left: 10px' href='#field-types'>Field types</a></li><li><a style='padding-left: 10px' href='#subsequent-installations'>Subsequent installations</a></li><li><a style='padding-left: 10px' href='#rescue-mode'>Rescue mode</a></li><li><a style='padding-left: 10px' href='#template-field-flags'>Template/field flags</a></li></ul></div>
-<div class="main" edit="dbMigrateAdditionalDetails">
 <h1>DB Migrations module - "ProcessDbMigrate"</h1>
 
 <a name='summary'  href='#'></a><h2>Summary</h2>
@@ -507,7 +455,4 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 <pre>
 $t-&gt;flags = Template::flagSystemOverride;
 $t-&gt;flags = 0;
-$t-&gt;save();</pre></div>
-
-</body>
-</html>
+$t-&gt;save();</pre>
