@@ -1814,8 +1814,9 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function createPage($page_title, $template_name) {
 		$page_name = $this->sanitizer->pageName($page_title, true);
 		$parent = $this->parent . $this->name . '/';
-		$p = $this->pages->get("parent=$parent, name=$page_name")->id;
-		if(!$p) {
+		$p = $this->pages->get("parent=$parent, name=$page_name");
+		$pid = $p->id;
+		if(!$p or !$pid) {
 			$p = new Page();
 			$p->template = $template_name;
 			$p->parent = $parent;
