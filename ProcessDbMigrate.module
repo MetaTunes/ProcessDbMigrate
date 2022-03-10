@@ -24,6 +24,7 @@
  * ===============================
  * @property string $help The help md
  * @property string $database_name User-assigned name of the current database
+ * @property string $suppress_hooks Suppress hook-related functionality (efectively disable module to speed site)
  * @property boolean $show_name Show database name as message on all admin
  * @property string $exclude_fieldtypes Field types to always exclude from migrations
  * @property string $exclude_fieldnames Field names to always exclude from migrations
@@ -79,7 +80,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			'summary' => 'Manage migrations via the PW GUI',
 			'comments' => 'Document and manage migrations. Allow roll-back and database comparisons.',
 			'author' => 'Mark Evens',
-			'version' => "0.1.3", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly
+			'version' => "0.1.4", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly
 			'autoload' => true,
 			'singular' => true,
 			'page' => array(            //install/uninstall a page for this process automatically
@@ -239,9 +240,10 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	public function ready() {
+		if($this->suppress_hooks) return; // Skip all the hooks to speed up the site (set in config). Functionality is lost but is not required unless migrations are required.
 		$this->addHookBefore("Pages::save()", $this, 'beforeSave');
 		$this->addHookAfter("Pages::save()", $this, 'afterSave');
-		$this->addHookBefore("Inputfield::exportConfigData()", $this, 'beforeExportConfigData');
+		$this->addHookAfter("Fieldtype::exportConfigData()", $this, 'afterExportConfigData');
 		$this->addHookBefore('ProcessPageEdit::execute', $this, 'beforePageEditExecute');
 		$this->addHookAfter('ProcessPageEdit::buildFormContent', $this, 'afterBuildFormContent');
 		$this->addHookAfter('ProcessTemplate::buildEditForm', $this, 'afterTemplateBuildEditForm');
@@ -264,6 +266,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 
 		// Load .js file and pass variables
 		$this->wire()->config->scripts->add($this->wire()->urls->siteModules . 'ProcessDbMigrate/ProcessDbMigrate.js');
+		$this->wire()->config->styles->add($this->wire()->urls->siteModules . 'ProcessDbMigrate/ProcessDbMigrate.css');
 		$this->wire->config->js('ProcessDbMigrate', [
 			'confirmDelete' => $this->_('Please confirm that this migration is not used in any other database before deleting it.
 If it has been used in another environment and is no longer wanted then you will need to remove any orphan json files there manually.')
@@ -278,7 +281,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$bootstrap = $this->wire()->pages->get("template=$temp, name=bootstrap");
 			/* @var $bootstrap DbMigrationPage */
 			if($bootstrap and $bootstrap->id and $bootstrap->meta('installable')
-				and (!$bootstrap->meta('installedStatus')['installed'] or $this->session->get('upgraded'))) {
+				and (!isset($bootstrap->meta('installedStatus')['installed']) or !$bootstrap->meta('installedStatus')['installed'] or $this->session->get('upgraded'))) {
 				try {
 					$bootstrap->refresh();
 				} catch(WirePermissionException $e) {
@@ -478,6 +481,16 @@ If it has been used in another environment and is no longer wanted then you will
 		// uninstall if there is a valid 'old' directory
 		if(!$abort) {
 			$this->bootstrap->ready();  // Need the properties to be loaded for the uninstall, but ready() is not called before uninstall()
+			// remove the help page etc
+			$helpPages = $this->pages()->find("template=DbMigrateHelp");
+			foreach($helpPages as $helpPage) {
+				$helpPage->delete(true);
+			}
+			$helpTemplate = $this->templates()->get('DbMigrateHelp');
+			$fieldgroup = $helpTemplate->fieldgroup;
+			$this->wire('templates')->delete($helpTemplate);
+			$this->wire('fieldgroups')->delete($fieldgroup);
+			// Uninstall all the bootstrap items
 			try {
 				//bd('uninstalling bootstrap');
 				$this->bootstrap->installMigration('old');
@@ -509,6 +522,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 *
 	 */
 	public function ___execute() {
+		if($this->suppress_hooks) $this->wire()->error("Hook suppression is on - migrations will not work correctly - unset in the module settings.");
 		$pageEdit = $this->wire('urls')->admin . 'page/edit/?id=';
 		$form = $this->modules->get("InputfieldForm");
 		$prepend = self::helpPopout('Help') . '<ul class="WireTabs uk-tab" uk-switcher>' .
@@ -624,7 +638,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$btnAddNew = $this->createNewButton($this->comparisonTemplate, $this->comparisons); //createNewButton also allows title and values to be set, but not used here
 		$out .= $btnAddNew->render();
 		$btn = $this->wire('modules')->get("InputfieldButton");
-		$btn->attr('href', $this->parent . $this->name . '/get-comparisons/');
+		$btn->attr('href', $this->parentHttpUrl . $this->name . "/get-comparisons/");
 		$btn->attr('id', "get_comparisons");
 		$btn->attr('value', "Refresh comparisons");
 		$btn->showInHeader();
@@ -1418,6 +1432,7 @@ If it has been used in another environment and is no longer wanted then you will
 		/** @var InputfieldWrapper $tabs_container */
 		$tabs_container = $this->wire(new InputfieldWrapper());
 		// All newly-created objects that are derived from Wire SHOULD have their dependencies injected. In order to do this, pass the new object through the wire() method.
+
 		$tabs_container->id = 'mct-tabs-container';
 		$inputfields->add($tabs_container);
 
@@ -1428,6 +1443,18 @@ If it has been used in another environment and is no longer wanted then you will
 		$tab1->attr('class', 'WireTab');
 		$tab1->columnWidth = 100;
 		$tabs_container->add($tab1);
+
+		/* @var InputfieldCheckbox $f */
+		$f = $modules->InputfieldCheckbox;
+		$f_name = 'suppress_hooks';
+		$f->name = $f_name;
+		$f->label = $this->_('Suppress hooks');
+		$f->description = $this->_('Suppress hooks and messages');
+		$f->notes = $this->_('This will disable some of the DbMigrate functionality, but will speed up the site when migrations are not needed.');
+		$f->columnWidth = 100;
+		$f->value = $this->$f_name;
+		$f->checked = ($f->value == 1) ? 'checked' : '';
+		$tab1->add($f);
 
 		/* @var InputfieldText $f */
 		$f = $modules->InputfieldText;
@@ -1547,8 +1574,8 @@ If it has been used in another environment and is no longer wanted then you will
 		/*
 		 * This hook only operates on pages saved outside the installPages method
 		 */
-		if($this->prevent_overlap) { //config setting
-			if(!$this->wire()->session->get('dbMigrate_installPages') and !$this->wire()->session->get('dbMigrate_removeItems')) {
+		if($this->prevent_overlap) { // module config setting
+			if(!$this->wire()->session->get('dbMigrate_installPages') and !$this->wire()->session->get('dbMigrate_removeItems')) { // allow saves as part of the migration installation process!
 				$p = $event->arguments(0);
 				$conflict = $this->preventConflict($p, 'save', 'page');
 				if($conflict) {
@@ -1571,11 +1598,18 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function afterSave(HookEvent $event) {
 		$p = $event->arguments(0);
 		if($p->template == 'DbMigrateHelp') {
-			$p->export = true;  // set temp field so that render processing is correct for exported version of page
+			//bd($p, 'after save hook');
+			$origText = $p->dbMigrateAdditionalDetails;
+			$p->export = true;  // set temp field so that render processing is correct for exported version of page (used in the template file DbMigrateHelp.php)
 			$html = $p->render();
+			//bd($html, 'html');
 			file_put_contents($this->modulePath . 'help.html', $html);
 			$text = $p->dbMigrateAdditionalDetails;
 			file_put_contents($this->modulePath . 'helpText.html', $text);
+			//bd($origText, 'origtext');
+			$p->dbMigrateAdditionalDetails = $origText;
+			//bd($p->dbMigrateAdditionalDetails, '$p->dbMigrateAdditionalDetails');
+			$p->export = false;
 		}
 	}
 
@@ -1596,7 +1630,7 @@ If it has been used in another environment and is no longer wanted then you will
 		if($this->prevent_overlap) { //config setting
 			if(!$this->wire()->session->get('dbMigrate_installTemplates') and !$this->wire()->session->get('dbMigrate_removeItems')) {
 				$t = $event->arguments(0);
-				bd($t, 't');
+				//bd($t, 't');
 				$conflict = $this->preventConflict($t, 'save', 'template');
 				if($conflict) {
 					$this->error($conflict);
@@ -1743,18 +1777,30 @@ If it has been used in another environment and is no longer wanted then you will
 	}
 
 	/**
-	 * Inputfield::exportConfigData causes problems with page reference fields, so bypass it
-	 * ToDo Need a better solution for this
+	 * Field::exportData has a bug in the following two lines
+	 *
+	 * $typeData = $this->type->exportConfigData($this, $data);
+	 * $data = array_merge($data, $typeData);
+	 *
+	 * This code causes the $typedata from the default config settings to over-ride the actual field data
+	 * The 2nd line should be $data = array_merge($typeData, $data);
+	 *
+	 * The following hook (before Fieldtype::exportConfigData) is designed to fix this by merging the data the correct way
+	 *   before passing it back to Field::exportData
+	 *
+	 * ToDo A fix for the core code would be better!
 	 *
 	 * @param HookEvent $event
 	 *
+	 * @throws WireException
 	 */
-	public function beforeExportConfigData(HookEvent $event) {
-		if($this->wire()->session->get('skipExportConfigData')) {   // session var is set in DbMigrationPage::getExportStructureData()
-			$data = $event->arguments(0);
-			$event->replace = true;
-			$event->return = $data;
-		}
+	public function afterExportConfigData(HookEvent $event) {
+//		if($this->wire()->session->get('fixExportConfigData')) {   // session var is set in DbMigrationPage::getExportStructureData()
+			$data = $event->arguments(0)->data;
+			$value = $event->return;
+			$newData = array_merge($value, $data);
+			$event->return = $newData;
+//		}
 	}
 
 /*
@@ -1825,7 +1871,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$this->message("Created page '$page_name'.");
 		}
 		// Help text is updated from module file even if page exists (e.g. for update)
-		if(file_exists($this->modulePath . 'helpText.html')) {
+		if($template_name == 'DbMigrateHelp' && file_exists($this->modulePath . 'helpText.html')) {
 			$p->dbMigrateAdditionalDetails = file_get_contents($this->modulePath . 'helpText.html');
 		}
 		$p->of(false);

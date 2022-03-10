@@ -81,6 +81,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		$this->set('migrationTemplate', wire('templates')->get(ProcessDbMigrate::MIGRATION_TEMPLATE));
 		$this->set('migrationsPath', wire('config')->paths->templates . ProcessDbMigrate::MIGRATION_PATH);
 		$this->set('configData', wire('modules')->getConfig('ProcessDbMigrate'));
+		if($this->configData['suppress_hooks']) $this->wire()->error("Hook suppression is on - migrations will not work correctly - unset in the module settings.");
 		// Fix for PW versions < 3.0.152, but left in place regardless of version, in case custom page classes are not enabled
 		if($this->migrationTemplate->pageClass != __CLASS__) {
 			$this->migrationTemplate->pageClass = __CLASS__;
@@ -906,6 +907,7 @@ class DbMigrationPage extends DummyMigrationPage {
 				$attrib[$name] = $page->$field->id;
 				break;
 			case 'FieldtypeRepeater' :
+			case 'FieldtypeRepeaterMatrix' :
 				$contents = [];
 				foreach($page->$field as $item) {
 					//bd($item, 'repeater item');
@@ -1009,18 +1011,18 @@ class DbMigrationPage extends DummyMigrationPage {
 //                throw new WireException('missing object' . $item['name']); // for debugging
 			return ['data' => [], 'files' => []];
 		}
-		$this->wire()->session->set('skipExportConfigData', true);  // setting this allows hook ProcessDbMigrate::beforeExportConfigData() to run and skip Inputfield::exportConfigData() which causes problems
-		$objectData = $object->getExportData();
-		$this->wire()->session->remove('skipExportConfigData');
+		//$this->wire()->session->set('fixExportConfigData', true);  // setting this allows hook ProcessDbMigrate::afterExportConfigData() to run and fix Fieldtype::exportConfigData() which causes problems
+		$objectData = $object->getExportData();  // session var no longer used as fix should apply throughout
+		//$this->wire()->session->remove('fixExportConfigData');
 
 		if(isset($objectData['id'])) unset($objectData['id']);  // Don't want ids as they may be different in different dbs
 		//bd($objectData, 'objectdata');
 		if($item['type'] == 'fields') {
 			// enhance repeater / page ref / custom field data
-			if($objectData['type'] == 'FieldtypeRepeater' or $objectData['type'] == 'FieldtypePage' or $objectData['type'] == 'FieldtypeImage' or $objectData['type'] == 'FieldtypeFile') {
+			if(in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypePage', 'FieldtypeImage', 'FieldtypeFile'])) {
 				$f = $this->wire('fields')->get($objectData['name']);
 				if($f) {
-					if($objectData['type'] == 'FieldtypeRepeater' or $objectData['type'] == 'FieldtypePage') {
+					if(in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypePage'])) {
 						$templateId = $f->get('template_id');
 						if($templateId) {
 							$templateName = $this->wire('templates')->get($templateId)->name;
@@ -1491,6 +1493,7 @@ class DbMigrationPage extends DummyMigrationPage {
 								$this->installTemplates($items, $itemType);
 								break;
 							case 'pages' :
+								//bd($items, 'items for install');
 								$pagesInstalled = array_merge($pagesInstalled, $this->installPages($items, $itemType, $newOld));
 								break;
 						}
@@ -1962,6 +1965,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			if($origId) $p->meta('origId', $origId); // Save the id of the originating page for matching purposes
 			$p->of(false);
 			$p->save();
+			//bd($p, 'saved page at end of install');
 			$pagesInstalled[] = $p;
 		}
 		$this->wire()->session->remove('dbMigrate_installPages');
@@ -1981,7 +1985,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		$repeaters = [];
 		foreach($values as $fieldName => $data) {
 			$f = $this->wire('fields')->get($fieldName);
-			if($f and $f->type == 'FieldtypeRepeater') {
+			if($f and ($f->type == 'FieldtypeRepeater' || $f->type == 'FieldtypeRepeaterMatrix')) {
 				$repeaterItems = [];
 				unset($values[$fieldName]);
 				foreach($data as $datum) {
@@ -2012,7 +2016,9 @@ class DbMigrationPage extends DummyMigrationPage {
 			if($fieldValue !== false) {
 				$f = $this->wire()->fields->get($fieldName);
 				if($f) {
-					if($f->type == 'FieldtypeStreetAddress' or $f->type == 'FieldtypeSeoMaestro') {
+					//bd(['page' => $page->name, 'field' => $f->name, 'field value' => $page->$f, 'field type' => gettype($page->$f)], 'field type in setAndSaveComplex');
+					// object-types
+					if($f->type == 'FieldtypeStreetAddress' or $f->type == 'FieldtypeSeoMaestro' or $f->type == 'FieldtypeMeasurement') {
 						$page->of(false);
 						foreach($fieldValue as $name => $value) {
 							$page->$fieldName->$name = $value;

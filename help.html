@@ -49,10 +49,13 @@
 <body>
 <div class="sidenav">
 	<ul class='uk-nav uk-nav-default'><li><a style='padding-left: 0px' href='#summary'>Summary</a></li><li><a style='padding-left: 0px' href='#background'>Background</a></li><li><a style='padding-left: 0px' href='#concept'>Concept</a></li><li><a style='padding-left: 0px' href='#uses'>Uses</a></li><li><a style='padding-left: 0px' href='#design'>Design</a></li><li><a style='padding-left: 0px' href='#health-warnings'>Health warnings</a></li><li><a style='padding-left: 0px' href='#installation'>Installation</a></li><li><a style='padding-left: 10px' href='#dependencies'>Dependencies</a></li><li><a style='padding-left: 0px' href='#upgrading'>Upgrading</a></li><li><a style='padding-left: 0px' href='#uninstalling'>Uninstalling</a></li><li><a style='padding-left: 0px' href='#overview'>Overview</a></li><li><a style='padding-left: 0px' href='#using-the-module'>Using the module</a></li><li><a style='padding-left: 10px' href='#documenting-the-migration'>Documenting the migration</a></li><li><a style='padding-left: 10px' href='#populating-the-migration-page'>Populating the migration page</a></li><li><a style='padding-left: 20px' href='#snippets'>Snippets</a></li><li><a style='padding-left: 10px' href='#exporting-the-migration'>Exporting the migration</a></li><li><a style='padding-left: 10px' href='#installing-the-migration'>Installing the migration</a></li><li><a style='padding-left: 10px' href='#database-comparisons'>Database comparisons</a></li><li><a style='padding-left: 20px' href='#creating-a-migration-from-a-comparison'>Creating a migration from a comparison</a></li><li><a style='padding-left: 10px' href='#hooks'>Hooks</a></li><li><a style='padding-left: 20px' href='#available-hooks'>Available hooks</a></li><li><a style='padding-left: 20px' href='#placement'>Placement</a></li><li><a style='padding-left: 20px' href='#usage'>Usage</a></li><li><a style='padding-left: 0px' href='#troubleshooting-technical-notes'>Troubleshooting / Technical notes</a></li><li><a style='padding-left: 10px' href='#guide-to-the-files'>Guide to the files</a></li><li><a style='padding-left: 10px' href='#issues-with-page-migrations'>Issues with page migrations</a></li><li><a style='padding-left: 10px' href='#partial-unsuccessful-migrations'>Partial / Unsuccessful migrations</a></li><li><a style='padding-left: 10px' href='#field-types'>Field types</a></li><li><a style='padding-left: 10px' href='#subsequent-installations'>Subsequent installations</a></li><li><a style='padding-left: 10px' href='#rescue-mode'>Rescue mode</a></li><li><a style='padding-left: 10px' href='#template-field-flags'>Template/field flags</a></li></ul></div>
-<div class="main" edit="dbMigrateAdditionalDetails">
-<h1>DB Migrations module - "ProcessDbMigrate"</h1>
+<div class="main">
+    <div edit="measurement">
+		<h2>Measure test</h2>-1.25g/L sugar    </div>
+    <div edit="dbMigrateAdditionalDetails">
+		<h1>DB Migrations module - "ProcessDbMigrate"</h1>
 
-<a name='summary'  href='#'></a><h2>Summary</h2>
+<h2><a href="#" name="summary">Summary</a></h2>
 
 <p>This is a ProcessWire module to enable database changes in a development environment to be migrated to a test or live environment, without the need for any coding, and for all such migrations to be fully documented and capable of reversal.</p>
 
@@ -66,7 +69,7 @@
 	<li>Install the migration in your target environment</li>
 </ul>
 
-<a name='background'  href='#'></a><h2>Background</h2>
+<h2><a href="#" name="background">Background</a></h2>
 
 <p>ProcessWire is an outstanding content management system/framework owing to its flexibility, ease of use and extensive API. However, it suffers from a common problem in database-oriented CMSs in that business logic may be explicitly or implicitly stored in the database rather than in code. This is particularly the case where it is used for a full-blooded app rather than just a simple CMS for a website. This is a shame because it is such a brilliant app-building tool.</p>
 
@@ -74,7 +77,7 @@
 
 <p>The ProcessDbMigrate module is designed to make updating the test and/or live system as quick and error-free as possible.</p>
 
-<a name='concept'  href='#'></a><h2>Concept</h2>
+<h2><a href="#" name="concept">Concept</a></h2>
 
 <p>Purely code-based migration approaches effectively eschew the use of PW’s GUI development environment. This is technically perfectly sensible but restricts usage to those who are happy not to use the GUI. PW is a great tool for enabling less experienced developers to build great apps. This module is aimed at that group, who wish to use the PW GUI but still be able to do controlled and accurate migrations.</p>
 
@@ -89,7 +92,7 @@
 	<li>To provide a database comparison tool which can (if wished) be used to create a draft migration for the differences between the databases.</li>
 </ol>
 
-<a name='uses'  href='#'></a><h2>Uses</h2>
+<h2><a href="#" name="uses">Uses</a></h2>
 
 <p>The module has quite a wide range of applications. The original intention was just to handle the first of the examples below, but it has actually proved more useful than intended!</p>
 
@@ -102,7 +105,7 @@
 	<li>Creation of a ‘blank canvas’ database from an existing working version. In other words, migrate the structure and all the necessary settings pages to a clean database.</li>
 </ol>
 
-<a name='design'  href='#'></a><h2>Design</h2>
+<h2><a href="#" name="design">Design</a></h2>
 
 <p>The module has the following principal components all within the ProcessDbMigrate folder:</p>
 
@@ -128,13 +131,13 @@
 
 <p>Migration items may be either fields, templates or pages.</p>
 
-<a name='health-warnings'  href='#'></a><h2>Health warnings</h2>
+<h2><a href="#" name="health-warnings">Health warnings</a></h2>
 
 <p>This module alters files and database elements. It is intended for superuser use only. <strong>Always take a backup before installing, updating or uninstalling it. Also take a backup before installing or uninstalling any migration.</strong></p>
 
 <p><strong>Use at your own risk and test before implementing on the live system. Always have the same version of the module in source and target databases.</strong></p>
 
-<a name='installation'  href='#'></a><h2>Installation</h2>
+<h2><a href="#" name="installation">Installation</a></h2>
 
 <p>Initially install the module in your dev (source) environment.</p>
 
@@ -164,21 +167,21 @@
 	</li>
 </ol>
 
-<a name='dependencies'  href='#'></a><h3>Dependencies</h3>
+<h3><a href="#" name="dependencies">Dependencies</a></h3>
 
 <p>Note that this module has only been tested on ProcessWire&gt;=3.0.148. A minimum of 3.0.165 is recommended.</p>
 
-<a name='upgrading'  href='#'></a><h2>Upgrading</h2>
+<h2><a href="#" name="upgrading">Upgrading</a></h2>
 
 <p>Place the code in the modules directory, replacing the existing files, then refresh modules in the database. Check whether the bootstrap is still showing as ‘installed’. It should have been installed automatically; if not, then install it.</p>
 
 <p>If you are upgrading from a version earlier than 0.1.0, then the RuntimeOnly module will no longer be required for this module so, unless you use it elsewhere, you can uninstall it after the upgrade.</p>
 
-<a name='uninstalling'  href='#'></a><h2>Uninstalling</h2>
+<h2><a href="#" name="uninstalling">Uninstalling</a></h2>
 
 <p>Before uninstalling the module, all migration pages (other than the bootstrap) must be removed manually. Then, uninstalling the module uninstalls the bootstrap migration automatically; if that fails then the error will be reported, so that it can be fixed manually, before attempting to uninstall again.</p>
 
-<a name='overview'  href='#'></a><h2>Overview</h2>
+<h2><a href="#" name="overview">Overview</a></h2>
 
 <p>The pic below illustrates the DB Migrations page in the 'source' environment.</p>
 
@@ -200,15 +203,15 @@
 
 <p><strong>Note</strong> : If you can't remember whether you are working in a source or target environment (important! - you don't want to make developments in a test environment and then lose them!), make sure all databases have names in the module config and select “Show database name in notice”.</p>
 
-<a name='using-the-module'  href='#'></a><h2>Using the module</h2>
+<h2><a href="#" name="using-the-module">Using the module</a></h2>
 
-<a name='documenting-the-migration'  href='#'></a><h3>Documenting the migration</h3>
+<h3><a href="#" name="documenting-the-migration">Documenting the migration</a></h3>
 
 <p>When carrying out development work, keep a note of what fields, templates and pages you have added, changed or removed. The module does not track this for you – it is a declarative approach, not a macro recorder. Also, it does not handle other components such as Hanna codes and Formbuilder forms. These come equipped with their own export/import functions, so use those (see "Snippets").</p>
 
 <p>The best way to document the changes is to create and update a migration page as you go along, rather than keep a separate note of changed components. The migration page also allows you to document the migration using a rich text box, and it is recommended that you use this to add notes about the migration, including any pre- or post-migration checks and procedures to be carried out. (You may carry out some procedures automatically – see the section on hooks).</p>
 
-<a name='populating-the-migration-page'  href='#'></a><h3>Populating the migration page</h3>
+<h3><a href="#" name="populating-the-migration-page">Populating the migration page</a></h3>
 
 <p>See example below:</p>
 
@@ -249,7 +252,7 @@
 
 <p>When saving a migration page in the source database, the system will warn you if the current migration scope overlaps with other exportable migrations. <strong>Do not proceed to install such overlapping migrations</strong>. They will interfere with each other, even if they are not making conflicting changes – once one has been installed, installing the other will create an ‘old’ json file that reflects changes made by the first, so (for example) attempting to uninstall this second installation will appear not to be successful as it will not be able uninstall the changes made by the first. If two migrations necessarily overlap, then the correct process is to install the first one and lock it before installing the second migration. Locking a migration is carried out in the source database. This creates a lockfile in the migration's directory which needs to be sync’d to the target environment to lock the migration there.</p>
 
-<a name='snippets'  href='#'></a><h4>Snippets</h4>
+<h4><a href="#" name="snippets">Snippets</a></h4>
 
 <p>On the migration page, you can add any number of "snippets". These snippets do not do anything, but can be a convenient place to store (for example) Hanna code exports for pasting into the target environment and they help to make the page a comprehensive record of the migration.</p>
 
@@ -257,13 +260,13 @@
 
 <p>Alternatively, if you want code to run automatically, you can use hooks – see the separate section on this.</p>
 
-<a name='exporting-the-migration'  href='#'></a><h3>Exporting the migration</h3>
+<h3><a href="#" name="exporting-the-migration">Exporting the migration</a></h3>
 
 <p>When ready to test (or migrate to live), click the "Export Data" button on the migration page. Some informative messages should result. Your codebase will now contain the json files in site/templates/DbMigrate/migration/{your migration page name} – you can inspect them if you wish in your IDE.</p>
 
 <p>Sync the code files with your test/live environment (or restore the test database to your dev environment, <em>making sure you back up the dev database first</em>). In the test/live database, install the module as described above, if necessary, and go to the Database Migration admin page. You should see your new migration listed.</p>
 
-<a name='installing-the-migration'  href='#'></a><h3>Installing the migration</h3>
+<h3><a href="#" name="installing-the-migration">Installing the migration</a></h3>
 
 <p>Go to the migration page. Before installing, you can use the "preview" button to see what changes will be implemented. If you are happy, click "Install". This should result in various messages and maybe some errors, if the migration was not able to complete fully (see section below for how to deal with partial migrations). See example of the migration page in 'installation' mode below:</p>
 
@@ -284,7 +287,7 @@
 
 <p>NB When re-installing migrations, if the migration definition has changed, the system will require you to uninstall first - otherwise the “old” data.json will not properly reflect the new scope, affecting any future uninstallation. In these circumstances, a backup copy of the “old” directory is created in the archive directory.</p>
 
-<a name='database-comparisons'  href='#'></a><h3>Database comparisons</h3>
+<h3><a href="#" name="database-comparisons">Database comparisons</a></h3>
 
 <p>Comparisons work in a similar way to migrations. First, make sure you are in the database which you wish to be the ‘source’ of the comparison (usually the development database – this will be assumed for the rest of this narrative). Also, make sure that your database is named (on the module settings page).</p>
 
@@ -299,7 +302,7 @@
 	<li>click ‘Create a Draft Migration For This Comparison’ to do exactly that (see below).</li>
 </ul>
 
-<a name='creating-a-migration-from-a-comparison'  href='#'></a><h4>Creating a migration from a comparison</h4>
+<h4><a href="#" name="creating-a-migration-from-a-comparison">Creating a migration from a comparison</a></h4>
 
 <p>This process is only semi-automated. The system will work out the scope of the required migration (i.e. what fields, templates and pages require adding/changing/removing) but will not identify any dependencies, so the sequence of migration items might be wrong. Also, it will not identify any name changes – if names are different then this will result in a ‘new’ and a ‘removed’ item.</p>
 
@@ -316,9 +319,9 @@
 
 <p><em>Subsequent migrations</em>: Up until the point when migration created from a comparison has a /new/data.json file exported from the source system, it is considered to be ‘draft’ (signified by a meta(‘draft’) element). While in this draft state, it is replaced by any new draft migration created from the same comparison. After it is no longer draft, creating a draft migration from a comparison will result in a new draft migration, leaving the original in place. In this way, a comparison page can be left in place and used to create multiple migrations over time (provided, of course, that any new changes to the data are exported from the comparison page in the source database and sync’d to the target).</p>
 
-<a name='hooks'  href='#'></a><h3>Hooks</h3>
+<h3><a href="#" name="hooks">Hooks</a></h3>
 
-<a name='available-hooks'  href='#'></a><h4>Available hooks</h4>
+<h4><a href="#" name="available-hooks">Available hooks</a></h4>
 
 <p>Many of the ProcessDbMigrate methods are hookable:</p>
 
@@ -335,7 +338,7 @@
 	<li>___previewDiffs($migrationPage, $comparisonType) – previews migration changes where $comparisonType is one of: export, install, uninstall, review</li>
 </ul>
 
-<a name='placement'  href='#'></a><h4>Placement</h4>
+<h4><a href="#" name="placement">Placement</a></h4>
 
 <p>You can place your hooks in site/ready.php. In this case you will need to check the name of the migration page before running – e.g.</p>
 
@@ -359,7 +362,7 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 
 <p>and you can use $this to reference the migration page. This approach keeps all your migration-related data &amp; code together and you only have to sync the migration folder. It also means that your migration-specific ready.php code will be displayed at the bottom of the migration page. Also, if you ‘remove migration files’ it will remove your custom code as well (usually you will only be doing this as preparation to delete the migration, so that is what you want). With the first approach, your hook will remain in site/ready.php.</p>
 
-<a name='usage'  href='#'></a><h4>Usage</h4>
+<h4><a href="#" name="usage">Usage</a></h4>
 
 <p>Of the available hooks, installMigration and uninstallMigration are likely to be the most useful. For example, a hook after ProcessDbMigrate::installMigration could be used to carry out database-wide changes following the amendment of the structure. Using the example given under ‘Snippets’ earlier, say you have changed an address field to split out the post code into a separate field. The migration definition will specify the new field and the changed template. The hook could then include the code to extract postcodes and place them in the new field. You could place code to undo this as a hook before ProcessDbMigrate::uninstallMigration, so that executing the uninstall exactly reverses the install.</p>
 
@@ -398,9 +401,9 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 
 <p>Use the Tracy console - <em>d($page-&gt;meta('installedStatus'));</em> - to inspect the installed status for any migration page. Call the method exportData() - <em>$page-&gt;exportData('compare');</em> - first to update the meta if required.</p>
 
-<a name='troubleshooting-technical-notes'  href='#'></a><h2>Troubleshooting / Technical notes</h2>
+<h2><a href="#" name="troubleshooting-technical-notes">Troubleshooting / Technical notes</a></h2>
 
-<a name='guide-to-the-files'  href='#'></a><h3>Guide to the files</h3>
+<h3><a href="#" name="guide-to-the-files">Guide to the files</a></h3>
 
 <p>The following files are created:</p>
 
@@ -425,7 +428,7 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 	<li>Comparison files (template/DbMigrate/comparisons) hold all details of comparisons in directories named after the comparison name. Theses directories have a 'new' directory with a similar structure to migrations.</li>
 </ol>
 
-<a name='issues-with-page-migrations'  href='#'></a><h3>Issues with page migrations</h3>
+<h3><a href="#" name="issues-with-page-migrations">Issues with page migrations</a></h3>
 
 <p>Issues may arise with page migration which are not possible to foresee fully. This is particularly the case if the user migrates pages with multiple complex field types and custom processing. The module was designed for migrating developments, not for mass updating of user pages. It is therefore assumed that any pages being migrated are of a ‘site-settings’ nature, not user pages. That said, it is possible to use the module more generally (e.g. in ‘rescue’ mode) but test carefully first. In particular, the host PW application may make use of page hooks. All page actions in the module allow hooks to run. To enable users to modify this behaviour, session variables are set for the duration of the following methods:</p>
 
@@ -436,7 +439,7 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 
 <p>These can then be referenced in the user's application code as required.</p>
 
-<a name='partial-unsuccessful-migrations'  href='#'></a><h3>Partial / Unsuccessful migrations</h3>
+<h3><a href="#" name="partial-unsuccessful-migrations">Partial / Unsuccessful migrations</a></h3>
 
 <p>In some circumstances, migrations may not complete properly. This will result in error messages when the migration is installed. Some typical examples and possible solutions are set out below. Occasionally, re-clicking 'install' or 'uninstall' may resolve this. Note that you cannot change a migration definition in the target environment, so any changes need to be done in the source environment and re-exported (and installed after uninstalling the previous version).</p>
 
@@ -450,7 +453,7 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 
 <p>Use the preview button to see what changes have not been fully implemented. You can also inspect and compare the json files to identify the issue (your IDE is probably the best place to do this). For example, compare templates/…/new/data.json (the required state) with assets/cache/dbMigrations/new-data.json (the current state). (Similarly, for uninstallation problems, compare ../old/data.json with assets/cache/dbMigrations/old-data.json).</p>
 
-<a name='field-types'  href='#'></a><h3>Field types</h3>
+<h3><a href="#" name="field-types">Field types</a></h3>
 
 <p>The module handles (I think) the following field types:</p>
 
@@ -481,7 +484,7 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 
 <p>ProFields have not been tested, so may or may not work.</p>
 
-<a name='subsequent-installations'  href='#'></a><h3>Subsequent installations</h3>
+<h3><a href="#" name="subsequent-installations">Subsequent installations</a></h3>
 
 <p>After an initial export from a source and installation in a target, the question arises as to how to deal with revised or additional migrations. If a migration is revised in the source, then it can be installed in the target once the previous version has been uninstalled. New migrations exported from the source are handled in the same way as initial migrations.</p>
 
@@ -496,18 +499,19 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 
 <p>It is also possible, in theory (not advised, but maybe necessary if the development environment is inaccessible) to make changes directly to the live database and 'export' them for installation on the development system. These should be locked after installing them. Database naming is strongly recommended if you use this strategy.</p>
 
-<a name='rescue-mode'  href='#'></a><h3>Rescue mode</h3>
+<h3><a href="#" name="rescue-mode">Rescue mode</a></h3>
 
 <p>An additional use of the module is ‘rescue’ mode. If a number of erroneous changes have occurred to a live database which need to be reverted, then a suitable backup copy can be restored to the development environment (after backing up the dev database!), given a unique name, and the relevant migration exported for installation in the live environment. After successful installation, the development database can be restored to the development environment – the ‘rescue’ migration will then be loaded automatically as a (‘installable’ – i.e. non-editable or exportable) migration and can be installed if it makes sense to do so.</p>
 
-<a name='template-field-flags'  href='#'></a><h3>Template/field flags</h3>
+<h3><a href="#" name="template-field-flags">Template/field flags</a></h3>
 
 <p>Note that all dbMigrate templates and fields are designated as ‘system’ – i.e. the flags is set to 8. This means that they are hidden from the setup dropdown and cannot be used in the front end. To unset the flags it is necessary to first set the override, viz:</p>
 
 <pre>
 $t-&gt;flags = Template::flagSystemOverride;
 $t-&gt;flags = 0;
-$t-&gt;save();</pre></div>
+$t-&gt;save();</pre>    </div>
+</div>
 
 </body>
 </html>

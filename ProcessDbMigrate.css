@@ -1,2 +1,7 @@
 
 #mct-tabs-container { margin-top:20px; margin-bottom:20px; }
+
+.WireTabs li {
+  padding: 0 0 0 1em;
+  background: none;
+}

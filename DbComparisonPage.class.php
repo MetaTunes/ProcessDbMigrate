@@ -113,6 +113,7 @@ class DbComparisonPage extends DbMigrationPage {
 	 * @throws WirePermissionException
 	 */
 	public function exportData($newOld, $noSave = false) {
+		$this->ready();
 		$this->dbMigrateItem = $this->dbMigrateComparisonItem;
 		$this->migrationsPath = $this->comparisonsPath;
 		return parent::exportData($newOld, $noSave);
