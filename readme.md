@@ -12,7 +12,7 @@ I wanted something to achieve the following:
 I should emphasise that what I have built is a 'proof of concept'. The code is pretty hacky. Lots of validation is missing and some spurious error messages occur. However, I have used it successfully in a number of small tests on 3 separate sites and a medium-sized live migration. It would still benefit from further testing and code enhancements from more skilled coders than me.
 
 ## Installation
-Place the ProcessDbMigrate folder in your site/modules directory. Make sure your environment meets the requirements - you need FieldtypeRuntimeOnly to be installed first. The earliest PW version I have tested it with is 3.0.148, but it might work on earlier 3.0.xxx versions. Please let me know if it works with earlier versions.
+Place the ProcessDbMigrate folder in your site/modules directory. The earliest PW version I have tested it with is 3.0.148, but it might work on earlier 3.0.xxx versions. Please let me know if it works with earlier versions.
 
 Having satisfied the dependencies, install the module.
 
