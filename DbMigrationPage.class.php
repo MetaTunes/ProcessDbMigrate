@@ -81,7 +81,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		$this->set('migrationTemplate', wire('templates')->get(ProcessDbMigrate::MIGRATION_TEMPLATE));
 		$this->set('migrationsPath', wire('config')->paths->templates . ProcessDbMigrate::MIGRATION_PATH);
 		$this->set('configData', wire('modules')->getConfig('ProcessDbMigrate'));
-		if($this->configData['suppress_hooks']) $this->wire()->error("Hook suppression is on - migrations will not work correctly - unset in the module settings.");
+		if(isset($this->configData['suppress_hooks']) && $this->configData['suppress_hooks']) $this->wire()->error("Hook suppression is on - migrations will not work correctly - unset in the module settings.");
 		// Fix for PW versions < 3.0.152, but left in place regardless of version, in case custom page classes are not enabled
 		if($this->migrationTemplate->pageClass != __CLASS__) {
 			$this->migrationTemplate->pageClass = __CLASS__;

@@ -130,7 +130,7 @@ if($page->template == ProcessDbMigrate::MIGRATION_TEMPLATE) {
 				$form->append($btn);
 
 				// Preview button
-				if(!$installedStatus['installed']) {
+				if(!isset($installedStatus['installed']) || !$installedStatus['installed']) {
 					$btn = wire('modules')->get("InputfieldButton");
 					$btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=export&modal=1');
 					$btn->attr('id', "preview-diffs-export");

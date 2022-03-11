@@ -550,7 +550,7 @@ If it has been used in another environment and is no longer wanted then you will
 		foreach($migrationPages as $migrationPage) {
 			/* @var $migrationPage DbMigrationPage */
 			$installedStatus = $migrationPage->meta('installedStatus');
-			$status = $installedStatus['status'];
+			$status = ($installedStatus) ? $installedStatus['status'] : 'indeterminate';
 			if(!$migrationPage->meta('locked')) {
 				if($migrationPage->meta('installable')) {
 					$statusColour = ($status == 'installed') ? 'lightgreen' : (($status == 'uninstalled') ? 'salmon' : 'orange');
