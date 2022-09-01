@@ -45,13 +45,12 @@
 	.sidenav {padding-top: 15px;}
 }
 </style>
+<link rel='stylesheet' type='text/css' href='/site/modules/FieldtypeMeasurement/FieldtypeMeasurement.css?v=0.0.8'/>
 </head>
 <body>
 <div class="sidenav">
 	<ul class='uk-nav uk-nav-default'><li><a style='padding-left: 0px' href='#summary'>Summary</a></li><li><a style='padding-left: 0px' href='#background'>Background</a></li><li><a style='padding-left: 0px' href='#concept'>Concept</a></li><li><a style='padding-left: 0px' href='#uses'>Uses</a></li><li><a style='padding-left: 0px' href='#design'>Design</a></li><li><a style='padding-left: 0px' href='#health-warnings'>Health warnings</a></li><li><a style='padding-left: 0px' href='#installation'>Installation</a></li><li><a style='padding-left: 10px' href='#dependencies'>Dependencies</a></li><li><a style='padding-left: 0px' href='#upgrading'>Upgrading</a></li><li><a style='padding-left: 0px' href='#uninstalling'>Uninstalling</a></li><li><a style='padding-left: 0px' href='#overview'>Overview</a></li><li><a style='padding-left: 0px' href='#using-the-module'>Using the module</a></li><li><a style='padding-left: 10px' href='#documenting-the-migration'>Documenting the migration</a></li><li><a style='padding-left: 10px' href='#populating-the-migration-page'>Populating the migration page</a></li><li><a style='padding-left: 20px' href='#snippets'>Snippets</a></li><li><a style='padding-left: 10px' href='#exporting-the-migration'>Exporting the migration</a></li><li><a style='padding-left: 10px' href='#installing-the-migration'>Installing the migration</a></li><li><a style='padding-left: 10px' href='#database-comparisons'>Database comparisons</a></li><li><a style='padding-left: 20px' href='#creating-a-migration-from-a-comparison'>Creating a migration from a comparison</a></li><li><a style='padding-left: 10px' href='#hooks'>Hooks</a></li><li><a style='padding-left: 20px' href='#available-hooks'>Available hooks</a></li><li><a style='padding-left: 20px' href='#placement'>Placement</a></li><li><a style='padding-left: 20px' href='#usage'>Usage</a></li><li><a style='padding-left: 0px' href='#troubleshooting-technical-notes'>Troubleshooting / Technical notes</a></li><li><a style='padding-left: 10px' href='#guide-to-the-files'>Guide to the files</a></li><li><a style='padding-left: 10px' href='#issues-with-page-migrations'>Issues with page migrations</a></li><li><a style='padding-left: 10px' href='#partial-unsuccessful-migrations'>Partial / Unsuccessful migrations</a></li><li><a style='padding-left: 10px' href='#field-types'>Field types</a></li><li><a style='padding-left: 10px' href='#subsequent-installations'>Subsequent installations</a></li><li><a style='padding-left: 10px' href='#rescue-mode'>Rescue mode</a></li><li><a style='padding-left: 10px' href='#template-field-flags'>Template/field flags</a></li></ul></div>
 <div class="main">
-    <div edit="measurement">
-		<h2>Measure test</h2>-1.25g/L sugar    </div>
     <div edit="dbMigrateAdditionalDetails">
 		<h1>DB Migrations module - "ProcessDbMigrate"</h1>
 
@@ -179,7 +178,7 @@
 
 <h2><a href="#" name="uninstalling">Uninstalling</a></h2>
 
-<p>Before uninstalling the module, all migration pages (other than the bootstrap) must be removed manually. Then, uninstalling the module uninstalls the bootstrap migration automatically; if that fails then the error will be reported, so that it can be fixed manually, before attempting to uninstall again.</p>
+<p>Before uninstalling the module, all migration pages (other than the bootstrap) must be removed manually (and the trash emptied). Then, uninstalling the module uninstalls the bootstrap migration automatically; if that fails then the error will be reported, so that it can be fixed manually, before attempting to uninstall again.</p>
 
 <h2><a href="#" name="overview">Overview</a></h2>
 

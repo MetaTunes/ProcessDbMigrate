@@ -251,7 +251,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			}
 			/*
 			 * ON CREATION OF OLD JSON FILE, MAKE A COPY OF THE ORIGINAL NEW JSON FILE FOR LATER COMPARISON
-			 * (introduced in version 0.1.0 - migrations created under earlier versions will not have done this ans therefore will have more limited scope change checking)
+			 * (introduced in version 0.1.0 - migrations created under earlier versions will not have done this and therefore will have more limited scope change checking)
 			 */
 			$newFileExists = (file_exists($migrationPath . 'new/data.json'));
 			if($newFileExists and $newOld == 'old') {
@@ -623,7 +623,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			$objectData = array_merge($objectData, $exportObjects['data']);
 			//bd($exportObjects['files'], '$exportObjects[files]');
 			$files = array_merge($files, $exportObjects['files']);
-			//bd($objectData, 'object data for names ' . implode(', ', $names));
+			//bd($objectData, 'object data');
 		}
 
 		/*
@@ -1019,16 +1019,23 @@ class DbMigrationPage extends DummyMigrationPage {
 		//bd($objectData, 'objectdata');
 		if($item['type'] == 'fields') {
 			// enhance repeater / page ref / custom field data
-			if(in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypePage', 'FieldtypeImage', 'FieldtypeFile'])) {
+			if(in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage', 'FieldtypeImage', 'FieldtypeFile'])) {
 				$f = $this->wire('fields')->get($objectData['name']);
 				if($f) {
-					if(in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypePage'])) {
-						$templateId = $f->get('template_id');
+					if(in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage'])) {
+						$templateId = (int) $f->get('template_id');
 						if($templateId) {
 							$templateName = $this->wire('templates')->get($templateId)->name;
 							$objectData['template_name'] = $templateName;
 						}
 						unset($objectData['template_id']);
+
+						$parentId = (int) $f->get('parent_id');
+						if($parentId && $objectData['type'] == 'FieldtypePage') {   // Don't want to set parent_path for repeaters as not needed and references may differ in the target db
+							$parentPath= $this->wire('pages')->get($parentId)->path;
+							$objectData['parent_path'] = $parentPath;
+						}
+						unset($objectData['parent_id']);
 
 						$templateIds = $f->get('template_ids');
 						if($templateIds) {
@@ -1040,7 +1047,28 @@ class DbMigrationPage extends DummyMigrationPage {
 						}
 						unset($objectData['template_ids']);
 
-					} else {
+						// Repeater matrix fields have field ids set in the in matrix{n}_field array.
+						// We need to convert these to  names so that they can be found in the target.
+						if($objectData['type'] == 'FieldtypeRepeaterMatrix') {
+							$maxTypes = ($f instanceof RepeaterMatrixField) ? $f->getMaxMatrixTypes() : 0;
+							if($maxTypes > 0) {
+								for($typeCount = 1; $typeCount <= $maxTypes; $typeCount++) {
+									$matrixItems = $f->get("matrix{$typeCount}_fields");
+									$matrixItemNames = [];
+									foreach($matrixItems as $matrixItem) {
+										$matrixItemNames[] = $this->fields()->get($matrixItem)->name;
+									}
+									$objectData["matrix_field_names"][$typeCount] = $matrixItemNames;
+									// (set this as an array rather than "matrix{$typeCount}_field_names" as we can foreach that more easily on the install)
+									unset($objectData["matrix{$typeCount}_fields"]);
+							}
+							}
+						}
+						if($objectData['type'] == 'FieldtypeRepeaterMatrix' || $objectData['type'] == 'FieldtypeRepeater') {
+							unset($objectData['fieldContexts']); // unnecessary as contained in the related template
+						}
+
+					} else {              // images and files
 						$customFields = 'field-' . $objectData['name'];
 						if($this->wire()->templates->get($customFields)) {
 							$objectData['template_name'] = $templateName = $customFields;
@@ -1229,6 +1257,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	/**
 	 * Return will have all elements in $A not in $B (stored as [$A element, ''])
 	 * > plus all elements in both where they differ at key value $k, say, stored as $k => [$A element, $B element]
+	 * (NB a difference will not be reported where, for example, the A element is 0 and the B element is "")
 	 * If $swap = true then the pair will have its elements swapped.
 	 *
 	 * @param $aArray1
@@ -1258,7 +1287,7 @@ class DbMigrationPage extends DummyMigrationPage {
 						$aReturn[$mKey] = $aRecursiveDiff;
 					}
 				} else {
-					if($mValue != $aArray2[$mKey]) {
+					if(($mValue || $aArray2[$mKey]) && $mValue != $aArray2[$mKey]) {
 						$aReturn[$mKey] = (!$swap) ? [$aArray2[$mKey], $mValue] : [$mValue, $aArray2[$mKey]];
 					}
 				}
@@ -1440,7 +1469,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 */
 	public function installMigration($newOld) {
 		if(!$this->ready and $this->name != 'dummy-bootstrap') $this->ready();  // don't call ready() for dummy-bootstrap as it has no template assigned at this point
-		//bd($this, 'In install with newOld = ' . $newOld);
+		$this->wire()->log->save('debug', 'In install with newOld = ' . $newOld);
 
 		// Backup the old installation first
 		if($newOld == 'new' and $this->name != 'dummy-bootstrap') $this->exportData('old');
@@ -1543,6 +1572,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 */
 	protected function installFields($items, $itemType) {
 		$this->wire()->session->set('dbMigrate_installFields', true);  // for use by host app. also used in beforeSave hook in ProcessDbMigrate.module
+		$this->wire()->log->save('debug', 'install fields');
 		$items = $this->pruneKeys($items, $itemType);
 		// repeater fields should be processed last as they may depend on earlier fields
 		$repeaters = [];
@@ -1551,7 +1581,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			// Don't want items which are selectors (these may be present if the selector yielded no items)
 			if(!$this->wire()->sanitizer->validate($name, 'name')) continue;
 			// remove the repeaters to a separate array
-			if($data['type'] == 'FieldtypeRepeater') {
+			if(in_array($data['type'], ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix'])) {
 				unset($items[$name]);
 				$repeaters[$name] = $data;
 			} else if($data['type'] == 'FieldtypePage') {
@@ -1576,6 +1606,15 @@ class DbMigrationPage extends DummyMigrationPage {
 					$fData['template_id'] = $t->id;
 				}
 				unset($fData['template_name']);  // it was just a temp variable - no meaning to PW
+			}
+
+			if(isset($fData['parent_path'])) {
+				$pPath = $fData['parent_path'];
+				$pt = $this->wire('pages')->get($pPath);
+				if($pt) {
+					$fData['parent_id'] = $pt->id;
+				}
+				unset($fData['parent_path']);  // it was just a temp variable - no meaning to PW
 			}
 
 			if(isset($fData['template_names'])) {
@@ -1620,6 +1659,21 @@ class DbMigrationPage extends DummyMigrationPage {
 				$fData['template_id'] = $t->id;
 			}
 			unset($fData['template_name']);  // it was just a temp variable - no meaning to PW
+
+			if($fData['type'] == 'FieldtypeRepeaterMatrix') {
+				if(isset($fData['matrix_field_names'])) {
+					foreach($fData['matrix_field_names'] as $matrixType => $itemNames) {
+						$itemIds = array();
+						foreach($itemNames as $itemName) {
+							$itemIds[] = $this->fields()->get($itemName)->id;
+						}
+						$fData["matrix{$matrixType}_fields"] = $itemIds;
+					}
+				}
+				unset($fData['matrix_field_names']); // it was just a temp variable - no meaning to PW
+				//bd($fData, 'fData');
+			}
+
 			$newRepeaters[$fName] = $fData;
 		}
 		if($newRepeaters) $this->processImport($newRepeaters);
@@ -1627,7 +1681,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	}
 
 	/**
-	 * Where keys 0f $data are in the format of a pair x|y, replace this by just the pair member that exists in the current database
+	 * Where keys of $data are in the format of a pair x|y, replace this by just the pair member that exists in the current database
 	 *
 	 * @param array $data
 	 * @param $type

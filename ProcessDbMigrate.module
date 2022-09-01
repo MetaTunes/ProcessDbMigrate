@@ -80,7 +80,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			'summary' => 'Manage migrations via the PW GUI',
 			'comments' => 'Document and manage migrations. Allow roll-back and database comparisons.',
 			'author' => 'Mark Evens',
-			'version' => "0.1.4", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly
+			'version' => "0.1.5", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly
 			'autoload' => true,
 			'singular' => true,
 			'page' => array(            //install/uninstall a page for this process automatically
@@ -149,8 +149,8 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 * Field and template attributes to always ignore in migrations
 	 *
 	 */
-	const EXCLUDE_ATTRIBUTES = array('_importMode');
-	// 'template_id' and 'template_ids' are handled specifically (replaced with 'template_name' and 'template_names')
+	const EXCLUDE_ATTRIBUTES = array('_importMode', 'repeaterFields', '_lazy');
+	// 'parent_id', template_id' and 'template_ids' are handled specifically (replaced with 'parent_path', 'template_name' and 'template_names') so no need to exclude here
 
 	/**
 	 * Construct
@@ -215,6 +215,8 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			if($p and $p->id and ($p->template == self::MIGRATION_TEMPLATE or $p->template == self::COMPARISON_TEMPLATE)) {
 				/* @var $p DbMigrationPage */
 				$p->meta('updated', false);
+				$this->wire('process', $this); // Sets the process to ProcessDbMigrate, rather than ProcessPageEdit, which can cause problems in the refresh
+				//bd($this->wire()->process, 'process module refresh');
 				$updated = $p->refresh();
 				//bd($updated, 'meta updated');
 				$p->meta('updated', $updated);
@@ -280,9 +282,10 @@ If it has been used in another environment and is no longer wanted then you will
 			$temp = $this->migrationTemplate;
 			$bootstrap = $this->wire()->pages->get("template=$temp, name=bootstrap");
 			/* @var $bootstrap DbMigrationPage */
-			if($bootstrap and $bootstrap->id and $bootstrap->meta('installable')
-				and (!isset($bootstrap->meta('installedStatus')['installed']) or !$bootstrap->meta('installedStatus')['installed'] or $this->session->get('upgraded'))) {
+			if($bootstrap && $bootstrap->id && $bootstrap->meta('installable') && 
+			(!isset($bootstrap->meta('installedStatus')['installed']) || !$bootstrap->meta('installedStatus')['installed'] || $this->session->get('upgraded'))) {
 				try {
+					$this->wire()->session->warning($this->_('Bootstrap not fully installed - Attempting re-install. See manual if problem persists.'));
 					$bootstrap->refresh();
 				} catch(WirePermissionException $e) {
 					$this->wire()->session->warning($this->_('You do not have permission'));
@@ -444,7 +447,6 @@ If it has been used in another environment and is no longer wanted then you will
 			}
 		} else {
 			//bd('NO SETUP PAGE');
-			$event->return;
 			return;
 		}
 		//Check all templates with dbMigrate tags to ensure there are no migration pages
@@ -524,7 +526,7 @@ If it has been used in another environment and is no longer wanted then you will
 	public function ___execute() {
 		if($this->suppress_hooks) $this->wire()->error("Hook suppression is on - migrations will not work correctly - unset in the module settings.");
 		$pageEdit = $this->wire('urls')->admin . 'page/edit/?id=';
-		$form = $this->modules->get("InputfieldForm");
+		$form = $this->modules->get("InputfieldForm"); /* @var $form InputfieldForm */
 		$prepend = self::helpPopout('Help') . '<ul class="WireTabs uk-tab" uk-switcher>' .
 			'<li id="migrations-tab"><a href="#migrations">Migrations</a></li>' .
 			'<li id="database-comparisons-tab"><a href="#database-comparisons">Database comparisons</a></li>' .
@@ -536,7 +538,7 @@ If it has been used in another environment and is no longer wanted then you will
 //        $fieldset = $this->modules->get("InputfieldFieldset");
 //        $fieldset->label = "Migrations";
 //        $fieldset->attr('id+name', 'migrations');
-		$field = $this->modules->get("InputfieldMarkup");
+		$field = $this->modules->get("InputfieldMarkup"); /* @var $field InputfieldMarkup */
 
 		$field->attr('id+name', 'migrations');
 		$field->set('themeBorder', 'line');
@@ -566,7 +568,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$lockIcon = ($migrationPage->meta('locked')) ? '<i class="fa fa-lock"></i>' : '<i class="fa fa-unlock"></i>';
 			$itemList = [];
 			foreach($migrationPage->dbMigrateItem as $migrateItem) {
-				/* @var $migrateItem RepeaterDbMigrateItemPage */
+				/* @var $migrateItem RepeaterPage */
 				$oldName = ($migrateItem->dbMigrateOldName) ? '|' . $migrateItem->dbMigrateOldName : '';
 				$itemList[] = '<em>' . $migrateItem->dbMigrateAction->title . ' ' . $migrateItem->dbMigrateType->title . '</em>: ' . $migrateItem->dbMigrateName . $oldName;
 			}
@@ -605,7 +607,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$field->value = $out;
 		$form->append($field);
 
-		$field = $this->modules->get("InputfieldMarkup");
+		$field = $this->modules->get("InputfieldMarkup"); /* @var $field InputfieldMarkup */
 		$field->attr('id+name', 'database-comparisons');
 		$table = $this->wire('modules')->get("MarkupAdminDataTable");
 		$table->headerRow(['Name', 'Source DB', 'Title', 'Summary', 'Items', 'Created']);
@@ -616,7 +618,7 @@ If it has been used in another environment and is no longer wanted then you will
 			/* @var $comparisonPage DbComparisonPage */
 			$itemList = [];
 			foreach($comparisonPage->dbMigrateComparisonItem as $comparisonItem) {
-				/* @var $comparisonItem RepeaterDbMigrateComparisonItemPage */
+				/* @var $comparisonItem RepeaterPage */
 				$itemList[] = '<em>' . $comparisonItem->dbMigrateType->title . '</em>: ' . $comparisonItem->dbMigrateName;
 			}
 			$itemsString = implode("    ", $itemList);
@@ -796,7 +798,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$parent = $this->wire()->input->get->int("parent");  //id
 		$title = urldecode($this->wire()->input->get->text('title'));  //string
 		$values = unserialize(urldecode($this->wire()->input->get->text('values'))); //array
-		return $this->newPage($template, $parent, $title, $values);
+		$this->newPage($template, $parent, $title, $values);
 	}
 
 	/**
@@ -824,7 +826,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$newPage->save();
 			$newPage->setAndSave($values);
 		}
-		return wire()->session->redirect($url);
+		wire()->session->redirect($url);
 	}
 
 	/**
@@ -848,7 +850,7 @@ If it has been used in another environment and is no longer wanted then you will
 			/* @var $comparisonPage DbComparisonPage */
 			$itemList = [];
 			foreach($comparisonPage->dbMigrateComparisonItem as $comparisonItem) {
-				/* @var $comparisonItem RepeaterDbMigrateComparisonItemPage */
+				/* @var $comparisonItem RepeaterPage */
 				$itemList[] = '<em>' . $comparisonItem->dbMigrateType->title . '</em>: ' . $comparisonItem->dbMigrateName;
 			}
 			$itemsString = implode("    ", $itemList);
@@ -1581,7 +1583,7 @@ If it has been used in another environment and is no longer wanted then you will
 				if($conflict) {
 					$this->error($conflict);
 					$event->replace = true;
-					$event->return;
+					$event->return = false;
 				}
 			}
 		}
@@ -1635,7 +1637,7 @@ If it has been used in another environment and is no longer wanted then you will
 				if($conflict) {
 					$this->error($conflict);
 					$event->replace = true;
-					$event->return;
+					$event->return = false;
 				}
 			}
 		}
@@ -1661,7 +1663,7 @@ If it has been used in another environment and is no longer wanted then you will
 				if($conflict) {
 					$this->error($conflict);
 					$event->replace = true;
-					$event->return;
+					$event->return = false;
 				}
 			}
 		}
@@ -1794,8 +1796,9 @@ If it has been used in another environment and is no longer wanted then you will
 	 *
 	 * @throws WireException
 	 */
+
 	public function afterExportConfigData(HookEvent $event) {
-//		if($this->wire()->session->get('fixExportConfigData')) {   // session var is set in DbMigrationPage::getExportStructureData()
+//		if($this->wire()->session->get('fixExportConfigData')) {   // session var is set in DbMigrationPage::getExportStructureData()  // No longer set, so this hook always runs
 			$data = $event->arguments(0)->data;
 			$value = $event->return;
 			$newData = array_merge($value, $data);

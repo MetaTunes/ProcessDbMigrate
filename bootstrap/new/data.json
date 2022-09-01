@@ -161,37 +161,16 @@
                     "label": "Migration item",
                     "flags": 8,
                     "type": "FieldtypeRepeater",
-                    "repeaterFields": [
-                        "dbMigrateType",
-                        "dbMigrateAction",
-                        "dbMigrateName",
-                        "dbMigrateOldName"
-                    ],
                     "repeaterLoading": 1,
                     "repeaterTitle": "#n: {dbMigrateAction} {dbMigrateType}: {dbMigrateName}",
                     "tags": "dbMigrate",
-                    "parent_id": 0,
                     "repeaterCollapse": 0,
                     "repeaterAddLabel": "",
-                    "rememberOpen": "",
-                    "accordionMode": "",
+                    "rememberOpen": 0,
+                    "accordionMode": 0,
                     "repeaterMaxItems": "",
                     "repeaterMinItems": "",
                     "repeaterDepth": "",
-                    "fieldContexts": {
-                        "dbMigrateType": {
-                            "columnWidth": 10
-                        },
-                        "dbMigrateAction": {
-                            "columnWidth": 10
-                        },
-                        "dbMigrateName": {
-                            "columnWidth": 55
-                        },
-                        "dbMigrateOldName": {
-                            "columnWidth": 25
-                        }
-                    },
                     "template_name": "repeater_dbMigrateItem"
                 }
             }
@@ -278,25 +257,16 @@
                     "label": "Comparison item",
                     "flags": 8,
                     "type": "FieldtypeRepeater",
-                    "parent_id": 0,
-                    "repeaterFields": [
-                        "dbMigrateType",
-                        "dbMigrateName"
-                    ],
                     "repeaterCollapse": 0,
                     "repeaterLoading": 1,
                     "tags": "dbMigrate",
                     "repeaterTitle": "#1: {dbMigrateType} - {dbMigrateName}",
                     "repeaterAddLabel": "",
-                    "rememberOpen": "",
-                    "accordionMode": "",
+                    "rememberOpen": 0,
+                    "accordionMode": 0,
                     "repeaterMaxItems": "",
                     "repeaterMinItems": "",
                     "repeaterDepth": "",
-                    "fieldContexts": {
-                        "dbMigrateType": [],
-                        "dbMigrateName": []
-                    },
                     "template_name": "repeater_dbMigrateComparisonItem"
                 }
             }
@@ -466,29 +436,16 @@
                     "label": "Snippets",
                     "flags": 8,
                     "type": "FieldtypeRepeater",
-                    "parent_id": 0,
-                    "repeaterFields": [
-                        "title",
-                        "dbMigrateSummary"
-                    ],
                     "repeaterLoading": 1,
                     "repeaterTitle": "#n: {title}",
                     "tags": "dbMigrate",
                     "repeaterAddLabel": "",
                     "repeaterCollapse": 0,
-                    "rememberOpen": "",
-                    "accordionMode": "",
+                    "rememberOpen": 0,
+                    "accordionMode": 0,
                     "repeaterMaxItems": "",
                     "repeaterMinItems": "",
                     "repeaterDepth": "",
-                    "fieldContexts": {
-                        "title": {
-                            "label": "Description"
-                        },
-                        "dbMigrateSummary": {
-                            "label": "Snippet"
-                        }
-                    },
                     "template_name": "repeater_dbMigrateSnippets"
                 }
             }
