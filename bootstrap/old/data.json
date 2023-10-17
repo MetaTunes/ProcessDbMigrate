@@ -86,6 +86,13 @@
     {
         "fields": {
             "removed": {
+                "dbMigrateLogChanges": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
                 "dbMigrateItem": []
             }
         }

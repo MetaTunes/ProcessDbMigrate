@@ -8,11 +8,22 @@
                     "flags": 8,
                     "type": "FieldtypeOptions",
                     "inputfieldClass": "InputfieldSelect",
-                    "tags": "dbMigrate",
                     "export_options": {
                         "default": "1=fields|Field\n2=templates|Template\n3=pages|Page"
                     },
-                    "initValue": ""
+                    "tags": "dbMigrate",
+                    "initValue": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
+                    "defaultValue": ""
                 }
             }
         }
@@ -26,11 +37,22 @@
                     "flags": 8,
                     "type": "FieldtypeOptions",
                     "inputfieldClass": "InputfieldSelect",
-                    "tags": "dbMigrate",
                     "export_options": {
                         "default": "1=new|New\n2=changed|Changed\n3=removed|Removed"
                     },
-                    "initValue": ""
+                    "tags": "dbMigrate",
+                    "initValue": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
+                    "defaultValue": ""
                 }
             }
         }
@@ -45,10 +67,26 @@
                     "type": "FieldtypeText",
                     "maxlength": 2048,
                     "tags": "dbMigrate",
+                    "textformatters": "",
+                    "inputfieldClass": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
                     "minlength": 0,
                     "showCount": 0,
                     "size": 0,
-                    "textformatters": ""
+                    "stripTags": "",
+                    "placeholder": "",
+                    "pattern": ""
                 }
             }
         }
@@ -61,9 +99,28 @@
                     "label": "Old name if different (n/a for selectors)",
                     "flags": 8,
                     "type": "FieldtypeText",
-                    "tags": "dbMigrate",
                     "maxlength": 2048,
-                    "textformatters": ""
+                    "tags": "dbMigrate",
+                    "textformatters": "",
+                    "inputfieldClass": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "showCount": 0,
+                    "size": 0,
+                    "stripTags": "",
+                    "placeholder": "",
+                    "pattern": ""
                 }
             }
         }
@@ -114,13 +171,13 @@
                     "cacheExpirePages": [],
                     "cacheExpireSelector": "",
                     "label": "",
-                    "tags": "",
+                    "tags": "dbMigrate",
                     "titleNames": 0,
                     "noPrependTemplateFile": 0,
                     "noAppendTemplateFile": 0,
                     "prependFile": "",
                     "appendFile": "",
-                    "pagefileSecure": false,
+                    "pagefileSecure": 0,
                     "tabContent": "",
                     "tabChildren": "",
                     "nameLabel": "",
@@ -164,13 +221,25 @@
                     "repeaterLoading": 1,
                     "repeaterTitle": "#n: {dbMigrateAction} {dbMigrateType}: {dbMigrateName}",
                     "tags": "dbMigrate",
+                    "notes": "Migration items are colour-coded by object type (green fields, brown templates and blue pages).\n'Magic wand' icons indicate 'magic' items that have been added automatically by 'log changes'.\n'Down-arrow' icons indicate magic items that are dependent on other items (where known).\nNote that (with automatic sorting) dependent items will appear later if a 'new' item or earlier if  'removed'.\nNon-magic 'removed' items will need to be sorted manually as the system has no data for them.",
+                    "familyFriendly": 0,
                     "repeaterCollapse": 0,
-                    "repeaterAddLabel": "",
                     "rememberOpen": 0,
                     "accordionMode": 0,
+                    "loudControls": 0,
+                    "repeaterDepth": "",
+                    "repeaterAddLabel": "",
                     "repeaterMaxItems": "",
                     "repeaterMinItems": "",
-                    "repeaterDepth": "",
+                    "lazyParents": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
                     "template_name": "repeater_dbMigrateItem"
                 }
             }
@@ -222,13 +291,13 @@
                     "cacheExpirePages": [],
                     "cacheExpireSelector": "",
                     "label": "",
-                    "tags": "",
+                    "tags": "dbMigrate",
                     "titleNames": 0,
                     "noPrependTemplateFile": 0,
                     "noAppendTemplateFile": 0,
                     "prependFile": "",
                     "appendFile": "",
-                    "pagefileSecure": false,
+                    "pagefileSecure": 0,
                     "tabContent": "",
                     "tabChildren": "",
                     "nameLabel": "",
@@ -257,16 +326,27 @@
                     "label": "Comparison item",
                     "flags": 8,
                     "type": "FieldtypeRepeater",
-                    "repeaterCollapse": 0,
                     "repeaterLoading": 1,
-                    "tags": "dbMigrate",
                     "repeaterTitle": "#1: {dbMigrateType} - {dbMigrateName}",
+                    "tags": "dbMigrate",
+                    "repeaterDepth": "",
+                    "familyFriendly": 0,
                     "repeaterAddLabel": "",
+                    "repeaterCollapse": 0,
                     "rememberOpen": 0,
                     "accordionMode": 0,
+                    "loudControls": 0,
                     "repeaterMaxItems": "",
                     "repeaterMinItems": "",
-                    "repeaterDepth": "",
+                    "lazyParents": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
                     "template_name": "repeater_dbMigrateComparisonItem"
                 }
             }
@@ -287,7 +367,23 @@
                     "rows": 5,
                     "tags": "dbMigrate",
                     "contentType": 0,
-                    "htmlOptions": ""
+                    "htmlOptions": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "maxlength": 0,
+                    "showCount": 0,
+                    "stripTags": "",
+                    "placeholder": ""
                 }
             }
         }
@@ -300,9 +396,6 @@
                     "label": "Additional details",
                     "flags": 8,
                     "type": "FieldtypeTextarea",
-                    "textformatters": [
-                        "TextformatterHannaCode"
-                    ],
                     "inputfieldClass": "InputfieldCKEditor",
                     "contentType": 1,
                     "rows": 8,
@@ -324,7 +417,28 @@
                     "removePlugins": "image,magicline",
                     "extraAllowedContent": "br\ntd(box-top,box-middle,box-bottom,box-total)\ntable(uk-table)\ndiv(uk-overflow-auto)\nth(uk-table-shrink)\ntd(uk-table-shrink)\nblockquote(clearfix)",
                     "tags": "dbMigrate",
-                    "htmlOptions": ""
+                    "textformatters": "",
+                    "htmlOptions": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "maxlength": 0,
+                    "showCount": 0,
+                    "inheritField": "",
+                    "inlineMode": 0,
+                    "imageFields": "",
+                    "contentsCss": "",
+                    "contentsInlineCss": "",
+                    "stylesSet": "",
+                    "customOptions": "",
+                    "plugin_sourcedialog": ""
                 }
             }
         }
@@ -346,7 +460,23 @@
                     "rows": 5,
                     "tags": "dbMigrate",
                     "contentType": 0,
-                    "htmlOptions": ""
+                    "htmlOptions": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "maxlength": 0,
+                    "showCount": 0,
+                    "stripTags": "",
+                    "placeholder": ""
                 }
             }
         }
@@ -397,13 +527,13 @@
                     "cacheExpirePages": [],
                     "cacheExpireSelector": "",
                     "label": "",
-                    "tags": "",
+                    "tags": "dbMigrate",
                     "titleNames": 0,
                     "noPrependTemplateFile": 0,
                     "noAppendTemplateFile": 0,
                     "prependFile": "",
                     "appendFile": "",
-                    "pagefileSecure": false,
+                    "pagefileSecure": 0,
                     "tabContent": "",
                     "tabChildren": "",
                     "nameLabel": "",
@@ -439,13 +569,24 @@
                     "repeaterLoading": 1,
                     "repeaterTitle": "#n: {title}",
                     "tags": "dbMigrate",
+                    "repeaterDepth": "",
+                    "familyFriendly": 0,
                     "repeaterAddLabel": "",
                     "repeaterCollapse": 0,
                     "rememberOpen": 0,
                     "accordionMode": 0,
+                    "loudControls": 0,
                     "repeaterMaxItems": "",
                     "repeaterMinItems": "",
-                    "repeaterDepth": "",
+                    "lazyParents": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
                     "template_name": "repeater_dbMigrateSnippets"
                 }
             }
@@ -459,7 +600,15 @@
                     "label": "Page Status",
                     "flags": 8,
                     "type": "FieldtypeDbMigrateRuntime",
-                    "tags": "dbMigrate"
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": ""
                 }
             }
         }
@@ -472,7 +621,15 @@
                     "label": "Migration Actions",
                     "flags": 8,
                     "type": "FieldtypeDbMigrateRuntime",
-                    "tags": "dbMigrate"
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": ""
                 }
             }
         }
@@ -487,7 +644,49 @@
                     "type": "FieldtypeDbMigrateRuntime",
                     "description": "Contents of site/templates/DbMigrate/migrations/{migration name}/ready.php",
                     "notes": "This migration-specific ready.php file is for hooks after install etc.",
-                    "tags": "dbMigrate"
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateLogChanges": {
+                    "name": "dbMigrateLogChanges",
+                    "label": "Log changes",
+                    "flags": 8,
+                    "type": "FieldtypeToggle",
+                    "description": "If *log changes* is selected, any changes to fields, templates or pages which are **within the scope of the selectors set in the module configuration** will be added to the migration items list.",
+                    "formatType": 0,
+                    "labelType": 100,
+                    "inputfieldClass": 0,
+                    "useVertical": 0,
+                    "yesLabel": "Log changes",
+                    "noLabel": "Sort items on save",
+                    "otherLabel": "Manual",
+                    "defaultOption": "other",
+                    "useOther": 1,
+                    "notes": "Alternatively, you can turn change logging off and either have the module sort your items into dependency order or only allow manual changes to the items and sort order.",
+                    "tags": "dbMigrate",
+                    "useReverse": "",
+                    "useDeselect": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": ""
                 }
             }
         }
@@ -529,7 +728,7 @@
                     "noShortcut": 0,
                     "noUnpublish": 0,
                     "noLang": 0,
-                    "compile": 3,
+                    "compile": 0,
                     "nameContentTab": 0,
                     "noCacheGetVars": "",
                     "noCachePostVars": "",
@@ -544,7 +743,7 @@
                     "noAppendTemplateFile": 0,
                     "prependFile": "",
                     "appendFile": "",
-                    "pagefileSecure": false,
+                    "pagefileSecure": 0,
                     "tabContent": "",
                     "tabChildren": "",
                     "nameLabel": "",
@@ -557,6 +756,7 @@
                         "title",
                         "dbMigrateRuntimeControl",
                         "dbMigrateRuntimeAction",
+                        "dbMigrateLogChanges",
                         "dbMigrateSummary",
                         "dbMigrateAdditionalDetails",
                         "dbMigrateItem",
@@ -571,7 +771,12 @@
                         "dbMigrateRuntimeControl": {
                             "columnWidth": 50
                         },
-                        "dbMigrateRuntimeAction": [],
+                        "dbMigrateRuntimeAction": {
+                            "columnWidth": 50
+                        },
+                        "dbMigrateLogChanges": {
+                            "columnWidth": 50
+                        },
                         "dbMigrateSummary": {
                             "columnWidth": 50
                         },
@@ -641,7 +846,7 @@
                     "noAppendTemplateFile": 0,
                     "prependFile": "",
                     "appendFile": "",
-                    "pagefileSecure": false,
+                    "pagefileSecure": 0,
                     "tabContent": "",
                     "tabChildren": "",
                     "nameLabel": "",
@@ -721,7 +926,7 @@
                     "noAppendTemplateFile": 0,
                     "prependFile": "",
                     "appendFile": "",
-                    "pagefileSecure": false,
+                    "pagefileSecure": 0,
                     "tabContent": "",
                     "tabChildren": "",
                     "nameLabel": "",
@@ -748,7 +953,7 @@
                     "parent": "/processwire/",
                     "status": 1025,
                     "name": "dbmigrations",
-                    "id": 16481,
+                    "id": 1353,
                     "title": "DB Migrations"
                 }
             }
@@ -762,7 +967,7 @@
                     "parent": "/processwire/",
                     "status": 1025,
                     "name": "dbcomparisons",
-                    "id": 16885,
+                    "id": 1354,
                     "title": "DB Comparisons"
                 }
             }

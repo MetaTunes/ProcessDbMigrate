@@ -100,9 +100,9 @@ class DbComparisonPage extends DbMigrationPage {
 	 * @throws WireException
 	 *
 	 */
-	public function listItems() {
+	public function listItems($type = null) {
 		$this->dbMigrateItem = $this->dbMigrateComparisonItem;
-		return parent::listItems();
+		return parent::listItems($type);
 	}
 
 	/**

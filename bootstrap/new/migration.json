@@ -6,9 +6,10 @@
                 "parent": "/processwire/dbmigrations/",
                 "status": 1,
                 "name": "bootstrap",
-                "id": 16483,
+                "id": 1357,
                 "title": "bootstrap",
-                "dbMigrateSummary": "This is the initial migration to install all the required fields, templates and pages for the module to work. It is 'bootstrapped', on first running the ProcessDbMigrate module, from the json files.",
+                "dbMigrateLogChanges": 2,
+                "dbMigrateSummary": "This is the initial migration to install all the required fields, templates and pages for the module to work. It is bootstrapped, on first running the ProcessDbMigrate module, from the json files.",
                 "dbMigrateAdditionalDetails": "<p>If you want to amend this bootstrap, for example to implement changes to the layout of the DbMigration template, then you may need to first make it 'exportable' in the source (development) environment by removing the meta('installable') from this page.</p>",
                 "dbMigrateItem": [
                     {
@@ -158,6 +159,15 @@
                     {
                         "template": "repeater_dbMigrateItem",
                         "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateLogChanges",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
                             "dbMigrateType": 2,
                             "dbMigrateAction": 1,
                             "dbMigrateName": "DbMigration",
@@ -201,10 +211,10 @@
                         }
                     }
                 ],
-                "dbMigrateRestrictFields": "",
                 "dbMigrateSnippets": []
             }
         }
     },
-    "sourceDb": "MetaTunes Master"
+    "sourceDb": "MetaTunes Master",
+    "sourceSiteUrl": "/site/"
 }

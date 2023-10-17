@@ -54,7 +54,7 @@ if($page->template == ProcessDbMigrate::MIGRATION_TEMPLATE) {
 					$install->append($btn);
 
 					//Preview button
-					if(!$installedStatus['installedData']) {
+					if(!$installedStatus['installed']) {
 						$btn = wire('modules')->get("InputfieldButton");
 						$btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=install&modal=1');
 						$btn->attr('id', "preview-diffs-install");
@@ -108,7 +108,7 @@ if($page->template == ProcessDbMigrate::MIGRATION_TEMPLATE) {
 					}
 
 					//Preview button
-					if(!$installedStatus['uninstalledData']) {
+					if(!$installedStatus['uninstalled']) {
 						$btn = wire('modules')->get("InputfieldButton");
 						$btn->attr('href', wire('config')->urls->admin . "setup/dbmigrations/preview-diffs/?id=" . $page->id . '&target=uninstall&modal=1');
 						$btn->attr('id', "preview-diffs-uninstall");

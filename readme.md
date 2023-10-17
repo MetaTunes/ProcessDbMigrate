@@ -9,10 +9,12 @@ I wanted something to achieve the following:
 - To provide a record of changes applied.
 - Although not originally intended, the module I developed also allows the selective reversion of parts of the database by exporting migration data from a backup copy.  Also, if changes are made directly on the live system (presumably simple, low-risk mods – although not best practice), it allows reverse migration to the development system in a similar fashion.
 
-I should emphasise that what I have built is a 'proof of concept'. The code is pretty hacky. Lots of validation is missing and some spurious error messages occur. However, I have used it successfully in a number of small tests on 3 separate sites and a medium-sized live migration. It would still benefit from further testing and code enhancements from more skilled coders than me.
+While numerous improvements have been made since the early versions, I should emphasise that what I have built is still largely a 'proof of concept'.
+
+This version incorporates automated tracking of changes - your migration specification is built for you as you make changes in the development system!
 
 ## Installation
-Place the ProcessDbMigrate folder in your site/modules directory. The earliest PW version I have tested it with is 3.0.148, but it might work on earlier 3.0.xxx versions. Please let me know if it works with earlier versions.
+Place the ProcessDbMigrate folder in your site/modules directory. PW version 3.0.210 or later is recommended. Please let me know if it works with earlier versions.
 
 Having satisfied the dependencies, install the module.
 
