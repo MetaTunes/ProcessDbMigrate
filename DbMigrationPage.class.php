@@ -943,7 +943,7 @@ class DbMigrationPage extends DummyMigrationPage {
 //                  // uses default
 //                break;
 			case 'FieldtypeOptions' :
-				$attrib[$name] = $page->$field->id;
+				$attrib[$name] = implode('|', $page->$field->explode('id'));
 				break;
 			case 'FieldtypeRepeater' :
 			case 'FieldtypeRepeaterMatrix' :
@@ -2860,7 +2860,7 @@ class DbMigrationPage extends DummyMigrationPage {
 //bd($found, 'found file');
 			}
 		}
-		if(!file_exists($found)) {
+		if(!$found || ($found && !file_exists($found))) {
 			if($this->meta('installable')) {
 				$this->wire()->session->error($this->_('migration.json not found'));
 			} else {
@@ -3305,13 +3305,18 @@ class DbMigrationPage extends DummyMigrationPage {
 					if($sourceData && isset($sourceData['template_id'])) {
 						$templateItem = $this->findMigrationItemsByObjectId('template', [$sourceData['template_id']]);
 						$templateItem = ($templateItem) ? $templateItem->first() : null;
+						bd($templateItem, 'template item in getDependencies 1');
 					}
 					if(!$templateItem) {
 						$template = (isset($field->template_id)) ? $this->wire()->templates->get("id={$field->template_id}") : null;
 						if($template) {
-							$templateItem =  $items->get("dbMigrateType=2, dbMigrateName={$template->name}");
+							$templateItem =  $items->get("dbMigrateType=2, dbMigrateName={$template->name}, dbMigrateAction!=2");
+							// (NB dbMigrateAction!=2: Not interested if the template has only changed - not new or removed - as it will not affect the dependent field)
+							// ToDo consider whether a similar logic applies elsewhere, to prevent spurious cyclical dependencies
+							// ToDo check that this does not create a problem where the template name has been changed
 						}
 						$templateItem = ($templateItem) ? $templateItem->id : null;
+//						bd($templateItem, 'template item in getDependencies 2');
 					}
 					if($sourceData && isset($sourceData['parent_id'])) {
 						$parentItem = $this->findMigrationItemsByObjectId('page', [$sourceData['parent_id']]);
@@ -3388,13 +3393,19 @@ class DbMigrationPage extends DummyMigrationPage {
 					$parentItem = $this->findMigrationItemsByObjectId('page', [$sourceData['parent_id']]);
 					$parentItem = ($parentItem) ? $parentItem->first() : null;
 				}
-				if(!$parentItem && $page) $parentItem = ($page && $page->id) ? $page->parent()->id : null;
+				if(!$parentItem && $page) {
+					$parentItem = ($page && $page->id) ? $this->findMigrationItemsByObjectId('page', $page->parent()->id) : null;
+					$parentItem = ($parentItem) ? $parentItem->first() : null;
+				}
 
 				if($sourceData && isset($sourceData['template_id'])) {
 					$templateItem = $this->findMigrationItemsByObjectId('template', [$sourceData['template_id']]);
 					$templateItem = ($templateItem) ? $templateItem->first() : null;
 				}
-				if(!$templateItem && $page) $templateItem = ($page && $page->id) ? $page->template->id : null;
+				if(!$templateItem && $page) {
+					$templateItem = ($page && $page->id) ? $this->findMigrationItemsByObjectId('template', $page->template->id) : null;
+					$templateItem = ($templateItem) ? $templateItem->first() : null;
+				}
 
 				if($sourceData && isset($sourceData['pageRefs'])) {
 					$pageArray = $this->findMigrationItemsByObjectId('page', $sourceData['pageRefs'])->explode();
@@ -3425,10 +3436,20 @@ class DbMigrationPage extends DummyMigrationPage {
 				}
 				if(!$pageArray2 && $page) {
 					$dbM = $this->wire('modules')-> get('ProcessDbMigrate');
-					$imageSources = $dbM->findRteImageSources($page);
+					$imageSources = $dbM->findRteImageSources($page); // page array
 					$otherLinks = $dbM->findRteLinks($page);
-					$pageArray2 = $imageSources->add($otherLinks)->explode('id');
+					$pageRefs2 = $imageSources->add($otherLinks)->explode('id');
+					foreach($pageRefs2 as $pageRef) {
+						if($pageRef) {
+							$pageItem = $items->get("dbMigrateType=3, dbMigrateName={$pageRef->name}");
+							if($pageItem) {
+								// NB this only records dependencies if the other page is in a migration item. Should it be restrictive like this?
+								$pageArray2[] = $pageItem->id;
+							}
+						}
+					}
 				}
+				//bd(['template_item' => $templateItem, 'parent_item' => $parentItem, 'pageRefs' => $pageArray, 'rteLinks' => $pageArray2], 'return from getDependencies');
 				return ['template_item' => $templateItem, 'parent_item' => $parentItem, 'pageRefs' => $pageArray, 'rteLinks' => $pageArray2];
 				break;
 		}
@@ -3463,6 +3484,18 @@ class DbMigrationPage extends DummyMigrationPage {
 			if($sourceData && isset($sourceData['id']) && isset($sourceData['source']) && $sourceData['source'] == $objectType
 				&& in_array($sourceData['id'], $flatArray)) {
 				$itemArray->add($item->id);
+			} else {
+				$types = $objectType . 's';
+				foreach($flatArray as $objectId) {
+					$object = $this->wire($types)->get($objectId);
+//					bd($object, 'object in findMigrationItemsByObjectId');
+					$name = ($types == 'pages') ? 'path' : 'name';
+//					bd([$item->dbMigrateType->value, $item->dbMigrateName], 'item type and name');
+					if($item->dbMigrateType->value == $types && $item->dbMigrateName == $object->$name) {
+						$itemArray->add($item->id);
+					}
+				}
+
 			}
 		}
 //		bd(['type' => $objectType, 'idArray' => $idArray, 'itemArray' => $itemArray], 'findMigrationItemsByObjectId');
@@ -3486,7 +3519,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			$item->save();
 			$ind++;
 		}
-		//bd($items, 'items before sort');
+//		bd($items, 'items before sort');
 		$items->sort('mysort');
 //bd($items, 'items after sort');
 		$size = $items->count();
@@ -3504,7 +3537,7 @@ class DbMigrationPage extends DummyMigrationPage {
 //bd([$item->dbMigrateName, $dependencies], 'field item and dependencies');
 					$templateItem = (isset($dependencies['template_item'])) ? $dependencies['template_item'] : null;
 					if($templateItem && is_int($templateItem)) {
-//bd($templateItem, 'setting template item for field');
+bd($templateItem, 'setting template item for field');
 						$this->setDependencyMatrixEntry($matrix, $items, $templateItem, $i);
 					}
 					$parentItem = (isset($dependencies['parent_item'])) ? $dependencies['parent_item'] : null;
@@ -3515,6 +3548,7 @@ class DbMigrationPage extends DummyMigrationPage {
 					break;
 				case 2 : // Template
 					$dependencies = $this->getDependencies($item);
+					//bd([$item->dbMigrateName, $dependencies], 'template item and dependencies');
 					foreach(['fields', 'childTemplates', 'parentTemplates'] as $dependencyType) {
 						if(isset($dependencies[$dependencyType])) foreach($dependencies[$dependencyType] as $dependency) {
 							if($dependency && is_int($dependency)) {
@@ -3558,10 +3592,14 @@ class DbMigrationPage extends DummyMigrationPage {
 				$sourceData['dependencies'] = $dependencies;
 				$item->meta()->set('sourceData', $sourceData);
 			}
-			//bd($matrix);
+			/* Hopefully the matrix does not include any cycles. However, we can safely remove self-dependent items (i.e. where matrix[i][i] = 1)
+			 * because these will not affect the sort order (an item being dependent on itself has no impact on the order)
+			 */
+			$matrix[$i][$i] = 0;
+			//bd($matrix[$i], 'matrix for item ' . $i);
 			$i++;
 		}
-		//bd($matrix, 'matrix');
+//		bd($matrix, 'matrix');
 		return $matrix;
 	}
 
@@ -3574,8 +3612,9 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @return void
 	 */
 	protected function setDependencyMatrixEntry(&$matrix, $items, $relatedItemId, $i) {
+		//bd([$matrix, $items, $relatedItemId, $i], 'params to setDependencyMatrixEntry');
 		$relatedItem = $items->get("id=$relatedItemId");
-		//bd($relatedItem, 'relatedItem');
+//		bd($relatedItem, 'relatedItem');
 		if(!$relatedItem) return;
 		$j = $relatedItem->mysort;
 		if($relatedItem->dbMigrateAction->value == 'new' || $relatedItem->dbMigrateAction->value == 'changed') {
@@ -3585,6 +3624,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			// dependency is reversed for removals
 			$matrix[$i][$j] = 1;
 		}
+		//bd($matrix, 'matrix in setDependencyMatrixEntry');
 	}
 
 	/**
@@ -3609,7 +3649,6 @@ class DbMigrationPage extends DummyMigrationPage {
 		$size = count($matrix);
 		$incoming = array_fill(0, $size, 0);
 
-
 		for($i = 0; $i < $size; $i++) {
 			for($j = 0; $j < $size; $j++) {
 				if($matrix[$j][$i]) {
@@ -3620,10 +3659,8 @@ class DbMigrationPage extends DummyMigrationPage {
 				$queue->enqueue($i);
 			}
 		}
-
 		while(!$queue->isEmpty()) {
 			$node = $queue->dequeue();
-
 			for($i = 0; $i < $size; $i++) {
 				if($matrix[$node][$i] == 1) {
 					$matrix[$node][$i] = 0;
@@ -3828,7 +3865,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			// Get the Repeater item
 			$p = $this->pages((int)$attr['data-page']);
 			// Check field values and add classes accordingly
-			if($p->dbMigrateType->value && $p->dbMigrateAction->value) {
+			if($p->dbMigrateType && $p->dbMigrateType->value && $p->dbMigrateAction && $p->dbMigrateAction->value) {
 				$type = $p->dbMigrateType->value;
 				$action = $p->dbMigrateAction->value;
 				$fieldset->addClass("$type-$action");

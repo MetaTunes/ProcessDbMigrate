@@ -145,7 +145,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 * Field and template attributes to always ignore in migrations
 	 *
 	 */
-	const EXCLUDE_ATTRIBUTES = array('_importMode', 'repeaterFields', '_lazy');
+	const EXCLUDE_ATTRIBUTES = array('_importMode', 'repeaterFields', '_lazy', '_exportMode');
 	// 'parent_id', template_id' and 'template_ids' are handled specifically (replaced with 'parent_path', 'template_name' and 'template_names') so no need to exclude here
 
 	/**
@@ -2195,7 +2195,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$page = wire('pages')->get($pId);
 		}
 		if(!$page || !$page->id) return;
-		if(!$page->template == 'DbMigration') return;
+		if($page->template != 'DbMigration') return;
 		if(!$this->enable_dbMigrate) {
 			$event->replace = true;
 			$msg = new InputfieldMarkup();

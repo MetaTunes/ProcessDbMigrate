@@ -7,7 +7,7 @@ $info = array(
 	'summary' => 'Manage migrations via the PW GUI',
 	'comments' => 'Document (manually or by automated change tracking) and manage migrations. Allow roll-back and database comparisons.',
 	'author' => 'Mark Evens',
-	'version' => "1.0.16", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly. Versions >= 1.0.0 have change tracking.
+	'version' => "1.0.18", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly. Versions >= 1.0.0 have change tracking.
 	'autoload' => true,
 	'singular' => true,
 	'page' => array(            //install/uninstall a page for this process automatically

@@ -185,7 +185,6 @@
                     "errorAction": 0,
                     "connectedFieldID": null,
                     "ns": "",
-                    "_exportMode": true,
                     "fieldgroupFields": [
                         "dbMigrateType",
                         "dbMigrateAction",
@@ -305,7 +304,6 @@
                     "errorAction": 0,
                     "connectedFieldID": null,
                     "ns": "",
-                    "_exportMode": true,
                     "fieldgroupFields": [
                         "dbMigrateType",
                         "dbMigrateName"
@@ -541,7 +539,6 @@
                     "errorAction": 0,
                     "connectedFieldID": null,
                     "ns": "",
-                    "_exportMode": true,
                     "fieldgroupFields": [
                         "title",
                         "dbMigrateSummary"
@@ -751,7 +748,6 @@
                     "errorAction": 0,
                     "connectedFieldID": null,
                     "ns": "",
-                    "_exportMode": true,
                     "fieldgroupFields": [
                         "title",
                         "dbMigrateRuntimeControl",
@@ -854,7 +850,6 @@
                     "errorAction": 0,
                     "connectedFieldID": null,
                     "ns": "",
-                    "_exportMode": true,
                     "fieldgroupFields": [
                         "title",
                         "dbMigrateRuntimeAction",
@@ -934,7 +929,6 @@
                     "errorAction": 0,
                     "connectedFieldID": null,
                     "ns": "",
-                    "_exportMode": true,
                     "fieldgroupFields": [
                         "title"
                     ],
