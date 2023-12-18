@@ -7,7 +7,7 @@ $info = array(
 	'summary' => 'Manage migrations via the PW GUI',
 	'comments' => 'Document (manually or by automated change tracking) and manage migrations. Allow roll-back and database comparisons.',
 	'author' => 'Mark Evens',
-	'version' => "1.0.18", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly. Versions >= 1.0.0 have change tracking.
+	'version' => "2.0.0", // Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly. Versions >= 1.0.0 have change tracking (scope at individual migration level for v2.0.0+).
 	'autoload' => true,
 	'singular' => true,
 	'page' => array(            //install/uninstall a page for this process automatically
@@ -16,7 +16,7 @@ $info = array(
 		'title' => 'Database Migrations',    // title of page
 	),
 	'icon' => 'upload',
-	'requires' => ['ProcessWire>=3.0.172'],
-	'installs' => ['FieldtypeDbMigrateRuntime'], // Runtime field type for use with this module
+	'requires' => 'PHP>=8.0', 'ProcessWire>=3.0.172',
+	'installs' => 'FieldtypeDbMigrateRuntime', // Runtime field type for use with this module
 	'permission' => 'admin-dbMigrate',         // ToDo refine permissions?
 );

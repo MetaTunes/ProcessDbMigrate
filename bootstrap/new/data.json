@@ -689,6 +689,153 @@
         }
     },
     {
+        "fields": {
+            "new": {
+                "dbMigrateTrackingScope": {
+                    "name": "dbMigrateTrackingScope",
+                    "label": "Scope of change tracking",
+                    "flags": 8,
+                    "type": "FieldtypeFieldsetOpen",
+                    "description": "Use selectors to define scope of object changes to be tracked",
+                    "notes": "If you do not enter a selector then no changes will be tracked. Enter id>0 to (potentially) track everything.",
+                    "closeFieldID": 142,
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "columnWidth": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateFieldTracking": {
+                    "name": "dbMigrateFieldTracking",
+                    "label": "Fields to track",
+                    "flags": 8,
+                    "type": "FieldtypeText",
+                    "description": "Use selector to specify fields to track",
+                    "notes": "Note that any excluded fields and dbMigrate fields will not be tracked",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "minlength": 0,
+                    "maxlength": 2048,
+                    "showCount": 0,
+                    "size": 0,
+                    "placeholder": "e.g. id>0 to select all fields",
+                    "inputfieldClass": "",
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "stripTags": "",
+                    "pattern": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateTemplateTracking": {
+                    "name": "dbMigrateTemplateTracking",
+                    "label": "Templates to track",
+                    "flags": 8,
+                    "type": "FieldtypeText",
+                    "description": "Use selector to specify templates to track",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "minlength": 0,
+                    "maxlength": 2048,
+                    "showCount": 0,
+                    "size": 0,
+                    "placeholder": "e.g. id>0 to select all templates",
+                    "inputfieldClass": "",
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "stripTags": "",
+                    "pattern": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigratePageTracking": {
+                    "name": "dbMigratePageTracking",
+                    "label": "Pages to track",
+                    "flags": 8,
+                    "type": "FieldtypeText",
+                    "description": "Use selector to specify pages to track",
+                    "notes": "Typically these will be pages holding settings etc., not normal user-updated pages",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "minlength": 0,
+                    "maxlength": 4096,
+                    "showCount": 0,
+                    "size": 0,
+                    "inputfieldClass": "",
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "stripTags": "",
+                    "placeholder": "",
+                    "pattern": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateTrackingScope_END": {
+                    "name": "dbMigrateTrackingScope_END",
+                    "label": "Close an open fieldset",
+                    "flags": 8,
+                    "type": "FieldtypeFieldsetClose",
+                    "description": "This field was added automatically to accompany fieldset 'dbMigrateScope'.  It should be placed in your template/fieldgroup wherever you want the fieldset to end.",
+                    "openFieldID": 141,
+                    "tags": "dbMigrate"
+                }
+            }
+        }
+    },
+    {
         "templates": {
             "new": {
                 "DbMigration": {
@@ -753,6 +900,11 @@
                         "dbMigrateRuntimeControl",
                         "dbMigrateRuntimeAction",
                         "dbMigrateLogChanges",
+                        "dbMigrateTrackingScope",
+                        "dbMigrateFieldTracking",
+                        "dbMigrateTemplateTracking",
+                        "dbMigratePageTracking",
+                        "dbMigrateTrackingScope_END",
                         "dbMigrateSummary",
                         "dbMigrateAdditionalDetails",
                         "dbMigrateItem",
@@ -773,6 +925,19 @@
                         "dbMigrateLogChanges": {
                             "columnWidth": 50
                         },
+                        "dbMigrateTrackingScope": {
+                            "showIf": "dbMigrateLogChanges=1"
+                        },
+                        "dbMigrateFieldTracking": {
+                            "columnWidth": 33
+                        },
+                        "dbMigrateTemplateTracking": {
+                            "columnWidth": 33
+                        },
+                        "dbMigratePageTracking": {
+                            "columnWidth": 34
+                        },
+                        "dbMigrateTrackingScope_END": [],
                         "dbMigrateSummary": {
                             "columnWidth": 50
                         },

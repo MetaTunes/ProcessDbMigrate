@@ -22,3 +22,22 @@
 .Inputfield_dbMigrateItem .pages-removed > label { background-image: linear-gradient(to right, #0e54d7, #433e3e 50%) !important; }
 .Inputfield_dbMigrateItem .has-wand > label .InputfieldRepeaterItemLabel:before { font-family:'FontAwesome'; color: #e0cfe8; content:"\f0d0"; display:inline-block; margin-right:6px; }
 .Inputfield_dbMigrateItem .has-arrows > label .InputfieldRepeaterItemLabel:before { font-family:'FontAwesome'; color: #e0cfe8; content:"\f0d0\f160"; display:inline-block; margin-right:6px; }
+
+/* Increase or decrease row height on mouse click */
+.migration-table-text {
+  max-width: 20vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.migration-table-text:hover {
+  max-width: 20vw;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+tr:has(.migration-table-text):hover {
+  background-color: #dbde9e;
+}

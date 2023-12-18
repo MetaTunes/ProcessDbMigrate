@@ -27,9 +27,6 @@
  * @property string $database_name User-assigned name of the current database
  * @property string $suppress_hooks Suppress hook-related functionality (efectively disable module to speed site)
  * @property boolean $show_name Show database name as message on all admin
- * @property string $fields_tracking Selector for tracking field changes when 'log changes' enabled. Default is id>0.
- * @property string $templates_tracking Selector for tracking template changes when 'log changes' enabled. Default is id>0.
- * @property string $pages_tracking Selector for tracking page changes when 'log changes' enabled.
  * @property string $exclude_fieldtypes Field types to always exclude from migrations
  * @property string $exclude_fieldnames Field names to always exclude from migrations
  * @property string $exclude_attributes Object attributes to always exclude from migrations
@@ -157,8 +154,6 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 		$this->set('auto_install', 1);
 		$this->set('prevent_overlap', 1);
 		$this->set('enable_dbMigrate', 1);
-		$this->set('fields_tracking', 'id>0');
-		$this->set('templates_tracking', 'id>0');
 	}
 
 	public static function dbMigrateFields() {
@@ -169,6 +164,10 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 		return wire('templates')->find("tags=dbMigrate");
 	}
 
+	/**
+	 * Get a selector for all templates with the dbMigrate tag
+	 * @return string
+	 */
 	public static function dbMigrateTemplateSelector() {
 		$dbmTemplates = implode('|', self::dbMigrateTemplates()->explode('name'));
 		// return wire('pages')->find("template=$dbmTemplates");
@@ -221,6 +220,10 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			$p = $this->wire(new DbComparisonPage());
 			$p->init();
 		}
+
+		/*
+		 * The following hooks need to be here in init() as the hooked methods are called before ready()
+		 */
 		// Make sure any migration page is refreshed before loading it and set the 'updated' meta (used to indicate if refresh completed fully)
 		$this->addHookBefore('ProcessPageEdit::loadPage', function(HookEvent $event) {
 			$id = $event->arguments(0);
@@ -235,6 +238,20 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 				$p->meta('updated', $updated);
 			}
 		});
+
+
+		/*
+		 * To track which host page containing a Page Table field is currently being edited
+		 * NB the Ajax hook needs to be in init() as it is called before ready()
+		 */
+		$this->addHookAfter('InputfieldPageTable::render', $this, 'handlePageTable');
+		// The ajax hook needs to be 'before' as ajax exits without triggering the after hook?
+		$this->addHookBefore('InputfieldPageTableAjax::checkAjax', $this, 'handlePageTable');
+		$this->set('trackingMigration', $this->getTrackingMigration());
+
+
+		$this->set('trackingField', null);
+
 		// CONFIGURE HELP TEMPLATE
 		$t = $this->templates->get('DbMigrateHelp');
 		if(!$t) return;
@@ -269,54 +286,11 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			$this->wire()->session->set('processed_repeater', []); // clear the session var that stores processed repeater item ids
 			$this->wire()->session->set('processed_fieldgroup', []);
 //bd($this->wire()->session->get('processed'), 'processed in ready' );
-//			// NB The code below only deals with template and field objects. Pages are handled individually on beforeSave.
-//			$migrations = $this->pages()->find("template={$this->migrationTemplate}");
-//			foreach($migrations as $migration) {
-//				if(!$migration->meta('installable') && !$migration->meta('locked') && $migration->dbMigrateLogChanges == 1) { // 1 is 'Log changes' There should only be one such migration
-//					$val = Debug::timer('ready');
-//					bd($val, 'ready timer 1');
-//					foreach(['templates' => ['template', 'template_tracking'], 'fields' => ['field', 'field_tracking']] as $objects => $objectArray) {  // removed , 'pages' => ['page', 'page_tracking']
-//						$object = $objectArray[0];
-//						$tracking = $objectArray[1];
-//						$scopedObjects = $this->wire()->$objects->find($this->$tracking);
-//						$val = Debug::timer('ready');
-//						bd($val, 'ready timer 2');
-//						foreach($scopedObjects as $obj) {
-//							if(wireInstanceOf($obj, 'Template') && self::dbMigrateTemplates()->has($obj)) continue;
-//							if(wireInstanceOf($obj, 'Field') && self::dbMigrateFields()->has($obj)) continue;
-//							$objectData = $this->getExportDataMod($obj); // removed ($objects == 'pages') ? $this->getPageExportData($migration, $obj) :
-//							$migration->meta()->set("current_{$object}_{$obj->id}", $objectData);
-//							$val = Debug::timer('ready');
-//							bd(['object' => $obj->name, 'timer' => $val], 'ready timer 3');
-//							//$this->wire()->log->save('debug', "timer 3 for {$obj->name} is $val");
-//						}
-//					}
-//				}
-//				bd($migration->meta()->getArray(), 'meta for ' . $migration->name);
-//			}
 
 
 			$this->wire()->setTrackChanges(Wire::trackChangesValues);
-//			$this->addHookAfter('Wire::changed', function(HookEvent $event) {
-//				// Get the object the event occurred on, if needed
-//				$Wire = $event->object;
-//
-//				// An 'after' hook can retrieve and/or modify the return value
-//				$return = $event->return;
-//
-//				// Get values of arguments sent to hook (if needed)
-//				$what = $event->arguments(0);
-//				$old = $event->arguments(1);
-//				$new = $event->arguments(2);
-//				bd(['changed' => $what, 'old' => $old, 'new' => $new], 'changed object');
-//				/* Your code here, perhaps modifying the return value */
-//
-//				// Populate back return value, if you have modified it
-//				$event->return = $return;
-//			});
 			$val = Debug::timer('ready');
 //bd($val, 'ready timer 4');
-
 			//
 			$this->addHookBefore("Pages::save", $this, 'beforeSave');
 			$this->addHookAfter("Pages::save", $this, 'afterSave');
@@ -328,8 +302,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 
 			// Hooks below are to handle field and template changes where 'log changes' has been enabled
 			// The functions they call are grouped together and documented there
-			$this->set('trackingMigration', $this->getTrackingMigration());
-			$this->set('trackingField', null);
+
 			// clear any old 'current' meta values
 			if($this->trackingMigration) {
 				foreach($this->trackingMigration->meta()->getArray() as $metaKey => $metaValue) {
@@ -382,6 +355,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 				$this->addHookBefore('Pages::delete', $this, 'beforeDeletePage');
 				// need a 'getFresh' for fields and templates to track changes fully
 				$this->addHook('WireSaveableItems::getFreshSaveableItem', $this, 'getFreshSaveableItem');
+
 			}
 		}
 		$val = Debug::timer('ready');
@@ -492,6 +466,15 @@ If it has been used in another environment and is no longer wanted then you will
 //bd('ProcessDbMigrate: READY DONE');
 	}
 
+
+	/**
+	 * Set the meta('current') for the specified object, where it is a field or template
+	 *
+	 * @param $event
+	 * @param $obj
+	 * @return void
+	 * @throws WireException
+	 */
 	public function getObjectData($event, $obj) {
 		// NB The code below only deals with template and field objects. Pages are handled separately in beforeSave.
 		$migration = $this->trackingMigration;
@@ -499,11 +482,11 @@ If it has been used in another environment and is no longer wanted then you will
 //bd($val, 'ready timer 1');
 		$type = $typeName = $tracking = null;
 		$this->objectType($event, $obj, $type, $typeName, $tracking);
-		bd(['obj' => $obj, 'type' => $type, 'typeName' => $typeName, 'tracking' => $tracking], 'objectType returned');
+		//bd(['obj' => $obj, 'type' => $type, 'typeName' => $typeName, 'tracking' => $tracking], 'objectType returned');
 		if(!$type) return;
 		$object = ($typeName == 'fields') ? 'field' : (($typeName == 'templates') ? 'template' : null);
 		if(!$object) return;
-		$scopedObjects = $this->wire()->$typeName->find($this->$tracking);
+		$scopedObjects = $this->wire()->$typeName->find($migration->$tracking);
 		$val = Debug::timer('ready');
 //bd($val, 'ready timer 2');
 		if($scopedObjects->has($obj)) {
@@ -659,9 +642,15 @@ If it has been used in another environment and is no longer wanted then you will
 		if(version_compare($toVersion, '0.1.0', '>=')
 			and version_compare($fromVersion, '0.1.0', '<')) {
 			// add the new fieldtype
-			$this->wire()->modules->install('FieldTypeDbMigrateRuntime');
+			$this->wire()->modules->install('FieldtypeDbMigrateRuntime');
 			// set session var to allow removal of old fields
 			$this->session->set('upgrade0.1.0', true); // session var set here is used in ready() as old fields cannot be removed until after bootstrap install
+		}
+		// Versions >= 2.0.0 have tracking scope in the migration page, not the module
+		if(version_compare($toVersion, '2.0.0', '>=')
+			and version_compare($fromVersion, '2.0.0', '<')) {
+			$this->warning($this->_("Scope of tracking for migrations using 'log changes' will be lost as this is now (post v2.0.0) maintained at the migration page level.\n
+			 For any open migrations, you may need to re-set the tracking scope on the migration page."));
 		}
 
 		$this->___install(true);
@@ -719,6 +708,7 @@ If it has been used in another environment and is no longer wanted then you will
 				}
 			}
 		}
+		// Delete any old bootstrap before continuing
 		if($bootstrap && $bootstrap->id) {
 			if($bootstrap->isLocked()) $bootstrap->removeStatus(Page::statusLocked);
 			$bootstrap->delete(true);
@@ -732,7 +722,6 @@ If it has been used in another environment and is no longer wanted then you will
 		 * NB we cannot assign a template to dummy-bootstrap as we need to run it to create the template!!
 		 */
 		$dummyBootstrap->name = 'dummy-bootstrap';
-		$dummyBootstrap->dbMigrate = $this;  // needed because the page class ready() has not yet run
 		$dummyBootstrap->installMigration('new');
 //bd('installed new bootstrap');
 
@@ -890,7 +879,7 @@ If it has been used in another environment and is no longer wanted then you will
 			//bd($installedStatus);
 			$lockIcon = ($migrationPage->meta('locked')) ? '<i class="fa fa-lock"></i>' : '<i class="fa fa-unlock"></i>';
 			$itemList = [];
-			foreach($migrationPage->dbMigrateItem as $migrateItem) {
+			foreach($migrationPage->getFormatted('dbMigrateItem') as $migrateItem) {
 				/* @var $migrateItem RepeaterPage */
 				$oldName = ($migrateItem->dbMigrateOldName) ? '|' . $migrateItem->dbMigrateOldName : '';
 				$itemList[] = '<em>' . $migrateItem->dbMigrateAction->title . ' ' . $migrateItem->dbMigrateType->title . '</em>: ' . $migrateItem->dbMigrateName . $oldName;
@@ -903,8 +892,8 @@ If it has been used in another environment and is no longer wanted then you will
 				($migrationPage->meta('installable')) ? '<span class="fa fa-arrow-down"></span>' : '<span class="fa fa-arrow-up"></span>' . $magic,
 				$lockIcon . ' <span style="background:' . $statusColour . '">' . $status . '</span>',
 				$migrationPage->title,
-				$migrationPage->dbMigrateSummary,
-				$itemsString,
+				[$migrationPage->dbMigrateSummary, 'migration-table-text'],
+				[$itemsString, 'migration-table-text'],
 				date('Y-m-d', $migrationPage->created),
 			);
 			$table->row($data);
@@ -1035,6 +1024,8 @@ If it has been used in another environment and is no longer wanted then you will
 			if(isset($fileContents['sourceDb'])) {
 				$sourceDb = $fileContents['sourceDb'];
 				unset($fileContents['sourceDb']);
+//				$sourceSiteUrl = $fileContents['sourceSiteUrl']; // Not needed
+				unset($fileContents['sourceSiteUrl']);
 			}
 			foreach($fileContents as $content) {
 				// There should only be one item in this context
@@ -1062,6 +1053,7 @@ If it has been used in another environment and is no longer wanted then you will
 						$values = $r['values'];  // values has repeaters removed
 						//bd($values, 'wanted values');
 						//bd($newMigration, 'newMigration');
+						$newMigration->created = filectime($file);
 						$newMigration->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
 						$newMigration->setAndSaveRepeaters($repeaters, 'new');
 					}
@@ -1101,7 +1093,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 * @throws WirePermissionException
 	 *
 	 */
-	public function createNewButton($tpl, $page, $title = null, $values = []) {
+	public function createNewButton($tpl, $page, $title = '', $values = []) {
 		$template = wire()->templates->get($tpl);
 		$valuesStr = urlencode(serialize($values));
 		$titleStr = urlencode($title);
@@ -1339,7 +1331,19 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 	public function ___installMigration($migrationPage) {
 		/* @var $migrationPage DbMigrationPage */
-		$migrationPage->installMigration('new');
+		$count = 0;
+		$result = 'uninstalled';
+		while($result != 'installed' and $count < 3) {
+			$result = $migrationPage->installMigration('new');
+			$count++;
+		}
+		$attempts = ($count == 1) ? 'attempt' : 'attempts';
+		if($result != 'installed') {
+			$this->wire()->session->error($this->_("Installation failed after $count $attempts - please preview differences to diagnose."));
+		} else {
+			$this->wire()->session->message($this->_("Installation succeeded after $count $attempts."));
+		}
+
 	}
 
 	/**
@@ -1371,7 +1375,7 @@ If it has been used in another environment and is no longer wanted then you will
 	}
 
 	/**
-	 * Lock the migration
+	 * Lock/Unlock the migration
 	 * NB linked by dbMigrateControl as URL hence PHPStorm does not show usage
 	 *
 	 * @throws WireException
@@ -1385,18 +1389,19 @@ If it has been used in another environment and is no longer wanted then you will
 		if($action == 'lock') {
 			//bd($migrationPage->meta('locked'), 'Meta locked');
 			if(is_dir($migrationFolder)) {
-				if(!$migrationPage->meta('installable')) {
+				//NB restriction on locking removed from installable migrations
+//				if(!$migrationPage->meta('installable')) {
 					$this->lockMigration($migrationPage, $migrationFolder);
-				}
+//				}
 			} else {
 				$this->wire()->session->error(sprintf($this->_("Unable to lock migration as no directory named %s exists."), $migrationPage));
 			}
 		} else {   // 'unlock'
 			$migrationFiles = $this->wire()->files->find($migrationFolder);
 			if(is_dir($migrationFolder) and in_array($migrationFolder . 'lockfile.txt', $migrationFiles)) {
-				if(!$migrationPage->meta('installable')) {
+//				if(!$migrationPage->meta('installable')) {
 					$this->unlockMigration($migrationPage, $migrationFolder);
-				}
+//				}
 			}
 		}
 		$this->wire()->session->redirect($this->wire()->urls->admin . 'page/edit/?id=' . $pageId);
@@ -1860,48 +1865,51 @@ If it has been used in another environment and is no longer wanted then you will
 		$f->checked = ($f->value == 1) ? 'checked' : '';
 		$dbName->add($f);
 
-		// Tracking fieldset
-		/** @var InputfieldFieldset $tracking */
-		$tracking = $this->wire(new InputfieldFieldset());
-		$tracking->label = $this->_('Scope of change tracking');
-		$tracking->description = $this->_('Use selectors to define scope of object changes to be tracked');
-		$tracking->notes = $this->_('If you do not enter a selector then no changes will be tracked. Enter id>0 to (potentially) track everything.');
-		$tracking->columnWidth = 100;
-		$tab1->add($tracking);
-
-		/* @var InputfieldTextarea $f */
-		$f = $modules->InputfieldText;
-		$f_name = 'field_tracking';
-		$f->name = $f_name;
-		$f->label = $this->_('Fields to track');
-		$f->description = $this->_('Use selector to specify fields to track');
-		$f->notes = $this->_('In addition, any excluded fields and dbMigrate fields will not be tracked');
-		$f->columnWidth = 34;
-		$f->value = $this->$f_name;
-		$tracking->add($f);
-
-		/* @var InputfieldTextarea $f */
-		$f = $modules->InputfieldText;
-		$f_name = 'template_tracking';
-		$f->name = $f_name;
-		$f->label = $this->_('Templates to track');
-		$f->description = $this->_('Use selector to specify templates to track');
-		$f->notes = $this->_('In addition, any dbMigrate templates will not be tracked');
-		$f->notes = $this->_('');
-		$f->columnWidth = 33;
-		$f->value = $this->$f_name;
-		$tracking->add($f);
-
-		/* @var InputfieldTextarea $f */
-		$f = $modules->InputfieldText;
-		$f_name = 'page_tracking';
-		$f->name = $f_name;
-		$f->label = $this->_('Pages to track');
-		$f->description = $this->_('Use selector to specify pages to track');
-		$f->notes = $this->_("Typically these will be pages holding settings etc., not normal user-updated pages");
-		$f->columnWidth = 33;
-		$f->value = $this->$f_name;
-		$tracking->add($f);
+		/*
+		 * TRACKING IS NOW IN THE MIGRATION PAGE (post version 2.0.0)
+		 */
+//		// Tracking fieldset
+//		/** @var InputfieldFieldset $tracking */
+//		$tracking = $this->wire(new InputfieldFieldset());
+//		$tracking->label = $this->_('Scope of change tracking');
+//		$tracking->description = $this->_('Use selectors to define scope of object changes to be tracked');
+//		$tracking->notes = $this->_('If you do not enter a selector then no changes will be tracked. Enter id>0 to (potentially) track everything.');
+//		$tracking->columnWidth = 100;
+//		$tab1->add($tracking);
+//
+//		/* @var InputfieldTextarea $f */
+//		$f = $modules->InputfieldText;
+//		$f_name = 'field_tracking';
+//		$f->name = $f_name;
+//		$f->label = $this->_('Fields to track');
+//		$f->description = $this->_('Use selector to specify fields to track');
+//		$f->notes = $this->_('In addition, any excluded fields and dbMigrate fields will not be tracked');
+//		$f->columnWidth = 34;
+//		$f->value = $this->$f_name;
+//		$tracking->add($f);
+//
+//		/* @var InputfieldTextarea $f */
+//		$f = $modules->InputfieldText;
+//		$f_name = 'template_tracking';
+//		$f->name = $f_name;
+//		$f->label = $this->_('Templates to track');
+//		$f->description = $this->_('Use selector to specify templates to track');
+//		$f->notes = $this->_('In addition, any dbMigrate templates will not be tracked');
+//		$f->notes = $this->_('');
+//		$f->columnWidth = 33;
+//		$f->value = $this->$f_name;
+//		$tracking->add($f);
+//
+//		/* @var InputfieldTextarea $f */
+//		$f = $modules->InputfieldText;
+//		$f_name = 'page_tracking';
+//		$f->name = $f_name;
+//		$f->label = $this->_('Pages to track');
+//		$f->description = $this->_('Use selector to specify pages to track');
+//		$f->notes = $this->_("Typically these will be pages holding settings etc., not normal user-updated pages");
+//		$f->columnWidth = 33;
+//		$f->value = $this->$f_name;
+//		$tracking->add($f);
 
 		// Exclusions fieldset
 		/** @var InputfieldFieldset $exclusions */
@@ -2058,18 +2066,27 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 	}
 
+	/**
+	 * Set page meta data for tracking
+	 *
+	 * @param $page
+	 * @param $overrideScope
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function setPageMeta($page, $overrideScope = false) {
+		if(!$page || !$page->id) return;
 		$migration = $this->trackingMigration;
 		if(!$migration) return;
 		if($migration->meta()->get("current_page_{$page->id}")) return;
-		$scopedObjects = $this->wire()->pages->find($this->page_tracking); //NB May not include a new page
+		$scopedObjects = $this->wire()->pages->find($migration->dbMigratePageTracking); //NB May not include a new page
 		$matches = false;
 		// See if page meets criteria, even if not found
-		$matches = ($page->matches($this->page_tracking));
+		$matches = ($page->matches($migration->dbMigratePageTracking));
 		if($page instanceof RepeaterMatrixPage || $page instanceof RepeaterPage) {
 			$rootParent = $page->getForPageRoot();
 //bd([$rootParent, $rootParent->motif_layout_components], 'root parent, components -  in setPageMeta');
-			if($rootParent->matches($this->page_tracking)) {
+			if($rootParent->matches($migration->dbMigratePageTracking)) {
 				$matches = true;
 				// If repeater was edited directly then we might not have the 'current' data for the parent
 				if(!$migration->meta()->get("current_page_{$rootParent->id}")) {
@@ -2085,6 +2102,7 @@ If it has been used in another environment and is no longer wanted then you will
 			if(!$migration->meta('installable') && !$migration->meta('locked') && $migration->dbMigrateLogChanges == 1) { // 1 is 'Log changes'
 				if($page->id) {
 					$objectData = $this->getPageExportData($migration, $page, true);  // $fresh = true means that fresh data from DB will be used throughout (including for repeater fields)
+//					bd($objectData, "object data for page {$page->id}");
 					$migration->meta()->set("current_page_{$page->id}", $objectData);
 				}
 			}
@@ -2311,6 +2329,16 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 	}
 
+	/**
+	 * After fieldgroup edit build form,svae page, save field and save template:
+	 * Display warning re saving of templates which are inside the scope of unlocked installable migrations
+	 *
+	 * @param $object
+	 * @param $action
+	 * @param $type
+	 * @return string|null
+	 * @throws WireException
+	 */
 	protected function preventConflict(&$object, $action, $type = 'page') {
 		$conflict = null;
 		if(!$object) return null;
@@ -2390,23 +2418,25 @@ If it has been used in another environment and is no longer wanted then you will
 	/**
 	 * To get the type of the object and return (by reference) the name, type key and tracking name
 	 *
-	 * @param $object Templates|Fields
+	 * @param $object Templates|Fields|Pages
 	 * @param $type int|null 1=field 2=template
 	 * @param $typeName string template|field
-	 * @param $tracking string template_tracking|field_tracking
+	 * @param $tracking string dbMigrateTemplateTracking|dbMigrateFieldTracking
 	 * @return void
 	 */
 	protected function objectType($event, $object, &$type, &$typeName, &$tracking) {
 //bd($event, 'event in objectType');
+		if(!$object) return;
+		//$this->wire()->log->save('debug', 'Object type: ' . $object->type . ' - Progress A');
 		switch(true) {
 			case (wireInstanceOf($object, 'Templates') || wireInstanceOf($object, 'Template')):
 				$typeName = 'templates';
-				$tracking = 'template_tracking';
+				$tracking = 'dbMigrateTemplateTracking';
 				$type = 2;
 				break;
 			case (wireInstanceOf($object, 'Fields') || wireInstanceOf($object, 'Field')):
 				$typeName = 'fields';
-				$tracking = 'field_tracking';
+				$tracking = 'dbMigrateFieldTracking';
 				$type = 1;
 				break;
 			case (wireInstanceOf($object, 'Fieldgroups') || wireInstanceOf($object, 'Fieldgroup')):
@@ -2425,7 +2455,7 @@ If it has been used in another environment and is no longer wanted then you will
 				break;
 			case (wireInstanceOf($object, 'Pages') || wireInstanceOf($object, 'Page')):
 				$typeName = 'pages';
-				$tracking = 'page_tracking';
+				$tracking = 'dbMigratePageTracking';
 				$type = 3;
 				break;
 			default:
@@ -2442,6 +2472,12 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function getTrackingMigration() {
 		$migrations = $this->pages()->find("template={$this->migrationTemplate}");
 		foreach($migrations as $migration) {
+			if(!$migration->meta('installable') && !$migration->meta('locked') && $migration->dbMigrateLogChanges != 1
+				&& ($migration->dbMigrateFieldTracking || $migration->dbMigrateTemplateTracking || $migration->dbMigratePageTracking)) {
+				$this->wire()->session->error($migration->name . $this->_(": Migration is open with tracking scope, but log changes is not enabled.\n
+			 Changes to this migration will NOT be logged. If you wish to log a recent change, you may need to reverse it, enable 'log changes' and redo the change.\n
+			 To remove this message, lock the migration or enable 'log changes' and save the migration."));
+			}
 			if(!$migration->meta('installable') && !$migration->meta('locked') && $migration->dbMigrateLogChanges == 1) { // 1 is 'Log changes' There should only be one such migration
 				/* @var $migration DbMigrationPage */
 				return $migration;
@@ -2472,8 +2508,23 @@ If it has been used in another environment and is no longer wanted then you will
 		$this->setMetaSaveable($event, $type, $method, $item, $migration);
 	}
 
+	/**
+	 * Called by hooks on saveReady/renameReady WireSaveableItems via hookMetaSaveable()
+	 *  Set the various metadata:
+	 *  •    The ‘current’ data for the object (i.e. before any changes)
+	 *  •    The ‘changed’ (‘object’) data for the object
+	 *  •    The ‘base’ data for the object when the related migration item was first created
+	 *
+	 * @param $event
+	 * @param $type
+	 * @param $method
+	 * @param $item
+	 * @param $migration
+	 * @param $oldFieldgroup
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function setMetaSaveable($event, $type, $method, $item, $migration, $oldFieldgroup = null) {
-
 		$object = ($type == 'fields') ? 'field' : (($type == 'templates') ? 'template' : null);
 		if($object && $item->id) {
 			if(wireInstanceOf($item, 'Field') && !$this->trackingField) $this->set('trackingField', $item); // This will capture the FIRST tracked object after ready()
@@ -2516,6 +2567,13 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 	}
 
+	/**
+	 * Called by hook on FieldtypeRepeater::deleteField
+	 * To track which repeater fields are being deleted
+	 *
+	 * @param $event
+	 * @return void
+	 */
 	protected function setMetaDeleteRepeater($event) {
 		$field = $event->arguments(0);
 		$migration = $this->trackingMigration;
@@ -2524,6 +2582,70 @@ If it has been used in another environment and is no longer wanted then you will
 			$migration->meta()->set("current_field_{$field->id}", $objectData);
 			$this->set('trackingField', $field);
 		}
+	}
+
+	/**
+	 * Called by hook on InputfieldPageTable::render and InputfieldPageTableAjax::checkAjax
+	 * To track which host pages containing a Page Table field is are being edited
+	 *
+	 * @param $event
+	 * @return void
+	 */
+	protected function handlePageTable($event) {
+		//bd('In handlePageTable');
+		$object = $event->object;
+		if(wireInstanceOf($object, 'InputfieldPageTableAjax')) {
+			$id = (int)$object->input->get('id');
+			if($id) {
+//				$hostPage = $this->pages()->get($id);
+//				bd($hostPage, 'hostPage in handlePageTable');
+				// If there is a tracking migration then save the host page with nohooks and quiet
+				//bd($this->trackingMigration, 'trackingMigration in handlePageTable');
+				if($this->trackingMigration && $object->input->get('InputfieldPageTableAdd')) {
+					// set a session var with the host page id
+					$this->session->set('pageTableHostId', $id);
+					//bd($this->session->get('pageTableHostId'), 'set session var pageTableHostId');
+//					$hostPage->of(false);
+//					$this->setPageMeta($hostPage, true);
+//					$this->addTrackedMigrationItem($hostPage, 3, 2, '', [], true);
+				}
+			}
+		} else {
+				// If the object is an InputfieldPageTable, get the session var and add a migration item for the host page
+				if(wireInstanceOf($object, 'InputfieldPageTable')) {
+					$hostId = $this->session->get('pageTableHostId');
+					//bd($hostId, 'hostId in handlePageTable');
+					if($this->trackingMigration && $hostId) {
+						$hostPage = $this->pages()->get($hostId);
+						$pathSelector = $hostPage->path;
+						//bd($pathSelector, 'pathSelector');
+						$inMigration = $this->trackingMigration->dbMigrateItem->find("dbMigrateName=$pathSelector");
+						//bd($inMigration, 'inMigration');
+						if(!$inMigration || $inMigration->count() == 0) {
+							$this->setPageMeta($hostPage, true);
+							$this->addTrackedMigrationItem($hostPage, 3, 2, '', [], true);
+						}
+						$this->session->remove('pageTableHostId');
+					}
+				}
+			}
+
+//		$sessionArray = [];
+//		if(wireInstanceOf($object, 'InputfieldPageTable')) {
+//			$input = $object->wire()->input;
+//			$editId = (int)$input->get('id');
+//			$sessionArray = ($this->session->get('pageTableHostId')) ?: [];
+//			if(is_int($sessionArray)) $sessionArray = [$sessionArray];
+//			$sessionArray[] = $editId;
+//		} else if (wireInstanceOf($object, 'InputfieldPageTableAjax')) {
+//			bd('in checkAjax hook');
+//			$this->log->save('debug', 'In checkAjax hook');
+//			$sessionArray = $this->session->get('pageTableHostId');
+//			if($sessionArray && count($sessionArray) > 0) $sessionArray = []; // array_pop($sessionArray);
+//		}
+//		$this->session->set('pageTableHostId', $sessionArray);
+//		bd([$object, $this->session->get('pageTableHostId')], 'set pageTableHostId: object, session var');
+//		bd(Debug::backtrace(), 'backtrace in handlePageTable');
 	}
 
 	/**
@@ -2559,6 +2681,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$templateSelector = self::dbMigrateTemplateSelector();
 		//bd($templateSelector, ' templateSelector');
 		if($type == 3 && $item->matches($templateSelector)) return;
+		//bd([$event->method, $event], 'wanted handleSaveableHook event');
 		// Don't process items a second time
 		$processed = $this->wire()->session->get('processed');
 //bd($processed, 'processed');
@@ -2584,8 +2707,13 @@ If it has been used in another environment and is no longer wanted then you will
 					$page = $event->arguments(0);
 					$prevParentPath = ($page->parentPrevious) ? $page->parentPrevious->path() : $page->parent()->path();
 					$prevName = ($page->namePrevious) ? $page->namePrevious : $page->name;
-//bd([$prevParentPath, $prevName], 'previous');
-					$oldName = $prevParentPath . $prevName . '/';
+					//bd([$prevParentPath, $prevName], 'previous');
+					if($prevParentPath == '') {   //page was site home page
+						$oldName = '/';
+					} else {
+						$oldName = $prevParentPath . $prevName . '/';
+					}
+//					bd($oldName, 'oldName');
 				}
 				$oldName = ($oldName != $itemName) ? $oldName : '';
 				break;
@@ -2602,45 +2730,48 @@ If it has been used in another environment and is no longer wanted then you will
 				$action = 0;
 				break;
 		}
-		$scopedObjects = $this->wire()->$typeName->find($this->$tracking); //NB May not include a new page
+		$scopedObjects = $this->wire()->$typeName->find($migration->$tracking); //NB May not include a new page
 		$matches = false;
-		$inMigration = [];
-//bd([$type, $action, $item, $this->$tracking], 'type action item tracking');
+		$inMigration = new PageArray();
+//bd([$type, $action, $item, $migration->$tracking], 'type action item tracking');
 		if($type == 3) {
+			//$this->wire()->log->save('debug', $item->name . 'Progress 1');
 			// If the page is just a repeater parent for repeater field that has been added/changed then omit it as installation in target will recreate it
 			if($this->trackingField && $item->name == FieldtypeRepeater::fieldPageNamePrefix . $this->trackingField->id) return; // FieldtypeRepeater::fieldPageNamePrefix is 'for_field_'
 			// Also, if we are deleting a repeater parent for a field that is in the migration (and will be deleted after this page is deleted) then omit it for the same reason
 			$fieldId = str_replace(FieldtypeRepeater::fieldPageNamePrefix, '', $item->name);
-			$dbMigrateItem = $migration->dbMigrateItem;
-			$newFields = $migration->dbMigrateItem->find("dbMigrateType=1");
+			$dbMigrateItem = $migration->getFormatted('dbMigrateItem');
+			$newFields = $dbMigrateItem->find("dbMigrateType=1");
 			foreach($newFields as $newField) {
 				$sourceField = $this->pages()->get("name={$newField->dbMigrateName}");
 				if($sourceField->id == $fieldId) return;
 			}
 
 			// See if page meets criteria, even if not found
-			$matches = ($item->matches($this->$tracking));
-
+			$matches = ($item->matches($migration->$tracking));
+			//$this->wire()->log->save('debug', $item->name . 'Progress 2');
 			// If a repeater page is changed directly, rather than via its 'getFor' parent, then the (root) parent will be treated as being changed (if it is inside the scope)
 			if($item instanceof RepeaterMatrixPage || $item instanceof RepeaterPage) {
 				$rootParent = $item->getForPageRoot();
 //bd($rootParent, 'root parent');
-				if($rootParent->matches($this->$tracking)) {
+				if($rootParent->matches($migration->$tracking)) {
 					// save the root so that it gets registered as the changed item, rather than the repeater page
 					// this will also get the root's 'current' meta data and fetch any image sources and rte links for it
 					$rootParent->of(false);
-					$rootParent->save();
+					$this->pages()->save($rootParent, ['noFields' => true]); // 'noFields' => true is to prevent any recursion
 				}
 			}
+//			$this->wire()->log->save('debug', $item->name . 'Progress 2a');
 
-			if($matches) bd($item, 'page matches selector');
+			//if($matches) bd($item, 'page matches tracking selector');
 
 			// Include any pages that are already in the migration, although technically outside scope of logging
 			$pagePath = $item->path();
 			$pathSelector = ($oldName) ? "$pagePath|$oldName" : $pagePath;
 			$inMigration = $migration->dbMigrateItem->find("dbMigrateName=$pathSelector");
-			// Above was the following line. Not sure why, other than that, previously, I had not specified $this->trackingMigration, so I just looked for any
+			// Above was the following line. Not sure why, other than that, previously, I had not specified $migration->trackingMigration, so I just looked for any
 			//$inaMigration = $this->pages()->find("template={$this->migrationTemplate}, dbMigrateItem.dbMigrateName=$pathSelector");
+//			$this->wire()->log->save('debug', 'Progress 3');
 		}
 		$rteLinks = [];
 		if($action > 0 && (($scopedObjects->has($item) || $matches || $inMigration->count() > 0))) {   // was $inaMigration
@@ -2651,15 +2782,36 @@ If it has been used in another environment and is no longer wanted then you will
 				foreach($imageSources as $imageSource) {
 					$this->setPageMeta($imageSource, true);
 					$this->addTrackedMigrationItem($imageSource, 3, 2, '', [], true);
+//					$this->wire()->log->save('debug', 'Progress 3a');
 					$rteLinks[] = $imageSource;
 				}
 				// Also add info of other (non-image) links as they might be possible dependencies
-				$rteLinks = array_merge($rteLinks, $this->findRteLinks($item)->explode(function($item) {return $item;})); // without the function, explode() returns null for each page
+				$rteLinks = array_merge($rteLinks, $this->findRteLinks($item)->explode(function($item) {
+					return $item;
+				})); // without the function, explode() returns null for each page
+				//If the page is in a page table, include its parent/host page in the migration
+				//bd($item, 'item in handleSaveableHook - check for page table');
+//				$pageTableHost = $this->pageTableHosts($item);
+//				if($pageTableHost) {
+//					bd($pageTableHost, 'host in handleSaveableHook');
+//					$this->setPageMeta($pageTableHost, true);
+//					$this->addTrackedMigrationItem($pageTableHost, 3, 2, '', [], true);
+
+//				}
+				$this->addTrackedMigrationItem($item, $type, $action, $oldName, $rteLinks);
+				//$this->wire()->log->save('debug', 'Progress 3b');
 			}
-			$this->addTrackedMigrationItem($item, $type, $action, $oldName, $rteLinks);
 		}
 	}
 
+	/**
+	 * Called by hook on Fieldgroups::fieldRemoved
+	 * Trigger a 'saved' action on the related template
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function afterFieldRemoved(HookEvent $event) {
 //		bd($event, 'event in fieldgroups hook');
 		$fieldgroup = $event->arguments(0);
@@ -2671,6 +2823,14 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 	}
 
+	/**
+	 * Called by hook before Fieldgroups::saveFieldgroupContext
+	 * Trigger a 'saved' action on the related template
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function beforeFieldsSaveFieldgroupContext(HookEvent $event) {
 		$field = $event->arguments(0);
 		$fieldgroup = $event->arguments(1);
@@ -2681,6 +2841,14 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 	}
 
+	/**
+	 * Called by hook after Fieldgroups::saveFieldgroupContext
+	 * Trigger a 'saved' action on the related template
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function afterFieldsSaveFieldgroupContext(HookEvent $event) {
 		$field = $event->arguments(0);
 		$fieldgroup = $event->arguments(1);
@@ -2691,9 +2859,17 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 	}
 
+	/**
+	 * Called by hook after Fieldgroups::save
+	 * Trigger a 'saved' action on the related template
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function afterFieldgroupsSave(HookEvent $event) {
 		$fieldgroup = $event->arguments(0);
-		bd($fieldgroup, 'afterFieldgroupsSave');
+		//bd($fieldgroup, 'afterFieldgroupsSave');
 		$tpls = $fieldgroup->getTemplates();
 		foreach($tpls as $tpl) {
 			$this->wire()->templates->saved($tpl); // to ensure related template hook is triggered
@@ -2701,6 +2877,9 @@ If it has been used in another environment and is no longer wanted then you will
 	}
 
 	/**
+	 * Called by various methods
+	 * To add a migration item to the tracking migration, as appropriate
+	 *
 	 * @param $item Template|Field
 	 * @param $type int 1=field 2=template
 	 * @param $action int 1=new 2=changed 3=removed
@@ -2708,6 +2887,8 @@ If it has been used in another environment and is no longer wanted then you will
 	 * @return void
 	 */
 	protected function addTrackedMigrationItem($item, $type, $action, $oldName = '', $rteLinks = [], $forceAction = false) {
+		if(!$item) return;
+//		$this->wire()->log->save('debug', 'Progress 4');
 		if($type == 1) {
 			$object = 'field';
 		} else if($type == 2) {
@@ -2725,6 +2906,8 @@ If it has been used in another environment and is no longer wanted then you will
 		/* @var $migration DbMigrationPage */
 		$migration->of(false); // Needed for the case when saved() is called directly in afterFieldRemoved etc
 		if(!$migration->meta('installable') && !$migration->meta('locked') && $migration->dbMigrateLogChanges == 1) { // 1 is 'Log changes'
+//			$this->wire()->log->save('debug', 'Progress 5');
+			$itemMatches = $this->itemMatches($migration, $item);
 			$objectData = $this->setObjectData($migration, $item, $type);
 			$currentData = ($migration->meta("current_{$object}_{$item->id}")) ?: []; // The data for the object before it was changed
 			$baseData = ($migration->meta("base_{$object}_{$item->id}")) ?: []; // The data for the object before the first recorded change
@@ -2791,13 +2974,14 @@ If it has been used in another environment and is no longer wanted then you will
 					$sourceData['parentTemplates'] = $parentTemplateArray;
 					break;
 				case 3: // pages
+//					$this->wire()->log->save('debug', 'Progress 6');
 					$sourceData['source'] = 'page';
 					$sourceData['template_id'] = $item->template->id;
 					$sourceData['parent_id'] = $item->parent()->id;
 					$fields = $item->getFields();
 					$pageArray = array();
 					foreach($fields as $field) {
-						if($field->type == 'FieldtypePage') {
+						if(in_array($field->type, ['FieldtypePage', 'FieldtypePageTable'])) {
 							$pageRefs = $item->$field;
 							if(!($pageRefs instanceof PageArray)) $pageRefs = [$pageRefs];
 							foreach($pageRefs as $pageRef) {
@@ -2817,6 +3001,7 @@ If it has been used in another environment and is no longer wanted then you will
 					$sourceData['rteLinks'] = $linkArray;
 					break;
 			}
+//			$this->wire()->log->save('debug', 'Progress 7');
 //bd(['currentData' => $currentData, 'sourceData' => $sourceData], 'object data');
 			if(!$currentData && $action == 2 && !$forceAction) {
 				// action says it is changed, but it didn't exist before, so we want to keep it as a new item ($forceAction will override this)
@@ -2845,11 +3030,18 @@ If it has been used in another environment and is no longer wanted then you will
 			}
 			// Case 2: Item exists but something has changed - replace it
 			if($migration->dbMigrateItem->has("dbMigrateName={$itemName}, dbMigrateType={$type}") ||
-				$migration->dbMigrateItem->has("dbMigrateName={$oldName}, dbMigrateType={$type}")) {
+				$migration->dbMigrateItem->has("dbMigrateName={$oldName}, dbMigrateType={$type}") ||
+				$itemMatches) {
+				/* NB Considered if we can do away with the first 2 conditions above.
+				 * However, $itemMatches is only set where the existing migration item has a meta('sourceData') - i.e. has been created by this tracking
+				 * The other conditions will catch items that have been maually added
+				 * ToDo Consider whether a source id meta can be added to all migration items (e.g. via a hook)?
+				*/
+
 				//// Case 2a: Name is the same
 				if($migration->dbMigrateItem->has("dbMigrateName={$itemName}, dbMigrateType={$type}")) {
 					$migrationItem = $migration->dbMigrateItem->get("dbMigrateName={$itemName}, dbMigrateType={$type}");
-//bd($migrationItem, 'CASE 2a');
+					//bd($migrationItem, 'CASE 2a');
 					//// Special case - deleting a new object, so just remove the item
 					if($migrationItem->dbMigrateAction->id == 1 && $action == 3) {
 						$this->removeMigrationItem($migration, $migrationItem, $object, $item);
@@ -2860,25 +3052,51 @@ If it has been used in another environment and is no longer wanted then you will
 				if($migration->dbMigrateItem->has("dbMigrateName={$oldName}, dbMigrateType={$type}")) {
 					$migrationItem = $migration->dbMigrateItem->get("dbMigrateName={$oldName}, dbMigrateType={$type}");
 					$migrationItem->dbMigrateName = $itemName;
-//bd($migrationItem, 'CASE 2b');
-				}
+					// For page types, check if there are any children in the migration and change their (path) names to match
+					// NB this only works for children that were added by change tracking, not manually added children
+					if($migrationItem->dbMigrateType->id == 3) {
+						foreach($item->children() as $itemChild) {
+							$itemChildMatches = $this->itemMatches($migration, $itemChild);
+							if($itemChildMatches) {
+								$migrationItemChild = $migration->dbMigrateItem->get("id=$itemChildMatches");
+								if($migrationItemChild) {
+									$migrationItemChild->setAndSave('dbMigrateName', $itemChild->path()); // should be the new path
+									//bd($migrationItemChild->dbMigrateName, 'new child name');
+									$migration->dependencySort()->save();
+								}
+							}
+						}
+					}
+					//bd($migrationItem, 'CASE 2b');
 
-				$migrationItem->dbMigrateAction = ($migrationItem->dbMigrateAction->id == 1 && $action != 3) ? $migrationItem->dbMigrateAction->id : $action;
-				if($migrationItem->dbMigrateAction->id == 2 && !$migrationItem->dbMigrateOldName) {
-					$migrationItem->dbMigrateOldName = $oldName;
-					//Don't change old name if already exists (i.e. name has been changed before)
-					//And don't add an old name if the item is a new one
-				}
 
-				//// Special case - deleting an existing object - reset the name and old name because we just want the one (original) name for removed objects
-				if($action == 3 && $migrationItem->dbMigrateOldName) {
-					$migrationItem->dbMigrateName = $migrationItem->dbMigrateOldName;
-					$migrationItem->dbMigrateOldName = '';
+					$migrationItem->dbMigrateAction = ($migrationItem->dbMigrateAction->id == 1 && $action != 3) ? $migrationItem->dbMigrateAction->id : $action;
+					if($migrationItem->dbMigrateAction->id == 2 && !$migrationItem->dbMigrateOldName) {
+						$migrationItem->dbMigrateOldName = $oldName;
+						//Don't change old name if already exists (i.e. name has been changed before)
+						//And don't add an old name if the item is a new one
+					}
+
+					//// Special case - deleting an existing object - reset the name and old name because we just want the one (original) name for removed objects
+					if($action == 3 && $migrationItem->dbMigrateOldName) {
+						$migrationItem->dbMigrateName = $migrationItem->dbMigrateOldName;
+						$migrationItem->dbMigrateOldName = '';
 //bd($migrationItem, 'deleting existing object - use old name');
+					}
+					//bd($migrationItem, 'AAAA');
 				}
-				//bd($migrationItem, 'AAAA');
 
-				if($migrationItem->dbMigrateName == $migrationItem->dbMigrateOldName) $migrationItem->dbMigrateOldName = '';
+				//// Case 2c A migration item for this item id exists but neither the name nor old name match
+				/// (We could have changed the name in the API, for example)
+				if($itemMatches) {
+					$migrationItem = $migration->dbMigrateItem->get("id=$itemMatches");
+					if($migrationItem && $migrationItem->dbMigrateName != $itemName && $migrationItem->dbMigrateName != $oldName) {
+						$migrationItem->dbMigrateName = $itemName;
+						// oldname should be unchanged (assuming it exists)
+					}
+				}
+
+				if($migrationItem && $migrationItem->id && $migrationItem->dbMigrateName == $migrationItem->dbMigrateOldName) $migrationItem->dbMigrateOldName = '';
 
 				//bd($migrationItem, 'BBBB');
 
@@ -2893,7 +3111,7 @@ If it has been used in another environment and is no longer wanted then you will
 				if(!$diff) {
 					$this->removeMigrationItem($migration, $migrationItem, $object, $item);
 				} else {
-//					bd($migrationItem, 'saving changed item');
+					//bd($migrationItem, 'saving changed item');
 					$migrationItem->meta()->set('sourceData', $sourceData);
 					$sourceData['dependencies'] = $migration->getDependencies($migrationItem, $item);
 					$migrationItem->meta()->set('sourceData', $sourceData);
@@ -2923,6 +3141,7 @@ If it has been used in another environment and is no longer wanted then you will
 			// Now continue with real changes
 //bd($migration, 'Case 3 - adding new item');
 //bd(['item' => $item, 'type' => $type, 'action' => $action, 'oldName' => $oldName], 'In case 3');
+//			$this->wire()->log->save('debug', 'Progress 8');
 			$migrationItem = $migration->dbMigrateItem->getNew();
 			$migrationItem->dbMigrateType = $type;
 			//bd($migrationItem->dbMigrateType->title, 'type title');
@@ -2934,13 +3153,28 @@ If it has been used in another environment and is no longer wanted then you will
 			$sourceData['dependencies'] = $migration->getDependencies($migrationItem, $item);
 			$migrationItem->meta()->set('sourceData', $sourceData);
 			//bd($sourceData, 'setting sourceData 3');
-			$migration->dbMigrateItem->add($migrationItem);
+			//bd($migration->dbMigrateItem, 'dbMigrateItem before addition');
+			if(!$migration->dbMigrateItem->has("dbMigrateName=$itemName")) {  // just in case it is already there - don't duplicate it
+				$migration->dbMigrateItem->add($migrationItem);
+				//bd($migrationItem, 'added migration item');
+			}
 			$migration->meta()->set("base_{$object}_{$item->id}", $currentData);
 			$migration->dependencySort()->save();
 //bd(['migration' => $migration, 'currentData' => $currentData], 'Done CASE 3');
 		}
+//		$this->wire()->log->save('debug', 'Progress 9');
 	}
 
+	/**
+	 * Remove an item from the tracking migration
+	 *
+	 * @param $migration
+	 * @param $migrationItem
+	 * @param $object
+	 * @param $item
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function removeMigrationItem($migration, $migrationItem, $object, $item) {
 		//bd(['migration' => $migration, 'migItem' => $migrationItem, 'obj' => $object, 'item' => $item], 'removemigrationitem');
 		$migration->dbMigrateItem->remove($migrationItem);
@@ -2953,7 +3187,7 @@ If it has been used in another environment and is no longer wanted then you will
 			foreach($imageSources as $imageSource) {
 				$imgSrcPath = $imageSource->path();
 				if($migration->dbMigrateItem->has("dbMigrateName={$imgSrcPath}")) {
-					$scopedObjects = $this->wire()->pages->find($this->page_tracking);
+					$scopedObjects = $this->wire()->pages->find($migration->dbMigratePageTracking);
 					if($scopedObjects->has($imageSource)) {
 						// Case where the imagesource page is within the scope of change tracking in its own right
 						// If the current data for the imagesource page are the same as the 'base data' then this will cause it to be removed too
@@ -2973,144 +3207,213 @@ If it has been used in another environment and is no longer wanted then you will
 			}
 		}
 	}
-	
-/**
- * Helper functions for above
- */
-
- public function setObjectData($migration, $item, $type) {
-	$objectData = ($type < 3) ? $this->getExportDataMod($item) : // The data for the  object ( getExportData() not necessary for new objects and can cause problems)
-	              $this->getPageExportData($migration, $item); // Field exclusions may vary between migrations
-	return $objectData;
- }
-
- public function getExportDataMod($obj) {
-	// To deal with cross-pollution of repeater configs by repeater matrix configs we suspend those methods temporarily
-    // (see https://processwire.com/talk/topic/27988-config-calls-deprecated-method/#comment-229594)
-	$configHook = $this->addHookBefore("FieldtypeRepeaterMatrix::getConfigInputfields($obj)", $this, 'beforeGetConfigInputfields'); // see below
-
-	if(($obj instanceof Field) && !($obj instanceof RepeaterMatrixField) && $obj->type == 'FieldtypeRepeaterMatrix') {
-		$processed = $this->wire()->session->get('processed_repeater');
-		$caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT|DEBUG_BACKTRACE_IGNORE_ARGS,2)[1]['function'];
-		//bd($processed, 'processed repeater in getExportDataMod');
-		if(in_array($obj->id, $processed) && $caller != 'getExportStructureData') {   // Skip the export if this is a duplicate, but don't skip the export when installing a migration
-			return;
-		}
-		$processed[] = $obj->id;
-		$this->wire()->session->set('processed_repeater', $processed);
-		$newObj = self::cast($obj, 'ProcessWire\RepeaterMatrixField');
-		//bd([$obj, $newObj], 'obj, cast object');
-		//bd([DEBUG::backtrace(), debug_backtrace()], 'backtrace');
-	} else {
-		$newObj = $obj;
-	}
-//	bd($newObj, 'newObj');
-	try {
-		$this->wire()->session->set('dbMigrate_exportDataMod', true);
-		$objectData = $newObj->getExportData();
-		$this->wire()->session->remove('dbMigrate_exportDataMod');
-		// getExportData is inconsistent in returning template_id - sometimes it is the template name
-		if(isset($objectData['template_id']) && $objectData['template_id'] && !is_numeric($objectData['template_id'])) {
-			//bd($objectData['template_id'], 'fixing template_id');
-			$name = $objectData['template_id'];
-			if($this->wire()->templates->get("name={$name}")) $objectData['template_id'] = (string) $this->wire()->templates->get("name={$name}")->id;
-		}
-		//
-		// bd([$objectData['name'], $objectData], 'objectData in getExportDataMod');
-	} catch (\Exception $ex) {
-		$objectData = [$ex];
-//bd($objectData, 'objectData exception in getExportDataMod');
-	}
-
-	$this->wire()->removeHook($configHook);
-	return $objectData;
-}
 
 	/**
+	 * Helper functions for above
+	 */
+
+	/**
+	 * Get the id of any migration item (in $migration) which is derived from the $item object (via change tracking)
+	 *
+	 * @param $migration
+	 * @param $item
+	 * @return mixed|null
+	 */
+	public function itemMatches($migration, $item) {
+		/* @var DbMigrationPage $migration */
+		$existingItemIds = [];
+		foreach($migration->getFormatted('dbMigrateItem') as $migrationItem) {
+			if(isset($migrationItem->meta('sourceData')['id']) && $migrationItem->meta('sourceData')['id']) {
+				$existingItemIds[$migrationItem->meta('sourceData')['id']] = $migrationItem->id;
+			}
+		}
+		//bd($existingItemIds, 'existing item ids');
+		if(array_key_exists($item->id, $existingItemIds)) {
+			$itemMatches = $existingItemIds[$item->id];
+			//bd($item->name, 'Already in migration as ' . $migration->dbMigrateItem->get("id=$itemMatches")->dbMigrateName);
+		} else {
+			$itemMatches = null;
+		}
+		//bd($itemMatches, 'Migration item id for ' . $item->name);
+		return $itemMatches;
+	}
+
+	/**
+	 * Get the object data for the migration item
+	 *
+	 * @param $migration
+	 * @param $item
+	 * @param $type
+	 * @return array|\Exception[]|null
+	 * @throws WireException
+	 */
+	public function setObjectData($migration, $item, $type) {
+		$objectData = ($type < 3) ? $this->getExportDataMod($item) : // The data for the  object ( getExportData() not necessary for new objects and can cause problems)
+			$this->getPageExportData($migration, $item); // Field exclusions may vary between migrations
+		return $objectData;
+	}
+
+	/**
+	 * Get the object data for fields and templates
+	 *
+	 * @param $obj
+	 * @return array|\Exception[]|void
+	 * @throws WireException
+	 */
+	public function getExportDataMod($obj) {
+		// To deal with cross-pollution of repeater configs by repeater matrix configs we suspend those methods temporarily
+		// (see https://processwire.com/talk/topic/27988-config-calls-deprecated-method/#comment-229594)
+		$configHook = $this->addHookBefore("FieldtypeRepeaterMatrix::getConfigInputfields($obj)", $this, 'beforeGetConfigInputfields'); // see below
+
+		if(($obj instanceof Field) && !($obj instanceof RepeaterMatrixField) && $obj->type == 'FieldtypeRepeaterMatrix') {
+			$processed = $this->wire()->session->get('processed_repeater');
+			$caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
+			//bd($processed, 'processed repeater in getExportDataMod');
+			if(in_array($obj->id, $processed) && $caller != 'getExportStructureData') {   // Skip the export if this is a duplicate, but don't skip the export when installing a migration
+				return;
+			}
+			$processed[] = $obj->id;
+			$this->wire()->session->set('processed_repeater', $processed);
+			if(wire()->modules->isInstalled('FieldtypeRepeaterMatrix')) {
+				// Make sure that RepeaterMatrixField class  exists
+				if(!wireClassExists('ProcessWire\RepeaterMatrixField')) {
+					require_once(wire()->config->paths->siteModules . 'FieldtypeRepeaterMatrix/RepeaterMatrixField.php');
+				}
+				$newObj = self::cast($obj, 'ProcessWire\RepeaterMatrixField');
+			} else {
+				wire()->session->error($this->_("Attempting to install a RepeaterMatrix field but FieldtypeRepeaterMatrix module is not installed"));
+			}
+			//bd([$obj, $newObj], 'obj, cast object');
+			//bd([DEBUG::backtrace(), debug_backtrace()], 'backtrace');
+		} else {
+			$newObj = $obj;
+		}
+//	bd($newObj, 'newObj');
+		try {
+			$this->wire()->session->set('dbMigrate_exportDataMod', true);
+			$objectData = $newObj->getExportData();
+			$this->wire()->session->remove('dbMigrate_exportDataMod');
+			// getExportData is inconsistent in returning template_id - sometimes it is the template name
+			if(isset($objectData['template_id']) && $objectData['template_id'] && !is_numeric($objectData['template_id'])) {
+				//bd($objectData['template_id'], 'fixing template_id');
+				$name = $objectData['template_id'];
+				if($this->wire()->templates->get("name={$name}")) $objectData['template_id'] = (string)$this->wire()->templates->get("name={$name}")->id;
+			}
+			//
+			// bd([$objectData['name'], $objectData], 'objectData in getExportDataMod');
+		} catch(\Exception $ex) {
+			$objectData = [$ex];
+//bd($objectData, 'objectData exception in getExportDataMod');
+		}
+
+		$this->wire()->removeHook($configHook);
+		return $objectData;
+	}
+
+	/**
+	 * Get the object data for pages
+	 *
 	 * @param $migration DbMigrationPage
 	 * @param $exportPage Page
 	 * @param $fresh boolean If true then a fresh copy pages will be used, rather than the cached version, throughout the process (including repeater pages)
 	 * @return array
 	 * @throws WireException
 	 */
-public function getPageExportData($migration, $exportPage, $fresh = false) {
-	/* @var $migration DbMigrationPage */
-	// $fields = "field=" . implode('|', array_values($exportPage->getFields()->explode('name')));
-	// bd($fields, 'fields for getExport');
-	// $exportPage = $this->pages()->find("id={$page->id}", $fields)->first();
+	public function getPageExportData($migration, $exportPage, $fresh = false) {
+		/* @var $migration DbMigrationPage */
+		// $fields = "field=" . implode('|', array_values($exportPage->getFields()->explode('name')));
+		// bd($fields, 'fields for getExport');
+		// $exportPage = $this->pages()->find("id={$page->id}", $fields)->first();
 
 
 //	bd([$exportPage->name, $exportPage], 'page in getExportPage');
-	$attrib = [];
-	$files = [];
-	$attrib['template'] = $exportPage->template->name;
-	$attrib['parent'] = ($exportPage->parent->path) ?: $exportPage->parent->id;  // id needed in case page is root
-	$attrib['status'] = $exportPage->status;
-	$attrib['name'] = $exportPage->name;
-	$attrib['id'] = $exportPage->id;
-	$restrictFields = $migration->restrictFields();
+		$attrib = [];
+		$files = [];
+		if($fresh) {
+			$exportPage = $this->wire()->pages->getFresh($exportPage->id);
+		}
+		$attrib['template'] = $exportPage->template->name;
+		$attrib['parent'] = ($exportPage->parent->path) ?: $exportPage->parent->id;  // id needed in case page is root
+		$attrib['status'] = $exportPage->status;
+		$attrib['name'] = $exportPage->name;
+		$attrib['id'] = $exportPage->id;
+		$restrictFields = $migration->restrictFields();
 
-	$excludeFields = (isset($this->exclude_fieldnames)) ? str_replace(' ', '', $this->exclude_fieldnames) : '';
-	$excludeFields = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeFields), 'fieldName');
-	$excludeTypes = (isset($this->exclude_fieldtypes)) ? str_replace(' ', '', $this->exclude_fieldtypes) : '';
-	$excludeTypes = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeTypes), 'fieldName');
-	$excludeTypes = array_merge($excludeTypes, self::EXCLUDE_TYPES);
-	$excludeFieldsForTypes = $migration->excludeFieldsForTypes($excludeTypes);
-	$excludeFields = array_merge($excludeFields, $excludeFieldsForTypes);
+		$excludeFields = (isset($this->exclude_fieldnames)) ? str_replace(' ', '', $this->exclude_fieldnames) : '';
+		$excludeFields = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeFields), 'fieldName');
+		$excludeTypes = (isset($this->exclude_fieldtypes)) ? str_replace(' ', '', $this->exclude_fieldtypes) : '';
+		$excludeTypes = $this->wire()->sanitizer->array(str_replace(' ', '', $excludeTypes), 'fieldName');
+		$excludeTypes = array_merge($excludeTypes, self::EXCLUDE_TYPES);
+		$excludeFieldsForTypes = $migration->excludeFieldsForTypes($excludeTypes);
+		$excludeFields = array_merge($excludeFields, $excludeFieldsForTypes);
 
-	$migration->getAllFieldData($exportPage, $restrictFields, $excludeFields, $attrib, $files, $fresh);
-	foreach($excludeFields as $excludeField) {
-		unset($attrib[$excludeField]);
+		$migration->getAllFieldData($exportPage, $restrictFields, $excludeFields, $attrib, $files, $fresh);
+		foreach($excludeFields as $excludeField) {
+			unset($attrib[$excludeField]);
+		}
+		//bd([$exportPage->name, $attrib], 'attrib returned for export page');
+		// $exportPage = $this->pages()->getFresh("{$exportPage->id}");
+		// bd($exportPage, 'plain page');
+		// bd($this->pages()->findRaw("id={$exportPage->id}")[$exportPage->id], 'findraw');
+		// $fields = $exportPage->getFields()->explode('name');
+		// bd($this->pages()->findJoin("id={$exportPage->id}", $fields)->first(), 'findjoin');
+		return $attrib;
 	}
-	//bd([$exportPage->name, $attrib], 'attrib returned for export page');
-	// $exportPage = $this->pages()->getFresh("{$exportPage->id}");
-	// bd($exportPage, 'plain page');
-	// bd($this->pages()->findRaw("id={$exportPage->id}")[$exportPage->id], 'findraw');
-	// $fields = $exportPage->getFields()->explode('name');
-	// bd($this->pages()->findJoin("id={$exportPage->id}", $fields)->first(), 'findjoin');
-	return $attrib;
-}
 
-protected function beforeGetConfigInputfields(HookEvent $event) {
-	$event->replace = true;
-	 //bd($event->object, 'in beforeGetConfigInputfields');
-	 //bd($event->arguments(0), 'field in beforeGetConfigInputfields');
-	$plainRepeater = $this->cast($event->object, 'ProcessWire\FieldtypeRepeater'); // to get the parent method ($event->object is FieldtypeRepeaterMatrix, parent is FieldtypeRepeater)
-	$event->return = $plainRepeater->getConfigInputfields($event->arguments(0)); // arguments(0) is $field
-}
-
-
-/**
- * The next 2 methods form a set. The purpose is to identify pages which hold any images contained in RTE fields of the current page
- * It is possible that the dependency might not be entirely accurate for nested repeater fields with complex relationships of image sources
- * However, this module is not principally concerned with the sort of user pages that might have these rare conditions
- */
+	/**
+	 * Hook before FieldtypeRepeaterMatrix::getConfigInputfields($obj)
+	 * Cast config inputfields of FieldtypeRepeaterMatrix to FieldtypeRepeater, to avoid errors
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 */
+	protected function beforeGetConfigInputfields(HookEvent $event) {
+		$event->replace = true;
+		//bd($event->object, 'in beforeGetConfigInputfields');
+		//bd($event->arguments(0), 'field in beforeGetConfigInputfields');
+		$plainRepeater = $this->cast($event->object, 'ProcessWire\FieldtypeRepeater'); // to get the parent method ($event->object is FieldtypeRepeaterMatrix, parent is FieldtypeRepeater)
+		$event->return = $plainRepeater->getConfigInputfields($event->arguments(0)); // arguments(0) is $field
+	}
 
 
-protected function findRteImageSources($page, $imageSources = null) {
-	$imageSources = ($imageSources) ?: new PageArray();
-	foreach($page->getFields() as $field) {
-		//bd([$page, $field], 'RTE? field');
-		if($field) {
-			if($field->type == 'FieldtypeTextarea') {
-				//bd([$page, $field], 'RTE field Y');
-				$html = $page->$field;
-				$imageSources->add($this->findHtmlImageSources($html));
-			}
-			if($field->type == 'FieldtypeRepeater' || $field->type == 'FieldtypeRepeaterMatrix') {
-				$repeaterPages = $page->$field;
-				foreach($repeaterPages as $repeaterPage){
-					$imageSources->add($this->findRteImageSources($repeaterPage));
+	/**
+	 * The next 2 methods form a set. The purpose is to identify pages which hold any images contained in RTE fields of the current page
+	 * It is possible that the dependency might not be entirely accurate for nested repeater fields with complex relationships of image sources
+	 * However, this module is not principally concerned with the sort of user pages that might have these rare conditions
+	 */
+	/**
+	 * @param $page
+	 * @param $imageSources
+	 * @return WireArray
+	 */
+	public function findRteImageSources($page, $imageSources = null) {
+		$imageSources = ($imageSources) ?: new PageArray();
+		foreach($page->getFields() as $field) {
+			//bd([$page, $field], 'RTE? field');
+			if($field) {
+				if($field->type == 'FieldtypeTextarea') {
+					//bd([$page, $field], 'RTE field Y');
+					$html = $page->$field;
+					$imageSources->add($this->findHtmlImageSources($html));
+				}
+				if($field->type == 'FieldtypeRepeater' || $field->type == 'FieldtypeRepeaterMatrix') {
+					$repeaterPages = $page->$field;
+					foreach($repeaterPages as $repeaterPage) {
+						$imageSources->add($this->findRteImageSources($repeaterPage));
+					}
 				}
 			}
 		}
+		return $imageSources->unique();
 	}
-	return $imageSources->unique();
-}
-
-protected function findHtmlImageSources($html) {
-	if(strpos($html, '<img') === false and strpos($html, '<a') === false) return $html; //return early if no images or links are embedded in html
-	$imageSources = new PageArray();
+	/**
+	 * @param $html
+	 * @return WireArray
+	 * @throws WireException
+	 */
+	protected function findHtmlImageSources($html) {
+		if(strpos($html, '<img') === false and strpos($html, '<a') === false) return $html; //return early if no images or links are embedded in html
+		$imageSources = new PageArray();
 		$re = '/assets\/files\/(\d*)\//m';
 		preg_match_all($re, $html, $matches, PREG_SET_ORDER, 0);
 		if($matches) {
@@ -3119,11 +3422,16 @@ protected function findHtmlImageSources($html) {
 				$imageSources->add($imageSource);
 			}
 		}
-	return $imageSources->unique();
+		return $imageSources->unique();
 	}
 
-	/*
+	/**
 	 * This is a simpler version of the above pair - for just finding RTE fields with links in them
+	 *
+	 * @param $page
+	 * @param $links
+	 * @return WireArray
+	 * @throws WireException
 	 */
 	protected function findRteLinks($page, $links = null) {
 		$links = ($links) ?: new PageArray();
@@ -3135,16 +3443,19 @@ protected function findHtmlImageSources($html) {
 					$html = $page->$field;
 					$re = '/href=\"(.*)\"/m';
 					preg_match_all($re, $html, $matches, PREG_SET_ORDER, 0);
+					//bd($matches, 'matches');
 					foreach($matches as $match) {
 						$path = $match[1];
-						$link = $this->pages()->get($path);
-//bd($link, 'rtelink');
-						if($link) $links->add($link);
+						if($this->sanitizer->path($path)) {
+							$link = $this->pages()->get($path);
+							//bd($link, 'rtelink');
+							if($link) $links->add($link);
+						}
 					}
 				}
 				if($field->type == 'FieldtypeRepeater' || $field->type == 'FieldtypeRepeaterMatrix') {
 					$repeaterPages = $page->$field;
-					foreach($repeaterPages as $repeaterPage){
+					foreach($repeaterPages as $repeaterPage) {
 						$links->add($this->findRteLinks($repeaterPage));
 					}
 				}
@@ -3209,44 +3520,160 @@ protected function findHtmlImageSources($html) {
 		$event->return = $freshItem;
 	}
 
-/**
- * Class casting
- *
- * @param string|object $destination
- * @param object $sourceObject
- * @return object
- */
-public static function cast($sourceObject, $destination)
-{
-    if (is_string($destination)) {
-        // $destination = new $destination(); // replaced by below to avoid calling constructor
-		$destination = ( new \ReflectionClass( $destination ) )->newInstanceWithoutConstructor();
-    }
-    $sourceReflection = new \ReflectionObject($sourceObject);
-    $destinationReflection = new \ReflectionObject($destination);
-    $sourceProperties = $sourceReflection->getProperties();
-    foreach ($sourceProperties as $sourceProperty) {
-        $sourceProperty->setAccessible(true);
-        $name = $sourceProperty->getName();
-        $value = $sourceProperty->getValue($sourceObject);
-        if ($destinationReflection->hasProperty($name)) {
-            $propDest = $destinationReflection->getProperty($name);
-            $propDest->setAccessible(true);
-            $propDest->setValue($destination,$value);
-        } else {
-            $destination->$name = $value;
-        }
-    }
-    return $destination;
-}
+	/**
+	 * Class casting
+	 *
+	 * @param string|object $destination
+	 * @param object $sourceObject
+	 * @return object
+	 */
+	public static function cast($sourceObject, $destination) {
+		if(is_string($destination)) {
+			// $destination = new $destination(); // replaced by below to avoid calling constructor
+			$destination = (new \ReflectionClass($destination))->newInstanceWithoutConstructor();
+		}
+		$sourceReflection = new \ReflectionObject($sourceObject);
+		$destinationReflection = new \ReflectionObject($destination);
+		$sourceProperties = $sourceReflection->getProperties();
+		foreach($sourceProperties as $sourceProperty) {
+			$sourceProperty->setAccessible(true);
+			$name = $sourceProperty->getName();
+			$value = $sourceProperty->getValue($sourceObject);
+			if($destinationReflection->hasProperty($name)) {
+				$propDest = $destinationReflection->getProperty($name);
+				$propDest->setAccessible(true);
+				$propDest->setValue($destination, $value);
+			} else {
+				$destination->$name = $value;
+			}
+		}
+		return $destination;
+	}
 
+////////////////////// Not currently used  ////////////////////////////////////////////
+//	/**
+//	 * Get the pages ('hosts') with page table fields that have the given page in their scope
+//	 * This is so that the hosts can be flagged as changed when the page is changed or added as a pages::saved hook may not work
+//	 *
+//	 * @param $page
+//	 * @return array
+//	 * @throws WireException
+//	 */
+//	public function pageTableHosts($page) {
+//		$pageTableFields = $this->wire()->fields->find('type=FieldtypePageTable');
+//		$parent = $page->parent();
+//		$hosts = new PageArray();
+//		foreach($pageTableFields as $pageTableField) {
+//			$parentId = $this->inPageTableScope($page, $pageTableField);
+//			bd($parentId, 'parent id in pageTableHosts');
+//			$this->log->save('debug', "Parent id for {$page->name} in {$pageTableField->name} is $parentId");
+//			if($parentId !== false) {
+//				if($parentId == 0) {
+//					bd('adding to hosts');
+//					$hosts->add($parent);
+//				} else {
+//					//find all pages that have a $pageTableField field
+//					$fieldgroups = $this->wire()->fieldgroups;
+//					bd($fieldgroups, 'fieldgroups');
+//					$this->wire()->log->save('debug', 'Got fieldgroups');
+//					foreach($fieldgroups as $fieldgroup) {
+//						/* @var $fieldgroup Fieldgroup */
+//						bd($fieldgroup, 'fieldgroup');
+//						$this->log->save('debug', "Checking fieldgroup {$fieldgroup->name}");
+//						if($fieldgroup->hasField($pageTableField)) {
+//							$templates = $fieldgroup->getTemplates();
+//							bd($templates, 'templates');
+//							$templateSelector = implode('|', $templates->explode('id'));
+//							$this->log->save('debug', "Checking templates $templateSelector");
+//							$pages = $this->wire()->pages->find("template=$templateSelector, include=all");
+//							bd($pages, 'pages');
+//							$hosts->add($pages);
+//						}
+//					}
+//				}
+//			}
+//		}
+//		$this->log->save('debug', "Hosts for {$page->name} are " . $hosts->implode(', ', 'name'));
+//		$sessionIds = $this->session->get('pageTableHostId');
+//		bd($sessionIds, 'pageTableHost ids before host selection');
+//		bd($hosts, 'hosts in pageTableHosts');
+//		$host = null;
+//		if($hosts->count() > 1 && $sessionIds) {
+//			while(count($sessionIds) > 0) {
+//				$hostId = array_pop($sessionIds);
+//				$host = (is_int($hostId)) ? $hosts->get("id=$hostId, include=all") : null;
+//				if($host) {
+//					$this->warning("Multiple potential hosts for page table item {$page->name} :- Just including {$host->path} in the migration. Add other pages to migration manually if required.");
+//					// Reset the session var with the reduced array, but first reinstate the current host page
+//					array_push($sessionIds, $hostId);
+//					$this->session->set('pageTableHostId', $sessionIds);
+//					break;
+//				}
+//			}
+//
+//			if(!$host) {
+//				$host = $hosts->first();
+//				$this->warning("Multiple potential hosts for page table item {$page->name} :- {$hosts->implode(', ', 'name')}. \n
+//					This may cause problems with change tracking. Using first host - ($host->path} - only. Remove and/or add other pages to migration manually if required.");
+//			}
+//		} else {
+//			$host = $hosts->first();
+//		}
+//		bd($sessionIds, 'pageTableHost ids after host selection');
+//		bd(Debug::backtrace(), 'backtrace in pageTableHosts');
+//		return $host;
+//	}
+//
+//	/**
+//	 * Is the page within the scope of a page table field?
+//	 *
+//	 * @param $page
+//	 * @param $pageTable
+//	 * @return bool/int
+//	 *
+//	 */
+//	public function inPageTableScope($page, $pageTableField) {
+//		$parent = $page->parent();
+//		$data = $this->accessProtected($pageTableField, 'data');
+//		bd($data, 'data in inPageTableScope');
+//		$templateId = $data['template_id'];
+//		$parentId = $data['parent_id'];
+//		bd($templateId, 'template id in inPageTableScope');
+//		$selector = implode('|', $templateId);
+////		$requiredParentId = ($parentId == 0) ? $parent->id : $parentId;
+//		$templates = $this->templates()->find("id=$selector");
+//		/* @var $templates TemplatesArray */
+//		bd([$page, $parent, $templates], 'page, parent, templates');
+//		if($templates->has($page->template) && ($parentId == 0 || $parent->id == $parentId)) {
+//			return $parentId;
+//		} else {
+//			return false;
+//		}
+//	}
+//
+/////////////////////////////////////////////////////////////////////////////////
 
-/*
- ************************************
- *********** HELP PAGE **************
- ************************************
- */
- //NB See also afterSave and beforeBuildFormContent Hooks above
+	/**
+	 * Get data for protected properties
+	 *
+	 * @param $obj
+	 * @param $prop
+	 * @return mixed
+	 * @throws \ReflectionException
+	 */
+	protected function accessProtected($obj, $prop) {
+		$reflection = new \ReflectionClass($obj);
+		$property = $reflection->getProperty($prop);
+		$property->setAccessible(true);
+		return $property->getValue($obj);
+	}
+
+	/*
+	 ************************************
+	 *********** HELP PAGE **************
+	 ************************************
+	 */
+	//NB See also afterSave and beforeBuildFormContent Hooks above
 
 	/**
 	 * Create template
@@ -3318,8 +3745,14 @@ public static function cast($sourceObject, $destination)
 
 	}
 
-	/*
+	/**
 	 * Popout for various pages
+	 *
+	 * @param $label
+	 * @param $fullText
+	 * @return string
+	 * @throws WireException
+	 * @throws WirePermissionException
 	 */
 	static function helpPopout($label, $fullText = false) {
 		$helpPagePath = wire('pages')->get(2)->path() . self::moduleInfo()['page']['parent'] . '/' . self::moduleInfo()['page']['name'] . '/dbmigrate-help/';

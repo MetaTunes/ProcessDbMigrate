@@ -33,12 +33,17 @@ if(class_exists('DefaultPage')) {
  * @property string $title Title
  * @property mixed $dbMigrateRuntimeControl Page status
  * @property mixed $dbMigrateRuntimeActions Migration actions
+ * @property int $dbMigrateLogChanges Toggle: 1 = Log changes, 0 = Sort on save, 2 = Manual
+ * @property string $dbMigrateFieldTracking Selector for fields to be tracked if 'log changes' is on
+ * @property string $dbMigrateTemplateTracking Selector for templates to be tracked if 'log changes' is on
+ * @property string $dbMigratePageTracking Selector for pages to be tracked if 'log changes' is on
  * @property string $dbMigrateSummary Summary
  * @property string $dbMigrateAdditionalDetails Additional details
  * @property RepeaterDbMigrateItemPage $dbMigrateItem Migration item
  * @property string $dbMigrateRestrictFields Restrict fields
  * @property RepeaterDbMigrateSnippetsPage $dbMigrateSnippets Snippets
  * @property mixed $dbMigrateRuntimeReady Hooks etc
+ *
  */
 class DbMigrationPage extends DummyMigrationPage {
 
@@ -64,7 +69,10 @@ class DbMigrationPage extends DummyMigrationPage {
 
 	}
 
-
+	/**
+	 * Get the data for a migration item
+	 * @return void
+	 */
 	public function init() {
 		//bd('INIT MIGRATION');
 	}
@@ -159,6 +167,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		$excludeTypes = array_merge($excludeTypes, ProcessDbMigrate::EXCLUDE_TYPES);
 		$excludeFieldsForTypes = $this->excludeFieldsForTypes($excludeTypes);
 		$excludeFields = array_merge($excludeFields, $excludeFieldsForTypes);
+		//bd($excludeFields, 'excludeFields');
 		$excludeFieldsBasic = $this->excludeFieldsForTypes(ProcessDbMigrate::EXCLUDE_TYPES);
 		//bd($this->configData, 'configData in exportData');
 		$excludeAttributes = (isset($configData['exclude_attributes']))
@@ -197,30 +206,37 @@ class DbMigrationPage extends DummyMigrationPage {
 		}
 		// Include an item for the site url as this may be different in the target
 		$migrationData['sourceSiteUrl'] = $this->wire()->config->urls->site;
-		$migrationObjectJson = wireEncodeJSON($migrationData, true, true);
+		$migrationObjectJson = $this->modifiedJsonEncode($migrationData);
 		if($newOld != 'compare') {
 			file_put_contents($migrationPathNewOld . 'migration.json', $migrationObjectJson);
 			$this->wire()->session->message($this->_('Exported migration definition as ') . $migrationPathNewOld . 'migration.json');
 		}
 
+		/*
+		 * NOW CREATE THE MAIN JSON DATA FILES
+		 */
 		if(!$this->meta('draft') or $newOld != 'new') {   // meta('draft') denotes draft migration prepared from comparison
 
 			/*
 			 * GET DATA FROM PAGE AND SAVE IN JSON
 			 */
-			$itemRepeater = $this->dbMigrateItem;
+			$itemRepeater = $this->getFormatted('dbMigrateItem'); //getFormatted to get only published items
 			//bd($itemRepeater, $itemRepeater);
-			$items = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'new');
-			$data = $items['data'];
-			//bd($data, 'data for json');
-			$files['new'] = $items['files'];
-			$reverseItems = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'old'); // cycleItems will reverse order for uninstall
-			$reverseData = $reverseItems['data'];
-			$files['old'] = $reverseItems['files'];
+			if($newOld == 'new' || $newOld == 'compare') {
+				$items = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'new');
+				$data = $items['data'];
+				//bd($data, 'data for json');
+				$files['new'] = $items['files'];
+				$objectJson['new'] = $this->modifiedJsonEncode($data);
+				bd($objectJson['new'], 'New json created');
+			}
+			if($newOld == 'old' || $newOld == 'compare') {
+				$reverseItems = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'old'); // cycleItems will reverse order for uninstall
+				$reverseData = $reverseItems['data'];
+				$files['old'] = $reverseItems['files'];
+				$objectJson['old'] = $this->modifiedJsonEncode($reverseData);
+			}
 			//bd($files, 'files in export data');
-			$objectJson['new'] = wireEncodeJSON($data, true, true);
-			//bd($objectJson['new'], 'New json created');
-			$objectJson['old'] = wireEncodeJSON($reverseData, true, true);
 			//bd($objectJson, '$objectJson ($newOld = ' . $newOld . ')');
 			if($newOld != 'compare') {
 				file_put_contents($migrationPathNewOld . 'data.json', $objectJson[$newOld]);
@@ -303,7 +319,7 @@ class DbMigrationPage extends DummyMigrationPage {
 					$R = $this->array_compare($newArray, $cmpArray['new']);
 					$R = $this->pruneImageFields($R, 'new');
 					//bd($R, ' array compare new->cmp');
-					//bd(wireEncodeJSON($R), ' array compare json new->cmp');
+					//bd($this->modifiedJsonEncode($R), ' array compare json new->cmp');
 					$installedData = (!$R);
 					$installedDataDiffs = $R;
 
@@ -314,7 +330,7 @@ class DbMigrationPage extends DummyMigrationPage {
 					$R2 = $this->array_compare($oldArray, $cmpArray['old']);
 					$R2 = $this->pruneImageFields($R2, 'old');
 					//bd($R2, ' array compare old->cmp');
-					//bd(wireEncodeJSON($R2), ' array compare json old->cmp');
+					//bd($this->modifiedJsonEncode($R2), ' array compare json old->cmp');
 					$uninstalledData = (!$R2);
 					$uninstalledDataDiffs = $R2;
 
@@ -468,6 +484,13 @@ class DbMigrationPage extends DummyMigrationPage {
 		}
 	}
 
+	public function modifiedJsonEncode($data) {
+		$json = wireEncodeJSON($data, true, true);
+		$json = str_replace('\t', ' ', $json);
+		bd($json, 'modified json');
+		return $json;
+	}
+
 	/**
 	 * Cycle through items in a migration and get the data for each
 	 * If $compareType is 'old' then reverse the order and swap 'new' and 'removed' actions
@@ -487,7 +510,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		$count = 0;
 		$item = [];
 		$files = [];
-		if(!$itemRepeater) return ['data' => '', 'files' => ''];
+		if(!$itemRepeater || $itemRepeater->isUnpublished) return ['data' => '', 'files' => ''];
 		if($compareType == 'old') $itemRepeater = $itemRepeater->reverse();
 		foreach($itemRepeater as $repeaterItem) {
 			/* @var $repeaterItem RepeaterDbMigrateItemPage */
@@ -589,15 +612,24 @@ class DbMigrationPage extends DummyMigrationPage {
 		if($noFind and ($item['action'] == 'removed' or $item['action'] == 'new')) {
 			$data = [$item['type'] => [$item['action'] => [$itemName => []]]];
 			//bd($data, 'Returning data for new/removed which do not exist in current db');
-			if($newOld == 'new' || ($newOld == 'compare' && $compareType == 'new')) $flag = 'new';
-			if($newOld == 'old' || ($newOld == 'compare' && $compareType == 'old')) $flag = 'removed';
+
+			// $flag indicates which actions should have associated item in the current database
+			if($this->meta('installable')) { 	// target database
+				$flag = ($compareType == 'new') ? 'removed' : 'new';
+			} else { 							// source database
+				$flag = 'new';
+			}
+//bd(['action' => $item['action'], 'newOld' => $newOld, 'compareType' => $compareType, 'flag' => $flag]);
 			if(isset($flag) && $item['action'] == $flag) {
+				//bd(['action' => $item['action'], 'flag' => $flag], 'Reporting exception');
+				//bd(debug::backtrace(), 'backtrace');
 				$this->wire()->session->warning(sprintf($this->_('Selector "%s" did not select any items'), $item['name']));
 			}
 			return ['data' => $data, 'files' => []];
 		}
 		if($noFind) {
 			// 'changed' items should exist in all contexts
+			//bd('No object for ' . $itemName . '.');
 			$this->wire()->session->warning($this->name . ': ' . sprintf($this->_('No %s object for '), $item['type']) . $itemName);
 			return $empty;
 		}
@@ -825,6 +857,12 @@ class DbMigrationPage extends DummyMigrationPage {
 		return ['data' => $data, 'files' => $files, 'repeaterPages' => $repeaterPages];
 	}
 
+	/**
+	 * Get array of restricted fields - i.e. only these fields to be considered in migrating pages
+	 *
+	 * @return array
+	 * @throws WireException
+	 */
 	public function restrictFields() {
 		$restrictFields = array_filter($this->wire()->sanitizer->array(
 			str_replace(' ', '', $this->dbMigrateRestrictFields),
@@ -844,6 +882,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @return void
 	 */
 	public function getAllFieldData($exportPage, $restrictFields, $excludeFields, &$attrib, &$files, $fresh = false) {
+		if(!$exportPage || !$exportPage->id) return;
 		foreach($exportPage->getFields() as $field) {
 			$name = $field->name;
 			//bd($restrictFields, '$restrictFields');
@@ -874,11 +913,28 @@ class DbMigrationPage extends DummyMigrationPage {
 		if($fresh) $page = $this->wire()->pages->getFresh($page->id);
 		if(!$page->data($name)) $page->set($name, $page->$field);
 		// $page = $this->pages()->findJoin("id={$page->id}", "$name")->first();
-		if($page->data($name) == null) return ['attrib' => $attrib, 'files' => $files];  // NB changed from if(!$page->data($name). Review options if this causes probs, but remember need to return empty values.
+		if($page->data($name) === null || !$page->$field) {    // NB changed from if(!$page->data($name). Review options if this causes probs, but remember need to return empty values if there is no item
+											 // NB (2) Must be === otherwise items with value=0 get discarded as if they had no value and cause mismatch errors in target
+//			bd([$page, $name], 'returning empty');
+			return ['attrib' => $attrib, 'files' => $files];
+		}
 		//bd([$page, $field, $page->$field], 'page field before setting');
 		switch($field->type) {
 			case 'FieldtypePage' :
+//			case 'FieldtypePageTable' :
 				$attrib[$name] = $this->getPageRef($page->$field);
+				break;
+			case 'FieldtypePageTable' :  // NB Not sure why I replaced the above with this, which returns name and parent path separately
+				$contents = [];
+				foreach($page->$field as $items) {
+					//bd($item, 'pagetable item');
+					$contents['items'] = [];
+					$items = $page->$field->getArray();
+					foreach($items as $item) {
+						$contents['items'][] = ['name' => $item['name'], 'parent' => $item['parent']->path];
+					}
+					$attrib[$name] = $contents;
+				}
 				break;
 			case 'FieldtypeFields':
 				$contents = [];
@@ -936,12 +992,9 @@ class DbMigrationPage extends DummyMigrationPage {
 					$files[$page->id][] = $itemArray['basename'];
 //					bd($files, 'files for page ' . $page->name);
 				}
-				$attrib[$name] = $contents;
-				//bd($attrib, 'attrib');
-				break;
-//            case 'FieldtypeTextarea' :
-//                  // uses default
-//                break;
+			$attrib[$name] = $contents;
+			//bd($attrib, 'attrib');
+			break;
 			case 'FieldtypeOptions' :
 				$attrib[$name] = implode('|', $page->$field->explode('id'));
 				break;
@@ -994,16 +1047,16 @@ class DbMigrationPage extends DummyMigrationPage {
 				//bd($contents, 'repeater contents 2');
 				$attrib[$name] = $contents;
 				break;
-			case 'FieldtypePageTable' :
-				$contents = [];
-				foreach($page->$field as $items) {
-					//bd($item, 'pagetable item');
-					$contents['items'] = [];
-					$items = $page->$field->getArray();
-					foreach($items as $item) {
-						$contents['items'][] = ['name' => $item['name'], 'parent' => $item['parent']->path];
-					}
-					$attrib[$name] = $contents;
+			case 'FieldtypeTextarea' :
+				if(is_object($page->$field) && property_exists($page->$field, 'data')) {
+					//bd([$page, $field, $page->$field, $page->$field->data], 'page field data');
+					$attrib[$name] = $page->$field->data;
+				} else {
+					//bd([$page, $field, $page->$field], 'page field');
+					$attrib[$name] = $page->$field;
+//					$dbm = $this->wire('modules')->get('ProcessDbMigrate');
+//					$x = $dbm->findRteImageSources($page);
+					//bd($x, 'rte images');
 				}
 				break;
 			default :
@@ -1011,12 +1064,12 @@ class DbMigrationPage extends DummyMigrationPage {
 					//bd([$page, $field, $page->$field, $page->$field->data], 'page field data');
 					$attrib[$name] = $page->$field->data;
 				} else {
-					//bd([$page, $field, $page->$field], 'page field');
+//					bd([$page, $field, $page->$field], 'page field');
 					$attrib[$name] = $page->$field;
 				}
 				break;
 		}
-		// bd($page, 'page after setting');
+		//bd($page, 'page after setting');
 		return ['attrib' => $attrib, 'files' => $files];
 	}
 
@@ -1076,24 +1129,33 @@ class DbMigrationPage extends DummyMigrationPage {
 		//bd($objectData, 'objectdata');
 		if($item['type'] == 'fields') {
 			// enhance repeater / page ref / custom field data
-			if(isset($objectData['type']) && in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage', 'FieldtypeImage', 'FieldtypeFile'])) {
+			if(isset($objectData['type']) && in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage', 'FieldtypePageTable', 'FieldtypeImage', 'FieldtypeFile'])) {
 				$f = $this->wire('fields')->get($objectData['name']);
 				if($f) {
-					if(in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage'])) {
-						$templateId = (int)$f->get('template_id');
+					if(in_array($objectData['type'], ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage', 'FieldtypePageTable'])) {
+
+						// 'template_id' is used by Page and PageTable types
+						$templateId = $f->get('template_id');
 						if($templateId) {
-							$templateName = $this->wire('templates')->get($templateId)->name;
-							$objectData['template_name'] = $templateName;
+							//bd($templateId, 'template id');
+							if(!is_array($templateId)) {
+								$templateId = [$templateId];
+								$singular = true;
+							} else {
+								$singular = false;
+							}
+							$objectData['template_name'] = [];
+							foreach($templateId as $id) {
+								$templateName = $this->wire('templates')->get($id)->name;
+								$objectData['template_name'][] = $templateName;
+							}
+							if($singular) $objectData['template_name'] = $objectData['template_name'][0];
+							//bd($objectData['template_name'], 'template names');
 						}
 						unset($objectData['template_id']);
+						//
 
-						$parentId = (int)$f->get('parent_id');
-						if($parentId && $objectData['type'] == 'FieldtypePage') {   // Don't want to set parent_path for repeaters as not needed and references may differ in the target db
-							$parentPath = $this->wire('pages')->get($parentId)->path;
-							$objectData['parent_path'] = $parentPath;
-						}
-						unset($objectData['parent_id']);
-
+						// 'template_ids' is used by Repeater and RepeaterMatrix types
 						$templateIds = $f->get('template_ids');
 						if($templateIds) {
 							$objectData['template_names'] = [];
@@ -1103,6 +1165,14 @@ class DbMigrationPage extends DummyMigrationPage {
 							}
 						}
 						unset($objectData['template_ids']);
+						//
+
+						$parentId = (int)$f->get('parent_id');
+						if($parentId && in_array($objectData['type'], ['FieldtypePage', 'FieldtypePageTable'])) {   // Don't want to set parent_path for repeaters as not needed and references may differ in the target db
+							$parentPath = $this->wire('pages')->get($parentId)->path;
+							$objectData['parent_path'] = $parentPath;
+						}
+						unset($objectData['parent_id']);
 
 						// Repeater matrix fields have field ids set in the in matrix{n}_field array.
 						// We need to convert these to  names so that they can be found in the target.
@@ -1114,7 +1184,7 @@ class DbMigrationPage extends DummyMigrationPage {
 									if($matrixItems !== null) {
 										$matrixItemNames = [];
 										foreach($matrixItems as $matrixItem) {
-											$matrixItemNames[] = $this->fields()->get($matrixItem)->name;
+											if($this->fields()->get($matrixItem)) $matrixItemNames[] = $this->fields()->get($matrixItem)->name;
 										}
 										$objectData["matrix_field_names"][$typeCount] = $matrixItemNames;
 										// (set this as an array rather than "matrix{$typeCount}_field_names" as we can foreach that more easily on the install)
@@ -1138,11 +1208,12 @@ class DbMigrationPage extends DummyMigrationPage {
 				if($this->template == ProcessDbMigrate::MIGRATION_TEMPLATE) {
 					$templateOk = false;
 					$i = 0;
-					$allItems = $this->dbMigrateItem;
+					$allItems = $this->getFormatted('dbMigrateItem'); // getFormatted to get only published items
 					if($compareType == 'new' and $newOld == 'new' and isset($templateName)) {
 						//bd($templateName, 'templatename');
 						foreach($allItems as $other) {
 							/* @var $other RepeaterDbMigrateItemPage */
+							if($other->isUnpublished) continue;
 							//bd($other, 'other - item ' . $i);
 							//bd($other->dbMigrateType, 'other type');
 							if($i >= $k) break;
@@ -1152,7 +1223,7 @@ class DbMigrationPage extends DummyMigrationPage {
 								break;
 							}
 						}
-						if(!$templateOk) {
+						if(!$templateOk && $this->dbMigrateLogChanges == 2) {  // only show warnings for manual sorting. Auto sorting should have fixed it
 							$fieldType = strtolower(str_replace('Fieldtype', '', $objectData['type']));
 							$w2 = ($item['action'] == 'new') ? '. ' . sprintf($this->_('Template %1$s should be specified (as new) before the %2$s field.'), $templateName, $fieldType) :
 								'. ' . sprintf($this->_('If it has changed, consider if template %1$s should be specified (as changed) before the %2$s field.'), $templateName, $fieldType);
@@ -1422,6 +1493,20 @@ class DbMigrationPage extends DummyMigrationPage {
 		return $diffs;
 	}
 
+	/**
+	 * Remove url and path from reported differences in image fields
+	 *
+	 * @param $diffs
+	 * @param $diffsRemain
+	 * @param $field
+	 * @param $pName
+	 * @param $fName
+	 * @param $values
+	 * @param $newOld
+	 * @param $depth
+	 * @return array
+	 * @throws WireException
+	 */
 	protected function pruneDetails($diffs, $diffsRemain, $field, $pName, $fName, $values, $newOld, $depth = []) {
 
 		//bd(['pName' => $pName, 'fName' => $fName, 'values' => $values, 'newOld' => $newOld, 'depth' => $depth], 'in prune details');
@@ -1473,6 +1558,15 @@ class DbMigrationPage extends DummyMigrationPage {
 		return ['diffs' => $diffs, 'diffsRemain' => $diffsRemain];
 	}
 
+
+	/**
+	 * Recursively unset an array element
+	 * NB This is not the same as array_filter_recursive which removes empty elements
+	 *
+	 * @param $target
+	 * @param $keyChain
+	 * @return mixed
+	 */
 	public function del($target, $keyChain) {
 		//bd(['target' => $target, 'keyChain' => $keyChain], 'diffs entering deepUnset v2');
 		foreach($target as $key => $value) {
@@ -1572,7 +1666,6 @@ class DbMigrationPage extends DummyMigrationPage {
 		//bd($html, 'new html');
 		if(!$checkFileEquality) l('New HTML: ' . $html, 'debug');
 
-
 		if(!$idMapArray) return $html;
 		foreach($idMapArray as $origId => $destId) {
 			//bd([$origId, $destId], 'Id pair');
@@ -1639,8 +1732,9 @@ class DbMigrationPage extends DummyMigrationPage {
 	 *
 	 */
 	public function installMigration($newOld) {
-		if(!$this->ready and $this->name != 'dummy-bootstrap') $this->ready();  // don't call ready() for dummy-bootstrap as it has no template assigned at this point
 		$this->wire()->log->save('debug', 'In install with newOld = ' . $newOld);
+
+		if(!$this->ready and $this->name != 'dummy-bootstrap') $this->ready();  // don't call ready() for dummy-bootstrap as it has no template assigned at this point
 
 		// Backup the old installation first
 		if($newOld == 'new' and $this->name != 'dummy-bootstrap') $this->exportData('old');
@@ -1706,7 +1800,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			}
 		}
 		//bd($pagesInstalled, 'pages installed');
-		if($this->name != 'dummy-bootstrap') {
+		if($this->name != 'dummy-bootstrap' && $this->id) {
 			// update any images in RTE fields (links may be different owing to different page ids in source and target dbs)
 			$idMapArray = $this->setIdMap($pagesInstalled);
 			//bd($idMapArray, 'idMapArray');
@@ -1720,19 +1814,20 @@ class DbMigrationPage extends DummyMigrationPage {
 		if($message) $this->wire()->session->message(implode(', ', $message));
 		if($warning) $this->wire()->session->warning(implode(', ', $warning));
 		//bd($newOld, 'finished install');
+		return $this->meta('installedStatus')['status'];
 	}
 
 	protected function fixRteHtml($pagesInstalled, $idMapArray, $newOld) {
 		foreach($pagesInstalled as $page) {
-			//bd($page, 'RTE? page');
+			bd($page, 'RTE? page');
 			foreach($page->getFields() as $field) {
-				//bd([$page, $field], 'RTE? field');
+				bd([$page, $field], 'RTE? field');
 				if($field->type == 'FieldtypeTextarea') {
-					//bd([$page, $field], 'RTE field Y');
-					//bd($page->$field, 'Initial html');
+					bd([$page, $field], 'RTE field Y');
+					bd($page->$field, 'Initial html');
 					$html = $page->$field;
 					$html = $this->replaceLink($html, $idMapArray, $newOld);
-					//bd($html, 'returned html');
+					bd($html, 'returned html');
 					$page->$field = $html;
 					$page->of(false);
 					$page->save($field);
@@ -1756,7 +1851,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 *
 	 */
 	protected function installFields($items, $itemType) {
-		$this->wire()->log->save('debug', 'install fields');
+		//$this->wire()->log->save('debug', 'install fields');
 		$items = $this->pruneKeys($items, $itemType);
 		// repeater fields should be processed last as they may depend on earlier fields
 		$repeaters = [];
@@ -1771,7 +1866,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			if(in_array($data['type'], ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix'])) {
 				unset($items[$name]);
 				$repeaters[$name] = $data;
-			} else if($data['type'] == 'FieldtypePage') {
+			} else if(in_array($data['type'], ['FieldtypePage', 'FieldtypePageTable'])) {
 				unset($items[$name]);
 				$pageRefs[$name] = $data;
 			}
@@ -1788,16 +1883,27 @@ class DbMigrationPage extends DummyMigrationPage {
 		foreach($pageRefs as $fName => $fData) {
 			if(isset($fData['template_name'])) {
 				$tName = $fData['template_name'];
-				$t = $this->wire('templates')->get($tName);
-				if($t) {
-					$fData['template_id'] = $t->id;
+				// Note that PageTable fields will have multiple (array of) templates, even though the name implies a single one
+				if(!is_array($tName)) {
+					$tName = [$tName];
+					$singular = true;
 				} else {
-					$this->wire()->session->error(sprintf(
-							$this->_('Cannot install field %1$s properly because template %2$s is missing. Is it missing or out of sequence in the installation list?'),
-							$fName,
-							$tName)
-					);
+					$singular = false;
 				}
+				$fData['template_id'] = [];
+				foreach($tName as $name) {
+					$t = $this->wire('templates')->get($name);
+					if($t) {
+						$fData['template_id'][] = $t->id;
+					} else {
+						$this->wire()->session->error(sprintf(
+								$this->_('Cannot install field %1$s properly because template %2$s is missing. Is it missing or out of sequence in the installation list?'),
+								$fName,
+								$name)
+						);
+					}
+				}
+				if($singular) $fData['template_id'] = $fData['template_id'][0];
 				unset($fData['template_name']);  // it was just a temp variable - no meaning to PW
 			}
 
@@ -1864,7 +1970,7 @@ class DbMigrationPage extends DummyMigrationPage {
 					foreach($fData['matrix_field_names'] as $matrixType => $itemNames) {
 						$itemIds = array();
 						foreach($itemNames as $itemName) {
-							$itemIds[] = $this->fields()->get($itemName)->id;
+							if($this->fields()->get($itemName)) $itemIds[] = $this->fields()->get($itemName)->id;
 						}
 						$fData["matrix{$matrixType}_fields"] = $itemIds;
 					}
@@ -1877,12 +1983,18 @@ class DbMigrationPage extends DummyMigrationPage {
 		}
 		if($newRepeaters) $this->processImport($newRepeaters);
 
-		// We have to get export data now as it triggers the config fields. Otherwise install has to be run twice in some situations
+		// We have to get export data now, even though we don't use it, because it triggers the config fields. Otherwise install has to be run twice in some situations
 		foreach($names as $name) {
 			$f = $this->wire()->fields->get($name);
-			//bd($f, 'pre-getting export data');
+			//bd([$this, $f], '$this, $f: pre-getting export data');
 			if($f) {
-				$objectData = $this->dbMigrate->getExportDataMod($f);
+				// fix for dummy-bootstrap as no template and ready() not yet run
+				if($this->name == 'dummy-bootstrap') {
+					$dbMigrate = wire('modules')->get('ProcessDbMigrate');
+					$objectData = $dbMigrate->getExportDataMod($f);
+				} else {
+					$objectData = $this->dbMigrate->getExportDataMod($f);
+				}
 			}
 		}
 	}
@@ -2147,7 +2259,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			if(!$this->wire()->sanitizer->path($name)) continue;
 			//bd($name, 'name to install');
 			$p = $this->wire('pages')->get($name);
-			$this->wire()->log->save('debug', 'Installing page ' . $name);
+			//$this->wire()->log->save('debug', 'Installing page ' . $name);
 			/* @var $p DefaultPage */
 			$pageIsHome = ($data['parent'] === 0);
 			if($this->name == 'dummy-bootstrap' &&
@@ -2162,7 +2274,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			//bd($parent, 'PARENT');
 			$template = $this->wire()->templates->get($data['template']);
 			if(!$pageIsHome and (!$parent or !$parent->id or !$template or !$template->id)) {
-				$this->wire()->session->error(sprintf($this->_('Missing parent or template for page "%s". Page not created/saved.'), $name));
+				$this->wire()->session->warning(sprintf($this->_('Missing parent or template for page "%s". Page not created/saved in this installation attempt (may be achieved later).'), $name));
 				break;
 			}
 			$data['parent'] = ($pageIsHome) ? 0 : $parent;
@@ -2201,8 +2313,22 @@ class DbMigrationPage extends DummyMigrationPage {
 		return $pagesInstalled;
 	}
 
+
+	/**
+	 * Save the updated fields for a page
+	 *
+	 *
+	 * @param $p
+	 * @param $name
+	 * @param $data
+	 * @param $fields
+	 * @param $repeaters
+	 * @param $newOld
+	 * @return mixed
+	 * @throws WireException
+	 */
 	public function updatePage($p, $name, $data, $fields, $repeaters, $newOld) {
-		$this->wire()->log->save('debug', 'Updating page ' . $p->name);
+		//$this->wire()->log->save('debug', 'Updating page ' . $p->name);
 		$p->parent = $data['parent'];
 		$p->template = $data['template'];
 		$p->status = $data['status'];
@@ -2222,7 +2348,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	}
 
 	public function newPage($name, $data, $fields, $repeaters, $newOld) {
-		$this->wire()->log->save('debug', 'New page ' . $data['name']);
+		//$this->wire()->log->save('debug', 'New page ' . $data['name']);
 		$template = $this->wire()->templates->get($data['template']);
 		if(method_exists($template, 'getPageClass')) { // method_exists test is for versions <3.0.152
 			if($template->getPageClass()) {
@@ -2267,7 +2393,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 */
 	public function getRepeaters($values) {
 		$repeaters = [];
-//		bd($values, 'values before removing repeaters');
+		//bd($values, 'values before removing repeaters');
 		foreach($values as $fieldName => $data) {
 			$f = $this->wire('fields')->get($fieldName);
 //			bd($f, "field for $fieldName");
@@ -2280,7 +2406,7 @@ class DbMigrationPage extends DummyMigrationPage {
 				$repeaters[$fieldName] = $repeaterItems;
 			}
 		}
-//		bd($repeaters, 'repeaters');
+		//bd($repeaters, 'repeaters');
 		return ['repeaters' => $repeaters, 'values' => $values];
 	}
 
@@ -2315,7 +2441,14 @@ class DbMigrationPage extends DummyMigrationPage {
 							$p = $this->wire()->pages->get($item['parent'] . $item['name'] . '/');
 							if($p and $p->id) $pa->add($p);
 						}
-						$page->$fieldName->add($pa);
+						//bd($page, 'page');
+						//bd($p, 'p');
+						//bd($fieldName, 'fieldName');
+						if($page->$fieldName) {
+							$page->$fieldName->add($pa);
+						} else {
+							$page->$fieldName = $pa;
+						}
 					} else if($f->type == 'FieldtypePage') {
 						$a = $this->wire(new PageArray());
 						if(is_string($fieldValue)) $fieldValue = [$fieldValue]; // to deal with singleton pages
@@ -2470,8 +2603,8 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WireException
 	 *
 	 */
-	public function setAndSaveRepeaters(array $repeaters, $newOld, $page = null, $remove = true) {
-		// $remove is now redundant
+	public function setAndSaveRepeaters(array $repeaters, $newOld, $page = null, $options = []) {
+
 		if(!$page) $page = $this;
 		foreach($repeaters as $repeaterName => $repeaterData) {
 
@@ -2546,7 +2679,7 @@ class DbMigrationPage extends DummyMigrationPage {
 						if($subPage->sort != $j) {
 							$subPage->sort = $j;
 							//bd($subPage, 'SAVE subpage');
-							$subPage->save();
+							$subPage->save(null, $options);
 						}
 						break; // don't want to match more than one page
 						// NB This assumes that the repeater data does not include duplicates, other than deliberately.
@@ -2567,7 +2700,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			if($repeaterData) {
 				$page->of(false);
 //bd($page, 'SAVE page');
-				$page->save($repeaterName);  // ToDo Is this necessary?
+				$page->save($repeaterName, $options);  // ToDo Is this necessary?
 				foreach($repeaterData as $j => $item) {
 					//bd($item, 'data for new subpage');
 //					$dataField = $this->wire('fields')->get($repeaterName);
@@ -2575,13 +2708,23 @@ class DbMigrationPage extends DummyMigrationPage {
 					$repeaterField = $this->wire('fields')->get($repeaterName);
 					if($repeaterField->type == 'FieldtypeRepeaterMatrix') {
 						if(!($repeaterField instanceof RepeaterMatrixField)) {
-							$repeaterField = ProcessDbMigrate::cast($repeaterField, 'ProcessWire\RepeaterMatrixField');
-							$repeaterField->save();
+							if(wire()->modules->isInstalled('FieldtypeRepeaterMatrix')) {
+								// Make sure that RepeaterMatrixField class  exists
+								if(!wireClassExists('ProcessWire\RepeaterMatrixField')) {
+									require_once(wire()->config->paths->siteModules . 'FieldtypeRepeaterMatrix/RepeaterMatrixField.php');
+								}
+								$repeaterField = ProcessDbMigrate::cast($repeaterField, 'ProcessWire\RepeaterMatrixField');
+								$repeaterField->save(null, $options);
+							} else {
+								wire()->session->error(__("Attempting to install a RepeaterMatrix field but FieldtypeRepeaterMatrix module is not installed"));
+							}
 						}
 						if(!$page->$repeaterName) $page->$repeaterName = new RepeaterMatrixPageArray($page, $repeaterField);
 						$newSubPage = $page->$repeaterName->getNewItem();
 						$typeAttr = 'matrix' . $item[FieldtypeRepeater::templateNamePrefix . 'matrix_type'] . '_name';
+						//bd($typeAttr, 'typeattr');
 						$matrixType = $repeaterField->$typeAttr;
+						//bd($matrixType, 'matrixtype');
 						$newSubPage->setForField($repeaterField); //NB Need to make sure the getForField is a RepeaterMatrixField object, not just a plain Field (set in cast() method above)
 						$newSubPage->setMatrixType($matrixType); // this will fail if the getForField is just a plain field as the getMatrixTypes() method will not be available
 						unset($item[FieldtypeRepeater::templateNamePrefix . 'matrix_type']);
@@ -2589,12 +2732,12 @@ class DbMigrationPage extends DummyMigrationPage {
 							$newSubPage->setDepth($item['depth']);
 							unset($item['depth']);
 						}
-//					$newSubPage->save();
+//					$newSubPage->save(null, $options);
 					} else {
 						//bd($page->fields, 'allowed fields');
 						if(!($repeaterField instanceof RepeaterField)) {
 							$repeaterField = ProcessDbMigrate::cast($repeaterField, 'ProcessWire\RepeaterField');
-							$repeaterField->save();
+							$repeaterField->save(null, $options);
 						}
 						if(!$page->$repeaterName) $page->$repeaterName = new RepeaterPageArray($page, $repeaterField);
 						$newSubPage = $page->$repeaterName->getNew();
@@ -2604,11 +2747,11 @@ class DbMigrationPage extends DummyMigrationPage {
 						}
 					}
 					$newSubPage->sort = $j;
-//				$newSubPage->setAndSave($item);
+//				$newSubPage->setAndSave($item, $options);
 
 					// NB Rather than attempt to set the page fields here, use a recursive call
 //bd($newSubPage, 'SAVE newsubpage');
-					$newSubPage->save(); // Make sure the new subpage is in the database before we attempt to update it
+					$newSubPage->save(null, $options); // Make sure the new subpage is in the database before we attempt to update it
 					$r = $this->getRepeaters($item);
 					$subRepeaters = $r['repeaters'];
 					$fields = $r['values'];
@@ -2619,12 +2762,12 @@ class DbMigrationPage extends DummyMigrationPage {
 
 					$newSubPage->sort = $j;  // for sorting when all done
 					//bd($newSubPage, 'SAVE newsubpage2');
-					$newSubPage->save();
+					$newSubPage->save(null, $options);
 //				bd($newSubPage, 'added new subpage');
 					//bd($page, 'saved page after new sub page');
 				}
 				//bd($page, 'SAVE page2');
-				$page->save();
+				$page->save(null, $options);
 				/*
 				 * NB End of replacement pages
 				 */
@@ -2633,7 +2776,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			$page->$repeaterName->sort('sort');
 		}
 		$page->of(false);
-		$page->save();
+		$page->save(null, $options);
 		//bd($page, 'page at end of set and save repeaters');
 	}
 
@@ -3048,12 +3191,12 @@ class DbMigrationPage extends DummyMigrationPage {
 					if($p and $p->id and $p->meta() and $p->meta('installable')) {
 						$p->meta('allowSave', true);  // to allow save
 						//bd([$p, $values], 'page, values');
-						$p->setAndSave($values);
-						if(count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, 'new', $p);
+						$p->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
+						if(count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, 'new', $p, ['noHooks' => true, 'quiet' => true]);
 						$p->meta()->remove('allowSave');  // reset
 					} else {
-						$p->setAndSave($values);
-						if(count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, 'new', $p);
+						$p->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
+						if(count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, 'new', $p, ['noHooks' => true, 'quiet' => true]);
 					}
 					//bd($p, 'p after save');
 				}
@@ -3062,6 +3205,13 @@ class DbMigrationPage extends DummyMigrationPage {
 		return true;
 	}
 
+	/**
+	 * Get a hash string for a file for comparison
+	 *
+	 * @param $path
+	 * @return string|null
+	 * @throws WireException
+	 */
 	public function filesHash($path = null) {
 		$hashAlgo = (in_array('xxh128', hash_algos())) ? 'xxh128' : ((in_array('md4', hash_algos())) ? 'md4' : hash_algos()[0]);
 		if(!$path) $path = $this->wire()->config->paths->templates . ProcessDbMigrate::MIGRATION_PATH;
@@ -3116,8 +3266,9 @@ class DbMigrationPage extends DummyMigrationPage {
 	 */
 	public function listItems($type = null) {
 		$list = [];
-		$items = $this->dbMigrateItem;
+		$items = $this->getFormatted('dbMigrateItem'); // getFormatted to get only published items
 		foreach($items as $item) {
+			if($item->isUnpublished) continue;
 			$itemArray = $this->populateItem($item);
 			if(!$itemArray['type'] or !$itemArray['name']) continue;
 			$expanded = $this->expandItem($itemArray);
@@ -3248,11 +3399,14 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WireException
 	 */
 	public function dependencySort() {
-		$items = $this->dbMigrateItem;
-		//bd($items, 'items in dependency sort');
+		$items = $this->getFormatted('dbMigrateItem');
+//		bd($items, 'items in dependency sort');
+		$items->unique();
+		//bd($items, 'unique items in dependency sort');
 		$matrix = $this->createDependencyMatrix($items); // also sets temporary field 'mysort' to each item in items
 		//bd($items, 'items in dependency sort after creating matrix');
-		$sorted = $this->topologicalSort($matrix);
+		//bd($matrix, 'matrix before topological sort');
+		$sorted = $this->topologicalSort($matrix, $items);
 		//bd($sorted, 'sorted');
 		foreach($sorted as $elem) {
 			//bd($elem, 'elem');
@@ -3287,36 +3441,45 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WireException
 	 */
 	public function getDependencies($migrationItem, $item = null) {
-//bd(['item' => $migrationItem, 'sourceData' => $migrationItem->meta('sourceData')], 'item in getDependencies');
+		//bd(['item' => $migrationItem, 'name' => $migrationItem->dbMigrateName, 'sourceData' => $migrationItem->meta('sourceData')], 'item in getDependencies');
 		$sourceData = $migrationItem->meta('sourceData');
-		$items = $this->dbMigrateItem;
+		$items = $this->getFormatted('dbMigrateItem');
+//		bd($items, 'items in getDependencies');
 		switch($migrationItem->dbMigrateType->id) {
 			case 1: // field
 				$templateItem = null;
 				$parentItem = null;
-				$dependentTypes = ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage'];
+				$dependentTypes = ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage','FieldtypePageTable'];
 				$dependent = ($sourceData && isset($sourceData['type']) && in_array($sourceData['type'], $dependentTypes));
 				$field = ($item) ?: $this->wire()->fields->get("name={$migrationItem->dbMigrateName}");
 				if((!$sourceData || !isset($sourceData['type'])) && !$field) return [];
 				if((!$sourceData || !isset($sourceData['type'])) && !$dependent) {
-					$dependent = ($field->type == 'FieldtypeRepeater' || $field->type == 'FieldtypeRepeaterMatrix' || $field->type == 'FieldtypePage');
+					$dependent = (in_array($field->type, ['FieldtypeRepeater', 'FieldtypeRepeaterMatrix', 'FieldtypePage', 'FieldtypePageTable']));
 				}
 				if($dependent) {
 					if($sourceData && isset($sourceData['template_id'])) {
-						$templateItem = $this->findMigrationItemsByObjectId('template', [$sourceData['template_id']]);
-						$templateItem = ($templateItem) ? $templateItem->first() : null;
-						bd($templateItem, 'template item in getDependencies 1');
+
+						if(!is_array($sourceData['template_id'])) $sourceData['template_id'] = [$sourceData['template_id']];
+						$templateItem = $this->findMigrationItemsByObjectId('template', $sourceData['template_id']);
+//						$templateItem = ($templateItem) ? $templateItem->first() : null;
+						//bd($templateItem, 'template item in getDependencies 1');
 					}
 					if(!$templateItem) {
-						$template = (isset($field->template_id)) ? $this->wire()->templates->get("id={$field->template_id}") : null;
-						if($template) {
-							$templateItem =  $items->get("dbMigrateType=2, dbMigrateName={$template->name}, dbMigrateAction!=2");
-							// (NB dbMigrateAction!=2: Not interested if the template has only changed - not new or removed - as it will not affect the dependent field)
-							// ToDo consider whether a similar logic applies elsewhere, to prevent spurious cyclical dependencies
-							// ToDo check that this does not create a problem where the template name has been changed
+						if(isset($field->template_id)) {
+							$idString = (is_array($field->template_id)) ? implode('|', $field->template_id) : $field->template_id;
+							$templates = $this->wire()->templates->find("id=$idString");
+						} else {
+							$templates = null;
 						}
-						$templateItem = ($templateItem) ? $templateItem->id : null;
-//						bd($templateItem, 'template item in getDependencies 2');
+						//bd($field->template_id, 'template_id');
+						if($templates) {
+							$names = $templates->implode('|', 'name');
+							$templateItem =  $items->find("dbMigrateType=2, dbMigrateName=$names");
+							// (NB  Not selecting dbMigrateAction!=2 even though not interested if the template has only changed, as these will be excluded in setDependencyMatrixEntry()
+						}
+						$templateItem = ($templateItem) ? $templateItem->explode('id') : [];
+//						$templateItem = ($templateItem) ? $templateItem->first()->id : null;
+						//bd($templateItem, 'template item in getDependencies 2');
 					}
 					if($sourceData && isset($sourceData['parent_id'])) {
 						$parentItem = $this->findMigrationItemsByObjectId('page', [$sourceData['parent_id']]);
@@ -3331,12 +3494,30 @@ class DbMigrationPage extends DummyMigrationPage {
 						$parentItem = ($parentItem) ? $parentItem->id : null;
 					}
 				}
-				return (['template_item' => $templateItem, 'parent_item' => $parentItem]);
+				$accessRolesArray = [];
+				if($sourceData && isset($sourceData['accessRoles'])) {
+					$accessRolesArray = $this->findMigrationItemsByObjectId('field', $sourceData['accessRoles'])->explode();
+				}
+				if(!$accessRolesArray && $field && $field->useRoles) {
+					$accessRoles = array_merge($field->editRoles, $field->viewRoles);
+					foreach($accessRoles as $accessRole) {
+						$role = $this->wire()->roles->get($accessRole);
+						$accessRoleItem = ($role) ? $items->get("dbMigrateType=3, dbMigrateName={$role->name}") : null;
+						if($accessRoleItem) {
+							$accessRolesArray[] = $accessRoleItem->id;
+						}
+					}
+				}
+
+				if(!is_array($templateItem)) $templateItem = [$templateItem];
+				return (['template_item' => $templateItem, 'parent_item' => [$parentItem], 'access_roles' =>$accessRolesArray]);
 				break;
 			case 2: // template
 				$fieldArray = [];
 				$childTemplatesArray = [];
 				$parentTemplatesArray = [];
+				$accessRolesArray = [];
+				$rolesPermissionsArray = [];
 				$template = ($item) ?: $this->wire()->templates->get("name={$migrationItem->dbMigrateName}");
 				if($sourceData && isset($sourceData['fields'])) {
 					$fieldArray = $this->findMigrationItemsByObjectId('field', $sourceData['fields'])->explode();
@@ -3378,49 +3559,82 @@ class DbMigrationPage extends DummyMigrationPage {
 						}
 					}
 				}
-				return ['fields' => $fieldArray, 'childTemplates' => $childTemplatesArray, 'parentTemplates' => $parentTemplatesArray];
+				if($sourceData && isset($sourceData['accessRoles'])) {
+					$accessRolesArray = $this->findMigrationItemsByObjectId('template', $sourceData['accessRoles'])->explode();
+				}
+				if(!$accessRolesArray && $template && $template->useRoles) {
+					$accessRoles = array_merge($template->editRoles, $template->addRoles, $template->createRoles);
+					$accessRoles = array_unique($accessRoles);
+					foreach($accessRoles as $accessRole) {
+						$role = $this->wire()->roles->get($accessRole);
+						$accessRoleItem = ($role) ? $items->get("dbMigrateType=3, dbMigrateName={$role->name}") : null;
+						if($accessRoleItem) {
+							$accessRolesArray[] = $accessRoleItem->id;
+						}
+					}
+				}
+				if($sourceData && isset($sourceData['rolesPermissions'])) {
+					$rolesPermissionsArray = $this->findMigrationItemsByObjectId('template', $sourceData['rolesPermissions'])->explode();
+				}
+				if(!$rolesPermissionsArray && $template && $template->useRoles) {
+					$rolesPermissions= $template->rolesPermissions;
+					foreach($rolesPermissions as $roleId => $permissionId) {
+						$role = $this->wire()->roles->get($roleId);
+						$roleItem = ($role) ? $items->get("dbMigrateType=3, dbMigrateName={$role->name}") : null;
+						if($roleItem) {
+							$rolesPermissionsArray[] = $roleItem->id;
+						}
+						$permission = $this->wire()->permissions->get($permissionId);
+						$permissionsItem = ($permission) ? $items->get("dbMigrateType=3, dbMigrateName={$permission->name}") : null;
+						if($permissionsItem) {
+							$rolesPermissionsArray[] = $permissionsItem->id;
+						}
+					}
+				}
+				return ['fields' => $fieldArray, 'childTemplates' => $childTemplatesArray, 'parentTemplates' => $parentTemplatesArray, 'accessRoles' => $accessRolesArray];
 				break;
 			case 3: // page
 				$pageArray = [];
 				$pageArray2 = [];
-				$parentItem = null;
-				$templateItem = null;
+				$parentItem = [];
+				$templateItem = [];
 				$pagePath = $migrationItem->dbMigrateName;
 				//bd($pagePath, 'pagepath');
 				$page = ($item) ?: $this->wire()->pages->get("path={$pagePath}, include=all");
 				//bd($page, 'page in getdependencies for page');
 				if($sourceData && isset($sourceData['parent_id'])) {
 					$parentItem = $this->findMigrationItemsByObjectId('page', [$sourceData['parent_id']]);
-					$parentItem = ($parentItem) ? $parentItem->first() : null;
+//					$parentItem = ($parentItem) ? $parentItem->first() : null;
 				}
 				if(!$parentItem && $page) {
-					$parentItem = ($page && $page->id) ? $this->findMigrationItemsByObjectId('page', $page->parent()->id) : null;
-					$parentItem = ($parentItem) ? $parentItem->first() : null;
+					$parentItem = ($page && $page->id) ? $this->findMigrationItemsByObjectId('page', $page->parent()->id) : [];
+//					$parentItem = ($parentItem) ? $parentItem->first() : null;
 				}
 
 				if($sourceData && isset($sourceData['template_id'])) {
 					$templateItem = $this->findMigrationItemsByObjectId('template', [$sourceData['template_id']]);
-					$templateItem = ($templateItem) ? $templateItem->first() : null;
+//					$templateItem = ($templateItem) ? $templateItem->first() : null;
 				}
 				if(!$templateItem && $page) {
-					$templateItem = ($page && $page->id) ? $this->findMigrationItemsByObjectId('template', $page->template->id) : null;
-					$templateItem = ($templateItem) ? $templateItem->first() : null;
+					$templateItem = ($page && $page->id) ? $this->findMigrationItemsByObjectId('template', $page->template->id) : [];
+//					$templateItem = ($templateItem) ? $templateItem->first() : null;
 				}
 
 				if($sourceData && isset($sourceData['pageRefs'])) {
 					$pageArray = $this->findMigrationItemsByObjectId('page', $sourceData['pageRefs'])->explode();
+//					bd($pageArray, 'page array A');
 				}
 				if(!$pageArray && $page) {
 					$fields = $page->getFields();
 					//bd($fields, 'fields in getdependencies for page');
 					foreach($fields as $field) {
-						if($field->type == 'FieldtypePage') {
+						if(in_array($field->type, ['FieldtypePage', 'FieldtypePageTable'])) {
 							$pageRefs = $page->$field;
 							//bd($pageRefs, 'pageRefs');
 							if(!($pageRefs instanceof PageArray)) $pageRefs = [$pageRefs];
 							foreach($pageRefs as $pageRef) {
 								if($pageRef) {
-									$pageItem = $items->get("dbMigrateType=3, dbMigrateName={$pageRef->name}");
+									$pageItem = $items->get("dbMigrateType=3, dbMigrateName={$pageRef->name}"); // Only interested in new or removed items, but others are excluded in the matrix build
 									if($pageItem) {
 										// NB this only records dependencies if the other page is in a migration item. Should it be restrictive like this?
 										$pageArray[] = $pageItem->id;
@@ -3429,9 +3643,10 @@ class DbMigrationPage extends DummyMigrationPage {
 							}
 						}
 					}
-					//bd($pageArray, 'pageArray');
 				}
+
 				if($sourceData && isset($sourceData['rteLinks'])) {
+					//bd($sourceData['rteLinks'], 'sourcedata - rtelinks');
 					$pageArray2 = $this->findMigrationItemsByObjectId('page', $sourceData['rteLinks'])->explode();
 				}
 				if(!$pageArray2 && $page) {
@@ -3440,16 +3655,42 @@ class DbMigrationPage extends DummyMigrationPage {
 					$otherLinks = $dbM->findRteLinks($page);
 					$pageRefs2 = $imageSources->add($otherLinks)->explode('id');
 					foreach($pageRefs2 as $pageRef) {
-						if($pageRef) {
-							$pageItem = $items->get("dbMigrateType=3, dbMigrateName={$pageRef->name}");
+//						bd($pageRef, ' page ref in rte dependencies');
+						$pageObject = ($pageRef) ? $this->wire->pages->get("id=$pageRef") : null;
+//						bd($pageObject, ' page object in rte dependencies');
+						if($pageObject) {
+							$pageItem = $items->get("dbMigrateType=3, dbMigrateName={$pageObject->name}");
 							if($pageItem) {
+//								bd($pageItem, ' page item in rte dependencies');
 								// NB this only records dependencies if the other page is in a migration item. Should it be restrictive like this?
 								$pageArray2[] = $pageItem->id;
 							}
 						}
 					}
 				}
-				//bd(['template_item' => $templateItem, 'parent_item' => $parentItem, 'pageRefs' => $pageArray, 'rteLinks' => $pageArray2], 'return from getDependencies');
+
+				/*
+				 * Code below was removed as exclusion now takes place in the sort
+				 */
+//				// Convert wireArrays to plain arrays
+//				if(wireInstanceOf($templateItem, WireArray())) $templateItem = $templateItem->explode();
+//				if(wireInstanceOf($parentItem, WireArray())) $parentItem = $parentItem->explode();
+//				/*
+//				 * Remove any dependencies where the related item has only changed (not new or removed)
+//				 */
+//				$result = ['template_item' => $templateItem, 'parent_item' => $parentItem, 'pageRefs' => $pageArray, 'rteLinks' => $pageArray2];
+//				foreach($result as $element => $resultArray) {
+//					foreach($resultArray as $pageMigrationId) {
+//						$changeOnly = $items->get("id=$pageMigrationId, dbMigrateAction=2");
+//						if($changeOnly && $changeOnly->id) {
+//							$key = array_search($pageMigrationId, $resultArray);
+//							if($key !== null) unset($resultArray[$key]);
+//							$result[$element] = $resultArray;
+//						}
+//					}
+//				}
+
+				//bd(['template_item' => [$templateItem], 'parent_item' => [$parentItem], 'pageRefs' => $pageArray, 'rteLinks' => $pageArray2], 'return from getDependencies');
 				return ['template_item' => $templateItem, 'parent_item' => $parentItem, 'pageRefs' => $pageArray, 'rteLinks' => $pageArray2];
 				break;
 		}
@@ -3465,7 +3706,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	public function findMigrationItemsByObjectId($objectType, $idArray) {
 		//NB if two items of different object types have same object id there will be confusion (and possibly cyclic graph)
 		//ToDo Fix it!
-		$items = $this->dbMigrateItem;
+		$items = $this->getFormatted('dbMigrateItem');
 		$itemArray = new WireArray();
 		if(!is_array($idArray) && is_int($idArray)) $idArray = [$idArray];
 		if(!is_array($idArray)) return $itemArray;
@@ -3519,14 +3760,16 @@ class DbMigrationPage extends DummyMigrationPage {
 			$item->save();
 			$ind++;
 		}
-//		bd($items, 'items before sort');
+		//bd($items, 'items before sort');
 		$items->sort('mysort');
-//bd($items, 'items after sort');
+		//bd($items, 'items after sort');
 		$size = $items->count();
 		// Create a zero-filled matrix [size x size]
 		$matrix = array_fill(0, $size, array_fill(0, $size, 0));
+		//bd($matrix, 'matrix zeroed');
 		$i = 0;
 		foreach($items as $item) {
+			if($item->isUnpublished) continue;
 			//bd([$item->dbMigrateType->value, $item->dbMigrateName], 'item type & name');
 			$sourceData = $item->meta('sourceData');
 			//bd($sourceData, 'sourceData');
@@ -3534,22 +3777,21 @@ class DbMigrationPage extends DummyMigrationPage {
 				case 1 : // Field
 					// Repeaters are dependent on templates and page ref fields may be dependent on templates or pages ('parent' for selection)
 					$dependencies = $this->getDependencies($item);
-//bd([$item->dbMigrateName, $dependencies], 'field item and dependencies');
-					$templateItem = (isset($dependencies['template_item'])) ? $dependencies['template_item'] : null;
-					if($templateItem && is_int($templateItem)) {
-bd($templateItem, 'setting template item for field');
-						$this->setDependencyMatrixEntry($matrix, $items, $templateItem, $i);
+
+					foreach(['template_item', 'parent_item', 'access_roles'] as $dependencyType) {
+						if(isset($dependencies[$dependencyType])) foreach($dependencies[$dependencyType] as $dependency) {
+							if($dependency && is_int($dependency)) {
+//bd($dependency, "setting $dependencyType item for field");
+								$this->setDependencyMatrixEntry($matrix, $items, $dependency, $i);
+							}
+						}
 					}
-					$parentItem = (isset($dependencies['parent_item'])) ? $dependencies['parent_item'] : null;
-					if($parentItem && is_int($parentItem)) {
-//bd($parentItem, 'setting parent item for field');
-						$this->setDependencyMatrixEntry($matrix, $items, $parentItem, $i);
-					}
+
 					break;
 				case 2 : // Template
 					$dependencies = $this->getDependencies($item);
 					//bd([$item->dbMigrateName, $dependencies], 'template item and dependencies');
-					foreach(['fields', 'childTemplates', 'parentTemplates'] as $dependencyType) {
+					foreach(['fields', 'childTemplates', 'parentTemplates', 'accessRoles'] as $dependencyType) {
 						if(isset($dependencies[$dependencyType])) foreach($dependencies[$dependencyType] as $dependency) {
 							if($dependency && is_int($dependency)) {
 //bd($dependency, "setting $dependencyType item for template");
@@ -3560,28 +3802,49 @@ bd($templateItem, 'setting template item for field');
 					break;
 				case 3 : // Page
 					$dependencies = $this->getDependencies($item);
-					$templateItem = (isset($dependencies['template_item'])) ? $dependencies['template_item'] : null;
-					if($templateItem && is_int($templateItem)) {
-//bd($templateItem, 'setting template item for page');
-						$this->setDependencyMatrixEntry($matrix, $items, $templateItem, $i);
-					}
-					$parentItem = (isset($dependencies['parent_item'])) ? $dependencies['parent_item'] : null;
-					if($parentItem && is_int($parentItem)) {
-//bd($parentItem, 'setting parent item for page');
-						$this->setDependencyMatrixEntry($matrix, $items, $parentItem, $i);
-					}
-					if(isset($dependencies['pageRefs'])) foreach($dependencies['pageRefs'] as $dependency) {
-						if($dependency && is_int($dependency)) {
-//bd($dependency, 'setting pageref item');
-							$this->setDependencyMatrixEntry($matrix, $items, $dependency, $i);
+					//bd(['migration item name' => $item->dbMigrateName, 'migration item id' => $item->id, 'dependencies' => $dependencies], 'got dependencies for page');
+					foreach(['template_item', 'parent_item', 'pageRefs'] as $dependencyType) {
+						if(isset($dependencies[$dependencyType]) && $dependencies[$dependencyType]) {
+							foreach($dependencies[$dependencyType] as $dependency) {
+								if($dependency && is_int($dependency)) {
+//bd($dependency, "setting $dependencyType item for page");
+									$this->setDependencyMatrixEntry($matrix, $items, $dependency, $i);
+								}
+							}
 						}
+						//bd($matrix, 'matrix for ' . $dependencyType);
 					}
+					//bd($matrix, 'final matrix for ' . $item->dbMigrateName);
+//
+//					$templateItem = (isset($dependencies['template_item'])) ? $dependencies['template_item'] : null;
+//					if($templateItem && is_int($templateItem)) {
+////bd($templateItem, 'setting template item for page');
+//						$this->setDependencyMatrixEntry($matrix, $items, $templateItem, $i);
+//					}
+//					$parentItem = (isset($dependencies['parent_item'])) ? $dependencies['parent_item'] : null;
+//					if($parentItem && is_int($parentItem)) {
+////bd($parentItem, 'setting parent item for page');
+//						$this->setDependencyMatrixEntry($matrix, $items, $parentItem, $i);
+//					}
+//					if(isset($dependencies['pageRefs'])) foreach($dependencies['pageRefs'] as $dependency) {
+//						if($dependency && is_int($dependency)) {
+////bd($dependency, 'setting pageref item');
+//							$this->setDependencyMatrixEntry($matrix, $items, $dependency, $i);
+//						}
+//					}
+					/*
+					 * I think there is no need to create a matrix entry for rte dependencies
+					 * The rte links will only be invoked when the related page is opened, not when migration actions are performed
+					 * By the time the page is opened, the rest of the migration should be complete and the links will work
+					 * The following code hs therefore been commented out (but left here in case need in the future)
+					 *
 					if(isset($dependencies['rteLinks'])) foreach($dependencies['rteLinks'] as $dependency) {
 						if($dependency && is_int($dependency)) {
 //bd($dependency, 'setting rteLink item');
 							$this->setDependencyMatrixEntry($matrix, $items, $dependency, $i);
 						}
 					}
+					*/
 					break;
 				default :
 					$dependencies = [];
@@ -3597,9 +3860,10 @@ bd($templateItem, 'setting template item for field');
 			 */
 			$matrix[$i][$i] = 0;
 			//bd($matrix[$i], 'matrix for item ' . $i);
+			//bd($matrix, 'matrix in loop');
 			$i++;
 		}
-//		bd($matrix, 'matrix');
+		//bd($matrix, 'matrix after loop');
 		return $matrix;
 	}
 
@@ -3614,16 +3878,18 @@ bd($templateItem, 'setting template item for field');
 	protected function setDependencyMatrixEntry(&$matrix, $items, $relatedItemId, $i) {
 		//bd([$matrix, $items, $relatedItemId, $i], 'params to setDependencyMatrixEntry');
 		$relatedItem = $items->get("id=$relatedItemId");
-//		bd($relatedItem, 'relatedItem');
+		//bd($relatedItem, 'relatedItem');
 		if(!$relatedItem) return;
 		$j = $relatedItem->mysort;
-		if($relatedItem->dbMigrateAction->value == 'new' || $relatedItem->dbMigrateAction->value == 'changed') {
+		if($relatedItem->dbMigrateAction->value == 'new') { //} || $relatedItem->dbMigrateAction->value == 'changed') { NB no dependency if item is just changed
 			// $i is dependent on $j
-			$matrix[$j][$i] = 1;
+			$matrix[$i][$j] = 1;
 		} else if($relatedItem->dbMigrateAction->value == 'removed') {
 			// dependency is reversed for removals
-			$matrix[$i][$j] = 1;
+			$matrix[$j][$i] = 1;
 		}
+//		bd($matrix[$j][$i], "dependency of $i on $j");
+//		if(($j == 2 && $i == 3) or ($j ==  3 && $i == 2) ) bd(debug_backtrace());
 		//bd($matrix, 'matrix in setDependencyMatrixEntry');
 	}
 
@@ -3643,7 +3909,8 @@ bd($templateItem, 'setting template item for field');
 	 * @param array $matrix
 	 * @return \SplQueue
 	 */
-	public function topologicalSort(array $matrix): \SplQueue {
+	public function topologicalSort(array $matrix, $items, $try = 0): \SplQueue {
+		$origMatrix = $matrix;
 		$order = new \SplQueue;
 		$queue = new \SplQueue;
 		$size = count($matrix);
@@ -3675,12 +3942,153 @@ bd($templateItem, 'setting template item for field');
 
 		//bd([$order, $size], 'order, size');
 		if($order->count() != $size) {// cycle detected
-			$this->error($this->_('Cannot resolve sort - migration items have cyclical dependencies'));
-			return new \SplQueue;
+			if($try) {
+				//bd($origMatrix, 'Matrix after failing at second attempt');
+				return new \SplQueue;
+			} // already tried once
+			//bd($origMatrix, 'matrix before findcycles');
+			$cycles = $this->findCycles($origMatrix, $items);
+			$cycleMessages = $cycles['msg'];
+			$negativeMatrix = $cycles['negativeMatrix'];
+			//bd($negativeMatrix, 'negativeMatrix');
+//			bd($cycleMessages, 'cycles');
+			$this->error($this->_("($this->title) Cannot resolve sort - migration items have cyclical dependencies. See messages for details.\n
+			The migration may still be installable but may need more than one attempt to install."));
+			$this->message($this->_("($this->title) Cannot resolve sort - migration items have cyclical dependencies as follows:\n * " . $cycleMessages .
+				"\n(a-->b means a is dependent on b. F, T & P denote if the item is a field, template or page)"));
+			//Subtract the negative matrix from the original matrix to remove the cycles
+			for($i = 0; $i < $size; $i++) {
+				for($j = 0; $j < $size; $j++) {
+					$matrix[$i][$j] -= $negativeMatrix[$i][$j];
+				}
+			}
+			//bd($matrix, 'matrix after removing cycles');
+			$order = $this->topologicalSort($matrix, $items, 1);
 		}
-
+		//bd($order, 'order');
 		return $order;
 	}
+
+	/********************************************
+	****** Find the cycles for error msg *******/
+
+	/**
+	 * Use Depth-First-Search method to find cycles
+	 * See https://www.baeldung.com/cs/detecting-cycles-in-directed-graph
+	 * The first thing is to make sure that we repeat the DFS from each unvisited vertex in the graph
+	 *
+	 * @param $matrix the dependency matrix
+	 * @param $items the migration items
+	 * @return array text description of cycles and negative matrix to remove them
+	 */
+	protected function findCycles($matrix, $items) {
+		$size = count($matrix);
+		//bd($matrix, 'matrix in findCycle');
+		// Create a filled array
+		$visited = array_fill(0, $size, 'not_visited');
+		$detectedCycles = [];
+		foreach($matrix as $vertex => $edgeArray) {
+			if($visited[$vertex] == 'not_visited') {
+				$stack = [];
+				array_push($stack, $vertex);
+				$visited[$vertex] = 'in_stack';
+				//bd($stack, 'stack 1');
+				$this->processDFSTree($matrix, $stack, $visited, $detectedCycles);
+			}
+		}
+		//bd($detectedCycles, 'detectedCycles in findCycle');
+		$msg = [];
+		// Create a zero-filled matrix [size x size] to represent the negative of the dependency matrix entries which have caused cycles
+		$negativeMatrix = array_fill(0, $size, array_fill(0, $size, 0));
+		foreach($detectedCycles as $cycle) {
+			//Place a 1 in the negative matrix for the pair (a,b) where a is the last value in the cycle and b is the first value in the cycle
+//			bd($cycle, 'cycle in findCycle');
+			$negativeMatrix[end($cycle)][reset($cycle)] = 1;
+//			bd($negativeMatrix, 'negativeMatrix in findCycle');
+			$textCycle = [];
+			foreach($cycle as $key => $itemNumber) {
+				$item = $items->get("mysort=$itemNumber");
+				$itemName = $item->dbMigrateName;
+				$itemType = $item->dbMigrateType;
+				$itemText = $itemName . '(' . $itemType->title[0] . ')';
+				$textCycle[] = $itemText;
+				if($key == 0) $firstItem = $itemText;
+			}
+			$textCycle[] = $firstItem; // so as to show a complete loop
+			$textCycle = implode('-->', $textCycle);
+			$msg[] = $textCycle;
+		}
+		$msg = implode("\n * ", $msg);
+		return ['msg' => $msg, 'negativeMatrix' => $negativeMatrix];
+
+	}
+
+	/**
+	 * The second part is the DFS processing itself (a recursive function).
+	 * In this part, we need to make sure we have access to what is in the stack of the DFS to be able to check for the back edges.
+	 * And whenever we find a vertex that is connected to some vertex in the stack, we know we’ve found a cycle (or multiple cycles)
+	 *
+	 * @param $matrix
+	 * @param $stack
+	 * @param $visited
+	 * @param $detectedCycles
+	 * @return void return is in parameters
+	 */
+	protected function processDFSTree($matrix, &$stack, &$visited, &$detectedCycles) {
+		$stackTop = end($stack);
+		//bd([$stackTop, $matrix[$stackTop]], 'stacktop, matrix[stacktop]');
+		if($stackTop !== false) {
+			foreach($matrix[$stackTop] as $vertex => $edge) {
+				if($edge) {
+					//bd('got edge');
+					//bd([$vertex, $edge], 'vertex, edge');
+					if($visited[$vertex] == 'in_stack') {
+						$this->printCycle($stack, $vertex, $detectedCycles);
+					} else if($visited[$vertex] == 'not_visited') {
+						array_push($stack, $vertex);
+						$visited[$vertex] = 'in_stack';
+						//bd($stack, 'stack 2');
+						$this->processDFSTree($matrix, $stack, $visited, $detectedCycles);
+						//bd($stack, 'stack 2a');
+					}
+				}
+			}
+			$visited[$stackTop] = 'not_visited';
+			array_pop($stack);
+		}
+	}
+
+	/**
+	 * @param $stack
+	 * @param $vertex
+	 * @param $detectedCycles
+	 * @return void return is in parameters
+	 */
+	protected function printCycle($stack, $vertex, &$detectedCycles) {  // NB $stack is not returned by reference
+		$stackTop = end($stack);
+		$cycle = [];
+		array_push($cycle, $stackTop);
+		array_pop($stack);
+		$count = 0;
+		//bd([$cycle, $vertex], 'cycle, vertex - check');
+			while(end($cycle) != $vertex) {
+				array_push($cycle, end($stack));
+				array_pop($stack);
+				$count++;
+				if($count > count($stack)) break; // circuit breaker in case of problem or excess
+			}
+			$newCycle = (!in_array($cycle, $detectedCycles) && (count(array_unique($cycle)) != 2 || !in_array(array_reverse($cycle), $detectedCycles)));
+			// Last element is to avoid double counting mutually dependent pairs of items
+		if($newCycle && count(array_unique($cycle)) !== 1) {
+			// NB the 2nd term above is because sometimes a 'cycle' can be created with 2 elements, each false
+			array_push($detectedCycles, $cycle);
+			//bd($cycle, 'cycle added');
+		}
+		//bd($detectedCycles, 'detectedCycles in printCycle');
+	}
+
+	///////////////////////////////////////////////////////
+
 
 	/***********************************
 	 *********** HOOKS *****************
@@ -3702,6 +4110,11 @@ bd($templateItem, 'setting template item for field');
 		//bd($event, 'hook event');
 		if($this->id != $p->id) return;  // only want this method to run on the current instance, not all instances of this class
 		/* @var $p DbMigrationPage */
+		if($p->dbMigrateLogChanges == 1 && !$p->dbMigrateFieldTracking && !$p->dbMigrateTemplateTracking && !$p->dbMigratePageTracking) {
+			$this->error("$p->name - " . $this->_("You have chosen to log changes but not selected any scope.\n
+			Please de-select 'log changes' or enter scope(s) before saving this page."));
+			$event->return;
+		}
 		// Sort migration items by dependency NB as a side-effect, this prevents migration items from being deleted manually if sorting or log changes enabled
 		if(!$p->meta('installable') && !$p->meta('locked') && $p->dbMigrateLogChanges < 2) { // 0 is 'sort items', 1 is 'Log changes', 2 is 'manual'
 			$p->dependencySort();
@@ -3794,7 +4207,7 @@ bd($templateItem, 'setting template item for field');
 		if(!$p or !$p->id) return;
 		if($this->id != $p->id) return;
 		$k = 0;
-		foreach($this->dbMigrateItem as $item) {
+		foreach($this->getFormatted('dbMigrateItem') as $item) { // getFormatted to get only published items
 			/* @var $item RepeaterDbMigrateItemPage */
 			$k++;
 			if(!$item->dbMigrateType or !$item->dbMigrateAction or !$item->dbMigrateName) {
@@ -3804,6 +4217,16 @@ bd($templateItem, 'setting template item for field');
 		}
 	}
 
+	/**
+	 * Before trash actions
+	 * Check if migration has files and warn if so
+	 * If draft migration, delete migration files
+	 * If not draft migration and there are no migration files, remove 'installable' meta to allow deletion
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function beforeTrashThis(HookEvent $event) {
 		//bd([$this, $event], '[$this, $event] in before trash');
 		$p = $event->arguments(0);
@@ -3832,6 +4255,14 @@ bd($templateItem, 'setting template item for field');
 		}
 	}
 
+	/**
+	 * After trash actions
+	 * Redirect to setup page if not deleting draft migration
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 * @throws WireException
+	 */
 	protected function afterTrashedThis(HookEvent $event) {
 		$p = $event->arguments(0);
 		if(!$p or !$p->id) return;
@@ -3853,8 +4284,14 @@ bd($templateItem, 'setting template item for field');
 		}
 	}
 
-
-	// Add classes to selected migration row Repeater items
+	/**
+	 * after FieldsetRender
+	 * Add classes to selected migration row Repeater items
+	 * To prettify the display of migration items on the migration page
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 */
 	protected function afterFieldsetRender(HookEvent $event) {
 		/* @var $fieldset InputfieldFieldset */
 		$fieldset = $event->object;

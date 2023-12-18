@@ -93,6 +93,41 @@
     {
         "fields": {
             "removed": {
+                "dbMigrateTrackingScope": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateFieldTracking": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateTemplateTracking": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigratePageTracking": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateTrackingScope_END": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
                 "dbMigrateItem": []
             }
         }

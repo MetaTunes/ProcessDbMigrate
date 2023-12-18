@@ -5,11 +5,17 @@
  *
  * Not a proper fieldtype - it only exists to provide a convenient way to add an inputfield
  * to templates that will render some markup at runtime.
- * Based onm FieldtypeRuntimeOnly
+ * Based on FieldtypeRuntimeOnly
  *
  */
 class InputfieldDbMigrateRuntime extends Inputfield {
 
+	/**
+	 * @param Inputfield|null $parent
+	 * @param $renderValueMode
+	 * @return bool
+	 * @throws WireException
+	 */
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
 		$field = $this->hasField;
 		$config = $this->wire('config');
@@ -26,18 +32,35 @@ class InputfieldDbMigrateRuntime extends Inputfield {
 		return parent::renderReady($parent, $renderValueMode);
 	}
 
+	/**
+	 * @param Field $field
+	 * @return string
+	 * @throws WireException
+	 */
 	public function getPath(Field $field) {
 		return $this->wire('config')->paths->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name;
 	}
 
+	/**
+	 * @param Field $field
+	 * @return string
+	 * @throws WireException
+	 */
 	public function getUrl(Field $field) {
 		return $this->wire('config')->urls->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name;
 	}
 
+	/**
+	 * @return mixed|string
+	 */
 	public function ___render() {
 		return $this->value;
 	}
 
+	/**
+	 * @param WireInputData $input
+	 * @return $this|InputfieldDbMigrateRuntime
+	 */
 	public function ___processInput(WireInputData $input) {
 		return $this;
 	}
@@ -47,6 +70,9 @@ class InputfieldDbMigrateRuntime extends Inputfield {
 
 class FieldtypeDbMigrateRuntime extends Fieldtype {
 
+	/**
+	 * @return string[]
+	 */
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'DbMigrateRuntime',
@@ -58,6 +84,13 @@ class FieldtypeDbMigrateRuntime extends Fieldtype {
 		);
 	}
 
+	/**
+	 * @param Page $page
+	 * @param Field $field
+	 * @param $value
+	 * @param $property
+	 * @return bool|mixed|MarkupFieldtype|string
+	 */
 	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
 		if($field->no_lister_render) {
 			return '';
@@ -66,6 +99,12 @@ class FieldtypeDbMigrateRuntime extends Fieldtype {
 		}
 	}
 
+	/**
+	 * @param Page $page
+	 * @param Field $field
+	 * @return bool|mixed|string
+	 * @throws WireException
+	 */
 	protected function renderMarkup(Page $page, Field $field) {
 		$php_file = wire('config')->paths->siteModules . basename(__DIR__) . '/RuntimeFields/' . $field->name . ".php";
 //		$php_file = "{$this->wire('config')->paths->templates}RuntimeOnly/{$field->name}.php";
@@ -76,16 +115,34 @@ class FieldtypeDbMigrateRuntime extends Fieldtype {
 		}
 	}
 
+	/**
+	 * @param Page $page
+	 * @param Field $field
+	 * @param $value
+	 * @return bool|mixed|string
+	 * @throws WireException
+	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
 		return $this->renderMarkup($page, $field);
 	}
 
+	/**
+	 * @param Page $page
+	 * @param Field $field
+	 * @return bool|mixed|object|Config|Fields|Fieldtypes|Inputfield|Modules|Notices|Page|Pages|Permissions|ProcessWire|Roles|Sanitizer|Session|Templates|User|Users|Wire|WireDatabasePDO|WireDateTime|WireFileTools|WireHooks|WireInput|WireMailTools|string|null
+	 * @throws WireException
+	 */
 	public function getInputfield(Page $page, Field $field) {
 		$inputfield = $this->wire(new InputfieldDbMigrateRuntime());
 		$inputfield->class = $this->className();
 		return $inputfield;
 	}
 
+	/**
+	 * @param Field $field
+	 * @return InputfieldWrapper
+	 * @throws WireException
+	 */
 	public function ___getConfigInputfields(Field $field) {
 		$inputfields = parent::___getConfigInputfields($field);
 		$config = $this->wire('config');
@@ -121,6 +178,11 @@ class FieldtypeDbMigrateRuntime extends Fieldtype {
 		return $inputfields;
 	}
 
+	/**
+	 * @param Field $field
+	 * @return InputfieldWrapper
+	 * @throws WireException
+	 */
 	public function ___getConfigAdvancedInputfields(Field $field) {
 		$inputfields = parent::___getConfigAdvancedInputfields($field);
 		// Remove config fields that are not applicable
@@ -129,6 +191,11 @@ class FieldtypeDbMigrateRuntime extends Fieldtype {
 		return $inputfields;
 	}
 
+	/**
+	 * @param Field $field
+	 * @return bool|mixed|object|Config|Fields|Fieldtypes|Modules|Notices|Page|Pages|Permissions|ProcessWire|Roles|Sanitizer|Session|Templates|User|Users|Wire|WireDatabasePDO|WireDateTime|WireFileTools|WireHooks|WireInput|WireMailTools|string|null
+	 * @throws WireException
+	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
@@ -137,19 +204,45 @@ class FieldtypeDbMigrateRuntime extends Fieldtype {
 		return $fieldtypes;
 	}
 
+	/**
+	 * @param $query
+	 * @param $table
+	 * @param $subfield
+	 * @param $operator
+	 * @param $value
+	 * @return mixed
+	 * @throws WireException
+	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 		// This field may not be queried
 		throw new WireException(sprintf($this->_("Field '%s' is runtime and not queryable"), $query->field->name));
 	}
 
+	/**
+	 * @param Field $field
+	 * @param DatabaseQuerySelect $query
+	 * @return null
+	 */
 	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
 		return null;
 	}
 
+	/**
+	 * @param Page $page
+	 * @param Field $field
+	 * @param $value
+	 * @return int|object|WireArray|string
+	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		return $value;
 	}
 
+	/**
+	 * @param Page $page
+	 * @param Field $field
+	 * @param $value
+	 * @return int|object|WireArray|string
+	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		return $value;
 	}

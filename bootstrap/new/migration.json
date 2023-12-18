@@ -168,6 +168,51 @@
                     {
                         "template": "repeater_dbMigrateItem",
                         "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateTrackingScope",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateFieldTracking",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateTemplateTracking",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigratePageTracking",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateTrackingScope_END",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
                             "dbMigrateType": 2,
                             "dbMigrateAction": 1,
                             "dbMigrateName": "DbMigration",
