@@ -11,7 +11,8 @@ I wanted something to achieve the following:
 
 While numerous improvements have been made since the early versions, I should emphasise that what I have built is still largely a 'proof of concept'.
 
-This version incorporates automated tracking of changes - your migration specification is built for you as you make changes in the development system!
+This version incorporates automated tracking of changes - your migration specification is built for you as you make changes in the development system! It also alerts you
+to circular dependencies and allows you to resolve them. If you ignore them then the installation will probably still work the system will make up to 3 tries before giving up.
 
 ## Installation
 Place the ProcessDbMigrate folder in your site/modules directory. PW version 3.0.210 or later is recommended. Please let me know if it works with earlier versions.

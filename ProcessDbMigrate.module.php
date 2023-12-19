@@ -304,7 +304,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			// The functions they call are grouped together and documented there
 
 			// clear any old 'current' meta values
-			if($this->trackingMigration) {
+			if($this->trackingMigration && $this->trackingMigration->id) {
 				foreach($this->trackingMigration->meta()->getArray() as $metaKey => $metaValue) {
 //bd($metaKey, 'remove meta key?');
 					if(strpos($metaKey, 'current') === 0) {
@@ -489,7 +489,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$scopedObjects = $this->wire()->$typeName->find($migration->$tracking);
 		$val = Debug::timer('ready');
 //bd($val, 'ready timer 2');
-		if($scopedObjects->has($obj)) {
+		if($migration && $migration->id && $scopedObjects->has($obj)) {
 			// Ignore templates and fields which belong to DbMigrate itself
 			if(wireInstanceOf($obj, 'Template') && self::dbMigrateTemplates()->has($obj)) return;
 			if(wireInstanceOf($obj, 'Field') && self::dbMigrateFields()->has($obj)) return;
@@ -863,40 +863,42 @@ If it has been used in another environment and is no longer wanted then you will
 		$migrationPages = $this->migrations->find("template=$this->migrationTemplate, sort=-created, include=all");
 		foreach($migrationPages as $migrationPage) {
 			/* @var $migrationPage DbMigrationPage */
-			$installedStatus = $migrationPage->meta('installedStatus');
-			$status = ($installedStatus) ? $installedStatus['status'] : 'indeterminate';
-			if(!$migrationPage->meta('locked')) {
-				if($migrationPage->meta('installable')) {
-					$statusColour = ($status == 'installed') ? 'lightgreen' : (($status == 'uninstalled') ? 'salmon' : 'orange');
+			if($migrationPage && $migrationPage->id) {
+				$installedStatus = $migrationPage->meta('installedStatus');
+				$status = ($installedStatus) ? $installedStatus['status'] : 'indeterminate';
+				if(!$migrationPage->meta('locked')) {
+					if($migrationPage->meta('installable')) {
+						$statusColour = ($status == 'installed') ? 'lightgreen' : (($status == 'uninstalled') ? 'salmon' : 'orange');
+					} else {
+						$statusColour = ($status == 'exported') ? 'lightgreen' : 'salmon';
+					}
 				} else {
-					$statusColour = ($status == 'exported') ? 'lightgreen' : 'salmon';
-				}
-			} else {
 //                $status = 'Locked';
-				$statusColour = 'LightGrey';
+					$statusColour = 'LightGrey';
+				}
+				//bd($migrationPage, $status);
+				//bd($installedStatus);
+				$lockIcon = ($migrationPage->meta('locked')) ? '<i class="fa fa-lock"></i>' : '<i class="fa fa-unlock"></i>';
+				$itemList = [];
+				foreach($migrationPage->getFormatted('dbMigrateItem') as $migrateItem) {
+					/* @var $migrateItem RepeaterPage */
+					$oldName = ($migrateItem->dbMigrateOldName) ? '|' . $migrateItem->dbMigrateOldName : '';
+					$itemList[] = '<em>' . $migrateItem->dbMigrateAction->title . ' ' . $migrateItem->dbMigrateType->title . '</em>: ' . $migrateItem->dbMigrateName . $oldName;
+				}
+				$itemsString = implode("    ", $itemList);
+				$magic = (!$migrationPage->meta('installable') && !$migrationPage->meta('locked') && $migrationPage->dbMigrateLogChanges == 1) ? '<span class="fa fa-magic"></span>' : '';
+				$data = array(
+					// Values with a string key are converter to a link: title => link
+					$migrationPage->name => $pageEdit . $migrationPage->id,
+					($migrationPage->meta('installable')) ? '<span class="fa fa-arrow-down"></span>' : '<span class="fa fa-arrow-up"></span>' . $magic,
+					$lockIcon . ' <span style="background:' . $statusColour . '">' . $status . '</span>',
+					$migrationPage->title,
+					[$migrationPage->dbMigrateSummary, 'migration-table-text'],
+					[$itemsString, 'migration-table-text'],
+					date('Y-m-d', $migrationPage->created),
+				);
+				$table->row($data);
 			}
-			//bd($migrationPage, $status);
-			//bd($installedStatus);
-			$lockIcon = ($migrationPage->meta('locked')) ? '<i class="fa fa-lock"></i>' : '<i class="fa fa-unlock"></i>';
-			$itemList = [];
-			foreach($migrationPage->getFormatted('dbMigrateItem') as $migrateItem) {
-				/* @var $migrateItem RepeaterPage */
-				$oldName = ($migrateItem->dbMigrateOldName) ? '|' . $migrateItem->dbMigrateOldName : '';
-				$itemList[] = '<em>' . $migrateItem->dbMigrateAction->title . ' ' . $migrateItem->dbMigrateType->title . '</em>: ' . $migrateItem->dbMigrateName . $oldName;
-			}
-			$itemsString = implode("    ", $itemList);
-			$magic = (!$migrationPage->meta('installable') && !$migrationPage->meta('locked') && $migrationPage->dbMigrateLogChanges == 1) ? '<span class="fa fa-magic"></span>' : '';
-			$data = array(
-				// Values with a string key are converter to a link: title => link
-				$migrationPage->name => $pageEdit . $migrationPage->id,
-				($migrationPage->meta('installable')) ? '<span class="fa fa-arrow-down"></span>' : '<span class="fa fa-arrow-up"></span>' . $magic,
-				$lockIcon . ' <span style="background:' . $statusColour . '">' . $status . '</span>',
-				$migrationPage->title,
-				[$migrationPage->dbMigrateSummary, 'migration-table-text'],
-				[$itemsString, 'migration-table-text'],
-				date('Y-m-d', $migrationPage->created),
-			);
-			$table->row($data);
 
 		}
 		$this->wire('modules')->get('JqueryUI')->use('modal');
@@ -932,22 +934,24 @@ If it has been used in another environment and is no longer wanted then you will
 		$comparisonPages = $this->comparisons->find("template=$this->comparisonTemplate, sort=-created, include=all");
 		foreach($comparisonPages as $comparisonPage) {
 			/* @var $comparisonPage DbComparisonPage */
-			$itemList = [];
-			foreach($comparisonPage->dbMigrateComparisonItem as $comparisonItem) {
-				/* @var $comparisonItem RepeaterPage */
-				$itemList[] = '<em>' . $comparisonItem->dbMigrateType->title . '</em>: ' . $comparisonItem->dbMigrateName;
+			if($comparisonPage && $comparisonPage->id) {
+				$itemList = [];
+				foreach($comparisonPage->dbMigrateComparisonItem as $comparisonItem) {
+					/* @var $comparisonItem RepeaterPage */
+					$itemList[] = '<em>' . $comparisonItem->dbMigrateType->title . '</em>: ' . $comparisonItem->dbMigrateName;
+				}
+				$itemsString = implode("    ", $itemList);
+				$data = array(
+					// Values with a string key are converter to a link: title => link
+					$comparisonPage->name => $pageEdit . $comparisonPage->id,
+					$comparisonPage->meta('sourceDb'),
+					$comparisonPage->title,
+					$comparisonPage->dbMigrateSummary,
+					$itemsString,
+					date('Y-m-d', $comparisonPage->created),
+				);
+				$table->row($data);
 			}
-			$itemsString = implode("    ", $itemList);
-			$data = array(
-				// Values with a string key are converter to a link: title => link
-				$comparisonPage->name => $pageEdit . $comparisonPage->id,
-				$comparisonPage->meta('sourceDb'),
-				$comparisonPage->title,
-				$comparisonPage->dbMigrateSummary,
-				$itemsString,
-				date('Y-m-d', $comparisonPage->created),
-			);
-			$table->row($data);
 
 		}
 		$this->wire('modules')->get('JqueryUI')->use('modal');
@@ -1169,22 +1173,25 @@ If it has been used in another environment and is no longer wanted then you will
 		$comparisonPages = $this->comparisons->find("template=$this->comparisonTemplate, sort=-created, include=all");
 		foreach($comparisonPages as $comparisonPage) {
 			/* @var $comparisonPage DbComparisonPage */
-			$itemList = [];
-			foreach($comparisonPage->dbMigrateComparisonItem as $comparisonItem) {
-				/* @var $comparisonItem RepeaterPage */
-				$itemList[] = '<em>' . $comparisonItem->dbMigrateType->title . '</em>: ' . $comparisonItem->dbMigrateName;
+			if($comparisonPage && $comparisonPage->id) {
+				$itemList = [];
+				foreach($comparisonPage->dbMigrateComparisonItem as $comparisonItem) {
+					/* @var $comparisonItem RepeaterPage */
+					$itemList[] = '<em>' . $comparisonItem->dbMigrateType->title . '</em>: ' . $comparisonItem->dbMigrateName;
+				}
+				$itemsString = implode("    ", $itemList);
+				$data = array(
+					// Values with a string key are converter to a link: title => link
+					$comparisonPage->name => $pageEdit . $comparisonPage->id,
+					$comparisonPage->meta('sourceDb'),
+					$comparisonPage->title,
+					$comparisonPage->dbMigrateSummary,
+					$itemsString,
+					date('Y-m-d', $comparisonPage->created),
+				);
+				$table->row($data);
 			}
-			$itemsString = implode("    ", $itemList);
-			$data = array(
-				// Values with a string key are converter to a link: title => link
-				$comparisonPage->name => $pageEdit . $comparisonPage->id,
-				$comparisonPage->meta('sourceDb'),
-				$comparisonPage->title,
-				$comparisonPage->dbMigrateSummary,
-				$itemsString,
-				date('Y-m-d', $comparisonPage->created),
-			);
-			$table->row($data);
+			$itemList = [];
 
 		}
 		$this->wire('modules')->get('JqueryUI')->use('modal');
@@ -1418,12 +1425,13 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 	public function ___lockMigration($migrationPage, $migrationFolder) {
 		/* @var $migrationPage DbMigrationPage */
-		$migrationPage->exportData('compare'); // sets meta('installedStatus') to the latest status before locking
-		$now = $this->wire()->datetime->date('Ymd-His');
-		$this->wire()->files->filePutContents($migrationFolder . 'lockfile.txt', $now);
-		$migrationPage->meta('locked', true);
+		if($migrationPage && $migrationPage->id) {
+			$migrationPage->exportData('compare'); // sets meta('installedStatus') to the latest status before locking
+			$now = $this->wire()->datetime->date('Ymd-His');
+			$this->wire()->files->filePutContents($migrationFolder . 'lockfile.txt', $now);
+			$migrationPage->meta('locked', true);
+		}
 	}
-
 	/**
 	 * This is the hookable method for Unlock - it has the migration page as an argument
 	 *
@@ -1435,9 +1443,11 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 	public function ___unlockMigration($migrationPage, $migrationFolder) {
 		/* @var $migrationPage DbMigrationPage */
-		$this->wire()->files->unlink($migrationFolder . 'lockfile.txt');
-		$migrationPage->meta()->remove('locked');
-		$migrationPage->exportData('compare'); // sets meta('installedStatus') to the latest status after unlocking (May cause errors if unlocking superseded migration?)
+		if($migrationPage && $migrationPage->id) {
+			$this->wire()->files->unlink($migrationFolder . 'lockfile.txt');
+			$migrationPage->meta()->remove('locked');
+			$migrationPage->exportData('compare'); // sets meta('installedStatus') to the latest status after unlocking (May cause errors if unlocking superseded migration?)
+		}
 	}
 
 	/**
@@ -2077,7 +2087,7 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function setPageMeta($page, $overrideScope = false) {
 		if(!$page || !$page->id) return;
 		$migration = $this->trackingMigration;
-		if(!$migration) return;
+		if(!$migration || !$migration->id) return;
 		if($migration->meta()->get("current_page_{$page->id}")) return;
 		$scopedObjects = $this->wire()->pages->find($migration->dbMigratePageTracking); //NB May not include a new page
 		$matches = false;
@@ -2472,6 +2482,7 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function getTrackingMigration() {
 		$migrations = $this->pages()->find("template={$this->migrationTemplate}");
 		foreach($migrations as $migration) {
+			if(!$migration || !$migration->id) continue;
 			if(!$migration->meta('installable') && !$migration->meta('locked') && $migration->dbMigrateLogChanges != 1
 				&& ($migration->dbMigrateFieldTracking || $migration->dbMigrateTemplateTracking || $migration->dbMigratePageTracking)) {
 				$this->wire()->session->error($migration->name . $this->_(": Migration is open with tracking scope, but log changes is not enabled.\n
@@ -2577,7 +2588,7 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function setMetaDeleteRepeater($event) {
 		$field = $event->arguments(0);
 		$migration = $this->trackingMigration;
-		if($migration) {
+		if($migration && $migration->id) {
 			$objectData = $this->getExportDataMod($field);
 			$migration->meta()->set("current_field_{$field->id}", $objectData);
 			$this->set('trackingField', $field);
@@ -2665,6 +2676,7 @@ If it has been used in another environment and is no longer wanted then you will
 		Debug::startTimer('from hook');
 //bd([$event->method, $event], 'handleSaveableHook event');
 		$migration = $this->trackingMigration;
+		if(!$migration || !$migration->id) return;
 		$type = $typeName = $tracking = null;
 		$object = $event->object;
 		$this->objectType($event, $object, $type, $typeName, $tracking);
@@ -2903,6 +2915,7 @@ If it has been used in another environment and is no longer wanted then you will
 		//bd([DEBUG::backtrace(), debug_backtrace()], 'backtrace addMigration');
 		// get the non-installable migration page with 'log changes' enabled (there should only be one as any others are trapped on saving)
 		$migration = $this->trackingMigration;
+		if(!$migration || !$migration->id) return;
 		/* @var $migration DbMigrationPage */
 		$migration->of(false); // Needed for the case when saved() is called directly in afterFieldRemoved etc
 		if(!$migration->meta('installable') && !$migration->meta('locked') && $migration->dbMigrateLogChanges == 1) { // 1 is 'Log changes'
@@ -3177,6 +3190,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 	protected function removeMigrationItem($migration, $migrationItem, $object, $item) {
 		//bd(['migration' => $migration, 'migItem' => $migrationItem, 'obj' => $object, 'item' => $item], 'removemigrationitem');
+		if(!$migration || !$migration->id) return;
 		$migration->dbMigrateItem->remove($migrationItem);
 		$migration->meta()->remove("base_{$object}_{$item->id}");
 		$migration->save();
@@ -3223,7 +3237,7 @@ If it has been used in another environment and is no longer wanted then you will
 		/* @var DbMigrationPage $migration */
 		$existingItemIds = [];
 		foreach($migration->getFormatted('dbMigrateItem') as $migrationItem) {
-			if(isset($migrationItem->meta('sourceData')['id']) && $migrationItem->meta('sourceData')['id']) {
+			if($migrationItem && $migrationItem->id && isset($migrationItem->meta('sourceData')['id']) && $migrationItem->meta('sourceData')['id']) {
 				$existingItemIds[$migrationItem->meta('sourceData')['id']] = $migrationItem->id;
 			}
 		}

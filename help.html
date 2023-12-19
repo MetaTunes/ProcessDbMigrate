@@ -4,6 +4,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 
+  /* Responsive images */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+    /* Style the sidenav */
 .sidenav {
 	height: 100%;
 	width: 20%;
@@ -34,6 +41,7 @@
   list-style-type: none;
 }
 
+/* Style the main content */
 .main {
 	margin-left: 20%; /* Same as the width of the sidenav */
   width: 80%;
@@ -45,10 +53,10 @@
 	.sidenav {padding-top: 15px;}
 }
 </style>
-<script>var RockFrontend = {"rootUrl":"\/","livereloadSecret":"pamK7aZYcXdane0lN9Sp3bgeMyo2wZ"}</script></head>
+<script>var RockFrontend = {"rootUrl":"\/","livereloadSecret":"tZxs6ZqNOp7B3CpM12LYkWnhLSPkItw4"}</script></head>
 <body>
 <div class="sidenav">
-	<ul class='uk-nav uk-nav-default'><li><a style='padding-left: 0px' href='#summary'>Summary</a></li><li><a style='padding-left: 0px' href='#background'>Background</a></li><li><a style='padding-left: 0px' href='#concept'>Concept</a></li><li><a style='padding-left: 0px' href='#uses'>Uses</a></li><li><a style='padding-left: 0px' href='#design'>Design</a></li><li><a style='padding-left: 0px' href='#health-warnings-and-known-limitations'>Health warnings and known limitations</a></li><li><a style='padding-left: 0px' href='#installation'>Installation</a></li><li><a style='padding-left: 10px' href='#dependencies'>Dependencies</a></li><li><a style='padding-left: 0px' href='#upgrading'>Upgrading</a></li><li><a style='padding-left: 0px' href='#uninstalling'>Uninstalling</a></li><li><a style='padding-left: 0px' href='#overview'>Overview</a></li><li><a style='padding-left: 0px' href='#using-the-module'>Using the module</a></li><li><a style='padding-left: 10px' href='#documenting-the-migration'>Documenting the migration</a></li><li><a style='padding-left: 10px' href='#populating-the-migration-page'>Populating the migration page</a></li><li><a style='padding-left: 20px' href='#snippets'>Snippets</a></li><li><a style='padding-left: 10px' href='#exporting-the-migration'>Exporting the migration</a></li><li><a style='padding-left: 10px' href='#installing-the-migration'>Installing the migration</a></li><li><a style='padding-left: 10px' href='#locking'>Locking</a></li><li><a style='padding-left: 10px' href='#database-comparisons'>Database comparisons</a></li><li><a style='padding-left: 20px' href='#creating-a-migration-from-a-comparison'>Creating a migration from a comparison</a></li><li><a style='padding-left: 10px' href='#hooks'>Hooks</a></li><li><a style='padding-left: 20px' href='#available-hooks'>Available hooks</a></li><li><a style='padding-left: 20px' href='#placement'>Placement</a></li><li><a style='padding-left: 20px' href='#usage'>Usage</a></li><li><a style='padding-left: 0px' href='#troubleshooting-technical-notes'>Troubleshooting / Technical notes</a></li><li><a style='padding-left: 10px' href='#guide-to-the-files'>Guide to the files</a></li><li><a style='padding-left: 10px' href='#issues-with-change-logging'>Issues with change logging</a></li><li><a style='padding-left: 10px' href='#issues-with-page-migrations'>Issues with page migrations</a></li><li><a style='padding-left: 10px' href='#partial-unsuccessful-migrations'>Partial / Unsuccessful migrations</a></li><li><a style='padding-left: 10px' href='#field-types'>Field types</a></li><li><a style='padding-left: 10px' href='#subsequent-installations'>Subsequent installations</a></li><li><a style='padding-left: 10px' href='#rescue-mode'>Rescue mode</a></li><li><a style='padding-left: 10px' href='#system-and-repeater-templates-fields-and-flags'>System and repeater templates/fields and flags</a></li></ul></div>
+	<ul class='uk-nav uk-nav-default'><li><a style='padding-left: 0px' href='#summary'>Summary</a></li><li><a style='padding-left: 0px' href='#background'>Background</a></li><li><a style='padding-left: 0px' href='#concept'>Concept</a></li><li><a style='padding-left: 0px' href='#uses'>Uses</a></li><li><a style='padding-left: 0px' href='#design'>Design</a></li><li><a style='padding-left: 0px' href='#health-warnings-and-known-limitations'>Health warnings and known limitations</a></li><li><a style='padding-left: 0px' href='#installation'>Installation</a></li><li><a style='padding-left: 10px' href='#dependencies'>Dependencies</a></li><li><a style='padding-left: 0px' href='#upgrading'>Upgrading</a></li><li><a style='padding-left: 0px' href='#uninstalling'>Uninstalling</a></li><li><a style='padding-left: 0px' href='#overview'>Overview</a></li><li><a style='padding-left: 10px' href='#documenting-the-migration'>Documenting the migration</a></li><li><a style='padding-left: 10px' href='#populating-the-migration-page'>Populating the migration page</a></li><li><a style='padding-left: 20px' href='#snippets'>Snippets</a></li><li><a style='padding-left: 10px' href='#exporting-the-migration'>Exporting the migration</a></li><li><a style='padding-left: 10px' href='#installing-the-migration'>Installing the migration</a></li><li><a style='padding-left: 10px' href='#locking'>Locking</a></li><li><a style='padding-left: 10px' href='#database-comparisons'>Database comparisons</a></li><li><a style='padding-left: 20px' href='#creating-a-migration-from-a-comparison'>Creating a migration from a comparison</a></li><li><a style='padding-left: 10px' href='#hooks'>Hooks</a></li><li><a style='padding-left: 20px' href='#available-hooks'>Available hooks</a></li><li><a style='padding-left: 20px' href='#placement'>Placement</a></li><li><a style='padding-left: 20px' href='#usage'>Usage</a></li><li><a style='padding-left: 0px' href='#troubleshooting-technical-notes'>Troubleshooting / Technical notes</a></li><li><a style='padding-left: 10px' href='#guide-to-the-files'>Guide to the files</a></li><li><a style='padding-left: 10px' href='#issues-with-change-logging'>Issues with change logging</a></li><li><a style='padding-left: 10px' href='#issues-with-page-migrations'>Issues with page migrations</a></li><li><a style='padding-left: 10px' href='#partial-unsuccessful-migrations'>Partial / Unsuccessful migrations</a></li><li><a style='padding-left: 10px' href='#field-types'>Field types</a></li><li><a style='padding-left: 10px' href='#subsequent-installations'>Subsequent installations</a></li><li><a style='padding-left: 10px' href='#rescue-mode'>Rescue mode</a></li><li><a style='padding-left: 10px' href='#system-and-repeater-templates-fields-and-flags'>System and repeater templates/fields and flags</a></li></ul></div>
 <div class="main">
     <div edit="dbMigrateAdditionalDetails">
 		<h1>DB Migrations module - "ProcessDbMigrate"</h1>
@@ -57,7 +65,7 @@
 
 <p>This is a ProcessWire module to enable database changes in a development environment to be migrated to a test or live environment, without the need for any coding, and for all such migrations to be fully documented and capable of reversal.</p>
 
-<p><strong>From version 1.0.0, the module also has had automated tracking of changes</strong> - your migration specification is built for you as you make changes in the development system. In this help file, instructions relating to manual creation of migrations are displayed in <span style="color:#7f8c8d;">grey text</span> and may be ignored if you are using change tracking. This version (2.0.0+) inludes enhanced sorting of the migration sequence and persistent installation to deal with cyclical dependencies. There is no guarantee that major version changes (x.0.0) will be compatible with earlier versions, so great care needs to be taken if you happen to have tried a previous version and want to upgrade it.</p>
+<p><strong>The module also has automated tracking of changes</strong> - your migration specification is built for you as you make changes in the development system (from v 1.0.0). In this help file, instructions relating to manual creation of migrations are displayed in <span style="color:#7f8c8d;">grey text</span> and may be ignored if you are using change tracking. This version (2.0.0+) inludes enhanced sorting of the migration sequence and persistent installation to deal with cyclical dependencies. There is no guarantee that major version changes (x.0.0) will be compatible with earlier versions, so great care needs to be taken if you happen to have tried a previous version and want to upgrade it.</p>
 
 <p>The following documentation is pretty comprehensive, for which I make no apologies (in the hope that users will read it before asking questions). So:</p>
 
@@ -219,7 +227,7 @@ if($config-&gt;paths-&gt;root === '/var/www/html/') {
 
 <p>The pic below illustrates the DB Migrations page in the 'source' environment. Please note that some pictures may be from earlier versions and may not show all features to be found in later versions.</p>
 
-<p><img alt="DB Migrations page in the 'source' environment" src="help/Setup_page_source_v3.jpg" /></p>
+<p><img alt="DB Migrations page in the 'source' environment" src="help/Migrations_table.png" /></p>
 
 <p>The status of a migration (as a source page) can be 'pending' or 'exported'. 'Pending' means either that the migration data have not yet been exported or that the current export files differ from the source database.</p>
 
@@ -231,13 +239,7 @@ if($config-&gt;paths-&gt;root === '/var/www/html/') {
 
 <p>The pic below illustrates the Database Migrations page in the target environment.</p>
 
-<p><img alt="DB Migrations page in the 'target' environment" src="help/Setup_page_target_v3.jpg" /></p>
-
-<p>In a target environment, a migration status can usually be 'indeterminate', 'installed' or 'uninstalled'. 'Indeterminate' means either that the migration has not yet been installed (so no 'old' files containing the uninstall definition exist yet) or that the current state matches neither the 'new' or the 'old' state. 'Installed' means that the current state matches the 'new' definition and 'uninstalled' means that it matches the 'old' definition (i.e. it has been actively uninstalled rather than not yet installed). There is also a 'void' status which indicates that the migration achieves nothing. 'Superseded' applies to a completed and locked migration when further changes to the database have occurred after installation.</p>
-
-<p><strong>Note</strong> : If you can't remember whether you are working in a source or target environment (important! - you don't want to make developments in a test environment and then lose them!), make sure all databases have names in the module config, with 'append environment' selected, and select “Show database name in notice”.</p>
-
-<h2><a href="#" name="using-the-module">Using the module</a></h2>
+<p><img alt="DB Migrations page in the 'target' environment" src="help/Migrations_table_target.png" />Using the module</p>
 
 <h3><a href="#" name="documenting-the-migration">Documenting the migration</a></h3>
 
@@ -249,13 +251,13 @@ if($config-&gt;paths-&gt;root === '/var/www/html/') {
 
 <h3><a href="#" name="populating-the-migration-page">Populating the migration page</a></h3>
 
-<p>See example below (note that this example has been created manually, not with change tracking):</p>
+<p>See example below (note that this example has been created manually, not with change tracking, and is from a previous version):</p>
 
-<p><img alt="Migration_page_source_full_v4.jpg" src="help/Migration_page_source_full_v4.jpg" /></p>
+<p><img alt="Example source migration (previous version)" src="help/Migration_page_source_full_v4.jpg" /></p>
 
 <p>The next example illustrates a migration created by logging changes:</p>
 
-<p><img alt="Log_changes_source.png" src="help/Log_changes_source.png" /></p>
+<p><img alt="Log changes example source migration" src="help/Migration_source_example.png" /></p>
 
 <p><em>Change tracking: </em>From version 1.0.0, the module incorporates automated change tracking, which eliminates the hardest part of the previous versions - namely the specification of the migration scope. From version 2.0.0, the scope of this tracking is included in each migration page, rather than globally. You just set selectors defining the scope of tracking and any changes within that scope will be tracked. For fields and templates, you might wish to use <code>id&gt;0</code> to track all changes. For pages, you will probably just want to track 'settings' pages which are not routinely amended by users - typically this will be done by specifying the template(s), e.g. <code>template=MotifLayout.</code> All fields, templates and pages related to the module itself will be excluded automatically. <strong>If you do not enter a selector then no changes will be tracked</strong>.</p>
 
@@ -269,7 +271,7 @@ if($config-&gt;paths-&gt;root === '/var/www/html/') {
 
 <p>Note that <strong>the sequence is very important</strong> – if items are dependent on other items, they must be declared in the correct order for installation (when uninstalling, the order is automatically reversed and 'new' and 'removed' are swapped). Note particularly for Repeater and PageTable field types, you need to define the components in the right order – e.g. the template before the field that uses it, in the case of new/changed components. <strong>With change tracking on, the order should automatically be correct, </strong>but it is wise to review it in any case.<span style="color:#7f8c8d;"> If you have entered the items manually, you can use the 'sort on save' option to sort the items for you, but again, check that it makes sense as it may not be perfect. It is possible (especially with Page Table fields) for items to have circular dependencies. Error messgaes will be given about this - see the troubleshooting section on cyclical dependencies for more information. Usually the installation will proceed satisfactorily even if the dependencies are not correct, but it helps to get them right.</span></p>
 
-<p><span style="color:#7f8c8d;">If you define a page item which has a rich text editor field that includes an image on <strong>another page</strong>, you will also need to include that other page in the scope (as 'changed' even if it has not changed). Otherwise you do not need to declare components that are unchanged.</span> Change tracking should automatically add pages with the souce images used in a RTE field but, again, it is wise to check. Note that if you subsequently change the 'image source' page and revert the principal page so that the latter is removed from the migration, then the 'image source' page should also be removed from the migration unless it is within the defined tracking scope in its own right.</p>
+<p><span style="color:#7f8c8d;">If you define a page item which has a rich text editor field that includes an image on <strong>another page</strong>, you will also need to include that other page in the scope (as 'changed' even if it has not changed). Otherwise you do not need to declare components that are unchanged.</span> Change tracking should automatically add pages with the source images used in a RTE field but, again, it is wise to check. Note that if you subsequently change the 'image source' page and revert the principal page so that the latter is removed from the migration, then the 'image source' page should also be removed from the migration unless it is within the defined tracking scope in its own right.</p>
 
 <hr />
 <p><span style="color:#7f8c8d;"><strong><em>Selectors (only applicable if creating migration manually)</em></strong>:</span></p>
@@ -320,11 +322,11 @@ if($config-&gt;paths-&gt;root === '/var/www/html/') {
 
 <p>Go to the migration page. Before installing, you can use the "preview" button to see what changes will be implemented. If you are happy, click "Install". This should result in various messages and maybe some errors, if the migration was not able to complete fully (see section below for how to deal with partial migrations). See example of the migration page in 'installation' mode below:</p>
 
-<p><img alt="Migration_page_target.jpg" src="help/Migration_page_target.jpg" /></p>
+<p><img alt="Example installable migration" src="help/Installable_migration.png" /></p>
 
 <p>and an example preview:</p>
 
-<p><img alt="Preview_differences_selector.jpg" src="help/Preview_differences_selector.jpg" /></p>
+<p><img alt="Preview differences" src="help/Preview_install_data.png" /></p>
 
 <p>Note that you will now have the following files:</p>
 

@@ -413,7 +413,7 @@
                         "sourcedialog"
                     ],
                     "removePlugins": "image,magicline",
-                    "extraAllowedContent": "br\ntd(box-top,box-middle,box-bottom,box-total)\ntable(uk-table)\ndiv(uk-overflow-auto)\nth(uk-table-shrink)\ntd(uk-table-shrink)\nblockquote(clearfix)",
+                    "extraAllowedContent": "br\ntd(box-top,box-middle,box-bottom,box-total)\ntable(uk-table)\ndiv(uk-overflow-auto)\nth(uk-table-shrink)\ntd(uk-table-shrink)\nblockquote(clearfix)\nimg[alt,!src,width,height]",
                     "tags": "dbMigrate",
                     "textformatters": "",
                     "htmlOptions": "",

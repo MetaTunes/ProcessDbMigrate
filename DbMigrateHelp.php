@@ -8,6 +8,13 @@ $config->styles->add($config->urls->templates . "styles/admin.css");
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 
+  /* Responsive images */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+    /* Style the sidenav */
 .sidenav {
 	height: 100%;
 	width: 20%;
@@ -38,6 +45,7 @@ $config->styles->add($config->urls->templates . "styles/admin.css");
   list-style-type: none;
 }
 
+/* Style the main content */
 .main {
 	margin-left: 20%; /* Same as the width of the sidenav */
   width: 80%;

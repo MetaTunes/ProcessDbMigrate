@@ -137,6 +137,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 */
 	public function exportData($newOld) {
 		if(!$this->ready) $this->ready();
+		if(!$this->id) return;
 
 		// NB Inputfield::exportConfigData sometimes returns columnwidth = 100 even if it is not set. This hook (removed at the end of the method) tries to fix that
 		// ToDo A more fundamental fix would be better
@@ -555,6 +556,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			}
 			return $empty;
 		}
+		if(!$this->id) return $empty;
 		$itemName = $item['name'];  // This will be the name in the source environment
 		//bd($itemName, 'itemName');
 
@@ -1814,7 +1816,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		if($message) $this->wire()->session->message(implode(', ', $message));
 		if($warning) $this->wire()->session->warning(implode(', ', $warning));
 		//bd($newOld, 'finished install');
-		return $this->meta('installedStatus')['status'];
+		return ($this && $this->id) ? $this->meta('installedStatus')['status'] : 'indeterminate';
 	}
 
 	protected function fixRteHtml($pagesInstalled, $idMapArray, $newOld) {
@@ -2304,7 +2306,7 @@ class DbMigrationPage extends DummyMigrationPage {
 				$p = $this->newPage($name, $data, $fields, $repeaters, $newOld);
 			}
 			///////
-			if($origId) $p->meta('origId', $origId); // Save the id of the originating page for matching purposes
+			if($origId && $p && $p->id ) $p->meta('origId', $origId); // Save the id of the originating page for matching purposes
 			$p->of(false);
 			$p->save();
 			//bd($p, 'saved page at end of install');
@@ -2928,7 +2930,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			}
 //			bd($page, 'page in getidmap');
 //			bd([debug_backtrace(), DEBUG::backtrace()], 'backtrace');
-			if($page and $page->meta('origId')) $idMapArray[$page->meta('origId')] = $page->id;  // $page->id is the new id (in the target)
+			if($page && $page->id && $page->meta('origId')) $idMapArray[$page->meta('origId')] = $page->id;  // $page->id is the new id (in the target)
 		}
 		$prevMap = ($this->meta('idMap')) ?: [];
 		$this->meta('idMap', array_merge($prevMap, $idMapArray));
@@ -2994,6 +2996,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		//bd('IN REFRESH');
 		//bd($this->migrationsPath, '$this->migrationsPath');
 		if(!$this->ready) $this->ready();
+		if(!$this->id) return false;
 
 		// Get the migration details - exit if they don't exist
 		$migrationPath = $this->migrationsPath . $this->name;
