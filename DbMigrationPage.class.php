@@ -229,7 +229,7 @@ class DbMigrationPage extends DummyMigrationPage {
 				//bd($data, 'data for json');
 				$files['new'] = $items['files'];
 				$objectJson['new'] = $this->modifiedJsonEncode($data);
-				bd($objectJson['new'], 'New json created');
+				//bd($objectJson['new'], 'New json created');
 			}
 			if($newOld == 'old' || $newOld == 'compare') {
 				$reverseItems = $this->cycleItems($itemRepeater, $excludeAttributes, $excludeFields, $newOld, 'old'); // cycleItems will reverse order for uninstall
@@ -488,7 +488,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	public function modifiedJsonEncode($data) {
 		$json = wireEncodeJSON($data, true, true);
 		$json = str_replace('\t', ' ', $json);
-		bd($json, 'modified json');
+		//bd($json, 'modified json');
 		return $json;
 	}
 
@@ -866,6 +866,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WireException
 	 */
 	public function restrictFields() {
+		if(!$this->dbMigrateRestrictFields) return [];
 		$restrictFields = array_filter($this->wire()->sanitizer->array(
 			str_replace(' ', '', $this->dbMigrateRestrictFields),
 			'fieldName',
@@ -1821,15 +1822,15 @@ class DbMigrationPage extends DummyMigrationPage {
 
 	protected function fixRteHtml($pagesInstalled, $idMapArray, $newOld) {
 		foreach($pagesInstalled as $page) {
-			bd($page, 'RTE? page');
+			//bd($page, 'RTE? page');
 			foreach($page->getFields() as $field) {
-				bd([$page, $field], 'RTE? field');
+				//bd([$page, $field], 'RTE? field');
 				if($field->type == 'FieldtypeTextarea') {
-					bd([$page, $field], 'RTE field Y');
-					bd($page->$field, 'Initial html');
+					//bd([$page, $field], 'RTE field Y');
+					//bd($page->$field, 'Initial html');
 					$html = $page->$field;
 					$html = $this->replaceLink($html, $idMapArray, $newOld);
-					bd($html, 'returned html');
+					//bd($html, 'returned html');
 					$page->$field = $html;
 					$page->of(false);
 					$page->save($field);
@@ -1912,8 +1913,9 @@ class DbMigrationPage extends DummyMigrationPage {
 			if(isset($fData['parent_path'])) {
 				$pPath = $fData['parent_path'];
 				$pt = $this->wire('pages')->get($pPath);
-				if($pt) {
+				if($pt && $pt->id) {
 					$fData['parent_id'] = $pt->id;
+					//bd($pPath, 'set parent to id ' . $pt->id);
 				} else {
 					$this->wire()->session->error(sprintf(
 							$this->_('Cannot install field %1$s properly because parent page %2$s is missing. Is it missing or out of sequence in the installation list?'),
@@ -2150,6 +2152,8 @@ class DbMigrationPage extends DummyMigrationPage {
 
 			$data[$name] = $fieldData;
 		}
+
+		//bd($field, 'Field after save');
 
 //        $this->session->set('FieldImportSkipNames', $skipFieldNames);  //MDE not applicable
 //        $this->session->set('FieldImportData', $data); //MDE not applicable
