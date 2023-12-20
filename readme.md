@@ -9,7 +9,8 @@ I wanted something to achieve the following:
 - To provide a record of changes applied.
 - Although not originally intended, the module I developed also allows the selective reversion of parts of the database by exporting migration data from a backup copy.  Also, if changes are made directly on the live system (presumably simple, low-risk mods – although not best practice), it allows reverse migration to the development system in a similar fashion.
 
-While numerous improvements have been made since the early versions, I should emphasise that what I have built is still largely a 'proof of concept'.
+While numerous improvements have been made since the early versions, I should emphasise that what I have built is still 'alpha'. Please test it thoroughly before using it on a live system and take frequent backups. 
+I have used it on a number of sites, but I have not tested it on all possible configurations.
 
 This version incorporates automated tracking of changes - your migration specification is built for you as you make changes in the development system! It also alerts you
 to circular dependencies and allows you to resolve them. If you ignore them then the installation will probably still work the system will make up to 3 tries before giving up.
