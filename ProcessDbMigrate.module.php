@@ -2813,6 +2813,7 @@ If it has been used in another environment and is no longer wanted then you will
 				$this->addTrackedMigrationItem($item, $type, $action, $oldName, $rteLinks);
 				//$this->wire()->log->save('debug', 'Progress 3b');
 			}
+			$this->addTrackedMigrationItem($item, $type, $action, $oldName);
 		}
 	}
 

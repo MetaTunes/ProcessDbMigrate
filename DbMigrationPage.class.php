@@ -3890,10 +3890,10 @@ class DbMigrationPage extends DummyMigrationPage {
 		$j = $relatedItem->mysort;
 		if($relatedItem->dbMigrateAction->value == 'new') { //} || $relatedItem->dbMigrateAction->value == 'changed') { NB no dependency if item is just changed
 			// $i is dependent on $j
-			$matrix[$i][$j] = 1;
+			$matrix[$j][$i] = 1;
 		} else if($relatedItem->dbMigrateAction->value == 'removed') {
 			// dependency is reversed for removals
-			$matrix[$j][$i] = 1;
+			$matrix[$i][$j] = 1;
 		}
 //		bd($matrix[$j][$i], "dependency of $i on $j");
 //		if(($j == 2 && $i == 3) or ($j ==  3 && $i == 2) ) bd(debug_backtrace());
