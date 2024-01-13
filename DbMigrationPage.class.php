@@ -1734,16 +1734,19 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WirePermissionException
 	 *
 	 */
-	public function installMigration($newOld) {
+	public function installMigration($newOld, $dummy = false) {
 		$this->wire()->log->save('debug', 'In install with newOld = ' . $newOld);
 
 		if(!$this->ready and $this->name != 'dummy-bootstrap') $this->ready();  // don't call ready() for dummy-bootstrap as it has no template assigned at this point
 
 		// Backup the old installation first
-		if($newOld == 'new' and $this->name != 'dummy-bootstrap') $this->exportData('old');
+		if($newOld == 'new' and ($this->name != 'dummy-bootstrap' && !$dummy)) $this->exportData('old');
 		/*
 		* NB The bootstrap is excluded from the above. A separate (manually constructed) 'old' file is provided
 		 * for the bootstrap as part of the module and is used when uninstalling the module.
+		 *
+		 * $dummy allows for a similar override where this method is called by another module making use of this install feature
+		 * where that module also provides its own 'old' files
 		*/
 		$name = ($this->name == 'dummy-bootstrap') ? 'bootstrap' : $this->name;
 
