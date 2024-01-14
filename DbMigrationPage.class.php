@@ -1833,7 +1833,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		if($message) $this->wire()->session->message(implode(', ', $message));
 		if($warning) $this->wire()->session->warning(implode(', ', $warning));
 		//bd($newOld, 'finished install');
-		return ($this && $this->id) ? $this->meta('installedStatus')['status'] : 'indeterminate';
+		return ($this && $this->id && isset($this->meta('installedStatus')['status'])) ? $this->meta('installedStatus')['status'] : 'indeterminate';
 	}
 
 	protected function fixRteHtml($pagesInstalled, $idMapArray, $newOld) {
@@ -1920,13 +1920,13 @@ class DbMigrationPage extends DummyMigrationPage {
 							$fName,
 							$name);
 						if($quiet) {
-							$this->log->save('dbMigrate', $error);
+							$this->wire()->log->save('dbMigrate', $error);
 						} else {
 							$this->wire()->session->error($error);
 						}
 					}
 				}
-				if($singular) $fData['template_id'] = $fData['template_id'][0];
+				if($singular && is_array($fData['template_id'])) $fData['template_id'] = $fData['template_id'][0];
 				unset($fData['template_name']);  // it was just a temp variable - no meaning to PW
 			}
 
@@ -1942,7 +1942,7 @@ class DbMigrationPage extends DummyMigrationPage {
 						$fName,
 						$name);
 					if($quiet) {
-						$this->log->save('dbMigrate', $error);
+						$this->wire()->log->save('dbMigrate', $error);
 					} else {
 						$this->wire()->session->error($error);
 					}
@@ -1979,7 +1979,7 @@ class DbMigrationPage extends DummyMigrationPage {
 					$fName,
 					$name);
 				if($quiet) {
-					$this->log->save('dbMigrate', $error);
+					$this->wire()->log->save('dbMigrate', $error);
 				} else {
 					$this->wire()->session->error($error);
 				}
@@ -3149,6 +3149,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		// in practice there is only one item in the array (after 'sourceDb' & 'sourceSiteUrl' have been unset) as it is just for the migration page itself
 		foreach($fileContents as $type => $content) {
 			//bd($content, 'content item');
+			if(!is_array($content)) continue;
 			foreach($content as $line) {
 				foreach($line as $pathName => $values) {
 					$pageName = $values['name'];
@@ -3170,6 +3171,7 @@ class DbMigrationPage extends DummyMigrationPage {
 							if(isset($oldContents['sourceDb'])) unset($oldContents['sourceDb']);
 							if(isset($oldContents['sourceSiteUrl'])) unset($oldContents['sourceSiteUrl']);
 							foreach($oldContents as $oldType => $oldContent) {
+								if(!is_array($oldContent)) continue;
 								foreach($oldContent as $oldLine) {
 									foreach($oldLine as $oldPathName => $oldValues) {
 										$oldTestValues = $oldValues;

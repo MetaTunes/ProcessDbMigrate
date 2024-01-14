@@ -1034,6 +1034,7 @@ If it has been used in another environment and is no longer wanted then you will
 			foreach($fileContents as $content) {
 				// There should only be one item in this context
 				//bd($content, 'content');
+				if(!is_array($content)) continue;
 				foreach($content as $line) {
 					foreach($line as $pathName => $values) {
 						$pageName = $values['name'];
@@ -3312,7 +3313,10 @@ If it has been used in another environment and is no longer wanted then you will
 			if(isset($objectData['template_id']) && $objectData['template_id'] && !is_numeric($objectData['template_id'])) {
 				//bd($objectData['template_id'], 'fixing template_id');
 				$name = $objectData['template_id'];
-				if($this->wire()->templates->get("name={$name}")) $objectData['template_id'] = (string)$this->wire()->templates->get("name={$name}")->id;
+				if(is_string($name) && $this->wire()->templates->get("name={$name}")) {
+					bd($this->wire->templates->get("name={$name}"), 'template in getexportdatamod');
+					$objectData['template_id'] = (string)$this->wire()->templates->get("name={$name}")->id;
+				}
 			}
 			//
 			// bd([$objectData['name'], $objectData], 'objectData in getExportDataMod');
