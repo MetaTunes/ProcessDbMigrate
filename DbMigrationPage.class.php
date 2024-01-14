@@ -205,8 +205,9 @@ class DbMigrationPage extends DummyMigrationPage {
 		} else if($this->dbName) {
 			$migrationData['sourceDb'] = $this->dbName;
 		}
-		// Include an item for the site url as this may be different in the target
+		// Include an item for the site url and admin url as these may be different in the target
 		$migrationData['sourceSiteUrl'] = $this->wire()->config->urls->site;
+		$migrationData['sourceAdminUrl'] = $this->wire()->config->urls->admin;
 		$migrationObjectJson = $this->modifiedJsonEncode($migrationData);
 		if($newOld != 'compare') {
 			file_put_contents($migrationPathNewOld . 'migration.json', $migrationObjectJson);
@@ -1734,7 +1735,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WirePermissionException
 	 *
 	 */
-	public function installMigration($newOld, $dummy = false) {
+	public function installMigration($newOld, $dummy = false, $quiet = false) {
 		$this->wire()->log->save('debug', 'In install with newOld = ' . $newOld);
 
 		if(!$this->ready and $this->name != 'dummy-bootstrap') $this->ready();  // don't call ready() for dummy-bootstrap as it has no template assigned at this point
@@ -1764,6 +1765,8 @@ class DbMigrationPage extends DummyMigrationPage {
 		}
 		$dataFile = (file_exists($migrationPathNewOld . 'data.json'))
 			? file_get_contents($migrationPathNewOld . 'data.json') : null;
+		$migrationFile = (file_exists($migrationPathNewOld . 'migration.json'))
+			? file_get_contents($migrationPathNewOld . 'migration.json') : null;
 		if(!$dataFile) {
 			$error = ($newOld == 'new') ? $this->_('Cannot install - ') : $this->_('Cannot uninstall - ');
 			$error .= sprintf($this->_('No "%s" data.json file for this migration.'), $newOld);
@@ -1773,7 +1776,17 @@ class DbMigrationPage extends DummyMigrationPage {
 			$this->wire()->session->error($error);
 			return;
 		}
+		if(!$migrationFile) {
+			$error = ($newOld == 'new') ? $this->_('Cannot install - ') : $this->_('Cannot uninstall - ');
+			$error .= sprintf($this->_('No "%s" migration.json file for this migration.'), $newOld);
+			if($name == 'bootstrap') {
+				$error .= $this->_(' Copy the old/migration.json file from the module directory into the templates directory then try again?');
+			}
+			$this->wire()->session->error($error);
+			return;
+		}
 		$dataArray = wireDecodeJSON($dataFile);
+		$migrationArray = wireDecodeJSON($migrationFile);
 
 		$message = [];
 		$warning = [];
@@ -1788,14 +1801,14 @@ class DbMigrationPage extends DummyMigrationPage {
 						switch($itemType) {
 							// NB code below should handle multiple instances of objects, but we only expect one at a time for fields and templates
 							case 'fields':
-								$this->installFields($items, $itemType);
+								$this->installFields($items, $itemType, $quiet);
 								break;
 							case 'templates' :
 								$this->installTemplates($items, $itemType);
 								break;
 							case 'pages' :
 								//bd($items, 'items for install');
-								$pagesInstalled = array_merge($pagesInstalled, $this->installPages($items, $itemType, $newOld));
+								$pagesInstalled = array_merge($pagesInstalled, $this->installPages($items, $itemType, $newOld, $migrationArray));
 								break;
 						}
 						$this->wire()->session->remove('dbMigrate_install');
@@ -1806,7 +1819,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			}
 		}
 		//bd($pagesInstalled, 'pages installed');
-		if($this->name != 'dummy-bootstrap' && $this->id) {
+		if($this->name != 'dummy-bootstrap' && !$dummy && $this->id) {
 			// update any images in RTE fields (links may be different owing to different page ids in source and target dbs)
 			$idMapArray = $this->setIdMap($pagesInstalled);
 			//bd($idMapArray, 'idMapArray');
@@ -1856,7 +1869,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WirePermissionException
 	 *
 	 */
-	protected function installFields($items, $itemType) {
+	protected function installFields($items, $itemType, $quiet = false) {
 		//$this->wire()->log->save('debug', 'install fields');
 		$items = $this->pruneKeys($items, $itemType);
 		// repeater fields should be processed last as they may depend on earlier fields
@@ -1902,11 +1915,15 @@ class DbMigrationPage extends DummyMigrationPage {
 					if($t) {
 						$fData['template_id'][] = $t->id;
 					} else {
-						$this->wire()->session->error(sprintf(
-								$this->_('Cannot install field %1$s properly because template %2$s is missing. Is it missing or out of sequence in the installation list?'),
-								$fName,
-								$name)
-						);
+						$error = sprintf(
+							$this->_('Cannot install field %1$s properly because template %2$s is missing. Is it missing or out of sequence in the installation list?'),
+							$fName,
+							$name);
+						if($quiet) {
+							$this->log->save('dbMigrate', $error);
+						} else {
+							$this->wire()->session->error($error);
+						}
 					}
 				}
 				if($singular) $fData['template_id'] = $fData['template_id'][0];
@@ -1920,11 +1937,15 @@ class DbMigrationPage extends DummyMigrationPage {
 					$fData['parent_id'] = $pt->id;
 					//bd($pPath, 'set parent to id ' . $pt->id);
 				} else {
-					$this->wire()->session->error(sprintf(
-							$this->_('Cannot install field %1$s properly because parent page %2$s is missing. Is it missing or out of sequence in the installation list?'),
-							$fName,
-							$pPath)
-					);
+					$error = sprintf(
+						$this->_('Cannot install field %1$s properly because parent page %2$s is missing. Is it missing or out of sequence in the installation list?'),
+						$fName,
+						$name);
+					if($quiet) {
+						$this->log->save('dbMigrate', $error);
+					} else {
+						$this->wire()->session->error($error);
+					}
 				}
 				unset($fData['parent_path']);  // it was just a temp variable - no meaning to PW
 			}
@@ -1953,11 +1974,15 @@ class DbMigrationPage extends DummyMigrationPage {
 			$templateName = FieldtypeRepeater::templateNamePrefix . $repeater['name'];
 			$t = $this->wire()->templates->get($templateName);
 			if(!$t) {
-				$this->wire()->session->error(sprintf(
-						$this->_('Cannot install repeater %1$s because template %2$s is missing. Is it missing or out of sequence in the installation list?'),
-						$repeaterName,
-						$templateName)
-				);
+				$error = sprintf(
+					$this->_('Cannot install repeater %1$s because template %2$s is missing. Is it missing or out of sequence in the installation list?'),
+					$fName,
+					$name);
+				if($quiet) {
+					$this->log->save('dbMigrate', $error);
+				} else {
+					$this->wire()->session->error($error);
+				}
 				unset($repeaters[$repeaterName]);
 			}
 		}
@@ -2259,9 +2284,18 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WirePermissionException
 	 *
 	 */
-	protected function installPages($items, $itemType, $newOld) {
+	protected function installPages($items, $itemType, $newOld, $migrationArray) {
 		$items = $this->pruneKeys($items, $itemType);
-		//bd($items, 'items in install pages');
+		bd($items, 'items in install pages');
+		bd($migrationArray, 'migrationArray in install pages');
+		// Replace admin paths with target admin url if different from source
+		$sourceAdmin = (isset($migrationArray['sourceAdminUrl'])) ?  $migrationArray['sourceAdminUrl'] : ProcessDbMigrate::SOURCE_ADMIN;
+		if($sourceAdmin != $this->config()->urls->admin) {
+			// recursively replace all source admin paths with the target path
+			$items = $this->replaceAdminPath($items, $sourceAdmin, $this->config()->urls->admin);
+		}
+		bd($this->replaceAdminPath($items, '/processwire/', '/admin123/'), 'items after replaceAdminPath');
+
 		$pagesInstalled = [];
 		foreach($items as $name => $data) {
 			// Don't want items which are selectors (these may be present if the selector yielded no pages)
@@ -2320,6 +2354,27 @@ class DbMigrationPage extends DummyMigrationPage {
 			$pagesInstalled[] = $p;
 		}
 		return $pagesInstalled;
+	}
+
+	/**
+	 * Replace admin paths in $items with target admin path if different from source
+	 *
+	 * @param $items
+	 * @param $sourceAdmin
+	 * @param $targetAdmin
+	 * @return array
+	 */
+	public function replaceAdminPath($items, $sourceAdmin, $targetAdmin) {
+		$newItems = [];
+		foreach($items as $name => $data) {
+			$name = str_replace($sourceAdmin, $targetAdmin, $name);
+			if(is_array($data)) {
+				$newItems[$name] = $this->replaceAdminPath($data, $sourceAdmin, $targetAdmin);
+			} else {
+				$newItems[$name] = str_replace($sourceAdmin, $targetAdmin, $data);
+			}
+		}
+		return $newItems;
 	}
 
 
