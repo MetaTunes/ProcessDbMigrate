@@ -1894,7 +1894,7 @@ class DbMigrationPage extends DummyMigrationPage {
 		 * Process the non-repeaters and non-pagerefs first
 		 */
 		// method below is largely from PW core
-		if($items) $this->processImport($items);
+		if($items) $this->processImport($items, $quiet);
 
 		// now the page refs
 		//bd($pageRefs, 'page refs');
@@ -1926,7 +1926,9 @@ class DbMigrationPage extends DummyMigrationPage {
 						}
 					}
 				}
-				if($singular && is_array($fData['template_id'])) $fData['template_id'] = $fData['template_id'][0];
+				if($singular && is_array($fData['template_id']) && count($fData['template_id']) > 0) {
+					$fData['template_id'] = $fData['template_id'][0];
+				}
 				unset($fData['template_name']);  // it was just a temp variable - no meaning to PW
 			}
 
@@ -1967,7 +1969,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			$newPageRefs[$fName] = $fData;
 		}
 		//bd($newPageRefs, 'new page refs');
-		if($newPageRefs) $this->processImport($newPageRefs);
+		if($newPageRefs) $this->processImport($newPageRefs, $quiet);
 
 		// then check the templates for the repeaters - they should be before the related field in the process list
 		foreach($repeaters as $repeaterName => $repeater) {
@@ -2013,7 +2015,7 @@ class DbMigrationPage extends DummyMigrationPage {
 
 			$newRepeaters[$fName] = $fData;
 		}
-		if($newRepeaters) $this->processImport($newRepeaters);
+		if($newRepeaters) $this->processImport($newRepeaters, $quiet);
 
 		// We have to get export data now, even though we don't use it, because it triggers the config fields. Otherwise install has to be run twice in some situations
 		foreach($names as $name) {
@@ -2083,7 +2085,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 * @throws WirePermissionException
 	 *
 	 */
-	protected function processImport(array $data) {         //MDE parameter added
+	protected function processImport(array $data, $quiet = false) {         //MDE parameter added
 
 //        $data = $this->session->get('FieldImportData');  //MDE not required
 		if(!$data) throw new WireException("Invalid import data");
@@ -2143,11 +2145,11 @@ class DbMigrationPage extends DummyMigrationPage {
 				if(!wire('page')) wire()->set('page', $this); // To prevent spurious errors from InputfieldSelect, as we may not be on an actual page
 				$changes = $field->setImportData($fieldData);
 				//bd($changes, $field->name . ': changes in processimport');
-				//MDE modified this section to provide better notices but suppress error re importing options
+				//MDE modified this section to provide better notices but suppress error re importing options or if $quiet set
 				foreach($changes as $key => $info) {
 					if($info['error'] and strpos($key, 'export_options') !== 0) {  // options have been dealt with by fix below, so don't report this error
 						//bd(get_class($field->type), 'reporting error');
-						$this->wire()->session->error($this->_('Error:') . " $name.$key => $info[error]");
+						if(!$quiet) $this->wire()->session->error($this->_('Error:') . " $name.$key => $info[error]");
 					} else {
 						$this->message($this->_('Saved:') . " $name.$key => $info[new]");
 					}
@@ -2175,7 +2177,7 @@ class DbMigrationPage extends DummyMigrationPage {
 					$this->message($this->_('Modified field') . ' - ' . $name);
 				}
 			} catch(Exception $e) {
-				$this->error($e->getMessage());
+				if(!$quiet) $this->error($e->getMessage());
 			}
 
 			$data[$name] = $fieldData;
@@ -2911,7 +2913,11 @@ class DbMigrationPage extends DummyMigrationPage {
 							//bd($p, 'Only deleting page - will not delete if there are children. (This is ' . $this->name . ')');
 							try {
 								if($p->isLocked()) $p->removeStatus(Page::statusLocked);
-								$p->trash(); // trash before deleting in case any hooks need to operate
+								try {
+									$p->trash(); // trash before deleting in case any hooks need to operate
+								} catch(WireException $e) {
+									$this->wire()->session->warning('Page ' . $p->name . ':  This page could not be trashed, but will be deleted.');
+								}
 								//bd($p, '$p before delete');
 								if($p->numChildren == 0) {  // to provide more helpful error message than the standard one from the delete method
 									$p->delete();
@@ -2923,7 +2929,7 @@ class DbMigrationPage extends DummyMigrationPage {
 								}
 								$this->wire('pages')->uncacheAll(); // necessary - otherwise PW may think pages have children etc. which have in fact just been deleted
 							} catch(WireException $e) {
-								$this->wire()->session->error('Page ' . $this->name . ': ' . $e->getMessage()); // for any error types other than numChildren
+								$this->wire()->session->error('Page ' . $p->name . ': ' . $e->getMessage()); // for any error types other than numChildren
 							}
 						}
 					}
