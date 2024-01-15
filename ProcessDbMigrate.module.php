@@ -3314,7 +3314,7 @@ If it has been used in another environment and is no longer wanted then you will
 				//bd($objectData['template_id'], 'fixing template_id');
 				$name = $objectData['template_id'];
 				if(is_string($name) && $this->wire()->templates->get("name={$name}")) {
-					bd($this->wire->templates->get("name={$name}"), 'template in getexportdatamod');
+					//bd($this->wire->templates->get("name={$name}"), 'template in getexportdatamod');
 					$objectData['template_id'] = (string)$this->wire()->templates->get("name={$name}")->id;
 				}
 			}

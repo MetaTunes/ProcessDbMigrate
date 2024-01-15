@@ -2288,15 +2288,15 @@ class DbMigrationPage extends DummyMigrationPage {
 	 */
 	protected function installPages($items, $itemType, $newOld, $migrationArray) {
 		$items = $this->pruneKeys($items, $itemType);
-		bd($items, 'items in install pages');
-		bd($migrationArray, 'migrationArray in install pages');
+		//bd($items, 'items in install pages');
+		//bd($migrationArray, 'migrationArray in install pages');
 		// Replace admin paths with target admin url if different from source
 		$sourceAdmin = (isset($migrationArray['sourceAdminUrl'])) ?  $migrationArray['sourceAdminUrl'] : ProcessDbMigrate::SOURCE_ADMIN;
 		if($sourceAdmin != $this->config()->urls->admin) {
 			// recursively replace all source admin paths with the target path
 			$items = $this->replaceAdminPath($items, $sourceAdmin, $this->config()->urls->admin);
 		}
-		bd($this->replaceAdminPath($items, '/processwire/', '/admin123/'), 'items after replaceAdminPath');
+		//bd($this->replaceAdminPath($items, '/processwire/', '/admin123/'), 'items after replaceAdminPath');
 
 		$pagesInstalled = [];
 		foreach($items as $name => $data) {
