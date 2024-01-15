@@ -53,6 +53,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 *
 	 */
 	const KEY_DATA_FIELDS = array('dbMigrateItem', 'dbMigrateRestrictFields');
+	const INFO_ONLY_FIELDS = array('dbMigrateSummary', 'dbMigrateAdditionalDetails', 'dbMigrateSnippets');
 	/*
 	 * ALL OTHER CONSTANTS ARE SET IN CLASS ProcessDbMigrate
 	 */
@@ -3158,6 +3159,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			if(!is_array($content)) continue;
 			foreach($content as $line) {
 				foreach($line as $pathName => $values) {
+					//bd($values, 'values');
 					$pageName = $values['name'];
 					if($this->name != $pageName) $this->wire()->session->warning($this->_('Page name in migrations file is not the same as the host folder.'));
 					$p = $this->migrations->get("name=$pageName, include=all");
@@ -3218,8 +3220,15 @@ class DbMigrationPage extends DummyMigrationPage {
 							return false;
 						}
 
-						if(file_exists($oldFile) and !$fileCompare and !$scopeChange) continue;   // nothing changed at all so no action required.
-						// NB since there is only one item, 'continue' has the same effect as 'return true'
+						if(file_exists($oldFile) and !$fileCompare and !$scopeChange) {
+							$infoOnlyValues = array_filter($values, function($k) {
+								return in_array($k, self::INFO_ONLY_FIELDS);
+							}, ARRAY_FILTER_USE_KEY);
+							//bd($infoOnlyValues, 'info only values');
+							$this->setMigrationPageValues($p, $infoOnlyValues);
+							return true;
+						}   // only info fields (possibly) changed so no further action required.
+
 						/*
 						* So now we should have a new migration definition where the previous version has been uninstalled **or** the changes are only 'cosmetic'
 						* Archive the old files before continuing - a new version of these will be created when the new version of the migration is installed
@@ -3253,29 +3262,30 @@ class DbMigrationPage extends DummyMigrationPage {
 					unset($values['id']);
 					unset($values['template']);
 					unset($values['status']);
-					$r = $this->getRepeaters($values);
-					//bd($r, 'return from getrepeaters');
-					$repeaters = $r['repeaters'];
-					$values = $r['values'];
-					// set the ordinary values first
-					//bd($values, ' in page refresh with $values after unset');
-					//bd($p->meta('installable'), $p->name . ' installable?');
-					//bd($p, 'p before save');
-					if($p and $p->id and $p->meta() and $p->meta('installable')) {
-						$p->meta('allowSave', true);  // to allow save
-						//bd([$p, $values], 'page, values');
-						$p->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
-						if(count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, 'new', $p, ['noHooks' => true, 'quiet' => true]);
-						$p->meta()->remove('allowSave');  // reset
-					} else {
-						$p->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
-						if(count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, 'new', $p, ['noHooks' => true, 'quiet' => true]);
-					}
+					$this->setMigrationPageValues($p, $values);
 					//bd($p, 'p after save');
 				}
 			}
 		}
 		return true;
+	}
+
+	protected function setMigrationPageValues($p, $values) {
+		$r = $this->getRepeaters($values);
+		//bd($r, 'return from getrepeaters');
+		$repeaters = $r['repeaters'];
+		$values = $r['values'];
+		// set the ordinary values first
+		if($p and $p->id and $p->meta() and $p->meta('installable')) {
+			$p->meta('allowSave', true);  // to allow save
+			//bd([$p, $values], 'page, values');
+			$p->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
+			if(count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, 'new', $p, ['noHooks' => true, 'quiet' => true]);
+			$p->meta()->remove('allowSave');  // reset
+		} else {
+			$p->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
+			if(count($repeaters) > 0) $this->setAndSaveRepeaters($repeaters, 'new', $p, ['noHooks' => true, 'quiet' => true]);
+		}
 	}
 
 	/**
