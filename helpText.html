@@ -139,6 +139,7 @@ if($config-&gt;paths-&gt;root === '/var/www/html/') {
 		<li><em>Exclude field types, fields, attributes</em>: You can exclude any fields or fieldtypes from page migrations that might cause problems and which are not needed (you will need to do this in each database). DbMigrateRuntime, RuntimeMarkup and RuntimeOnly fields are always excluded and do not need to be specified here. Similarly, you can exclude attributes from field and template migrations. Excluded types will also be excluded from change tracking.</li>
 		<li><em>Auto-install bootstrap</em>: If selected (the default), the bootstrap will be automatically installed on an upgrade.</li>
 		<li><em>Prevent conflicting saves</em>: It is strongly recommended that you do not make any direct changes in the target database to any objects which are the subject of an "active" migration as this can cause problems if you need to uninstall the migration (the stored original state will not reflect the changes you made). This option (selected by default) prevents any such object changes in the target which may otherwise happen inadvertently. Even if this option is not selected, a warning will be given when editing the an object which is a target of an "active" migration. (Note that an "active" migration is defined as an unlocked installable migration after first installation).</li>
+		<li><em>Number of installation attempts</em>: Multiple installation attempts may be needed if there are circular references between migration items. Enter the number of repeated installation attempts to make before giving up (min 1, default 3, max 5)..</li>
 	</ul>
 	</li>
 	<li>
@@ -198,7 +199,7 @@ if($config-&gt;paths-&gt;root === '/var/www/html/') {
 
 <p><img alt="Log changes example source migration" src="help/Migration_source_example.png" /></p>
 
-<p><em>Change tracking: </em>From version 1.0.0, the module incorporates automated change tracking, which eliminates the hardest part of the previous versions - namely the specification of the migration scope. From version 2.0.0, the scope of this tracking is included in each migration page, rather than globally. You just set selectors defining the scope of tracking and any changes within that scope will be tracked. For fields and templates, you might wish to use <code>id&gt;0</code> to track all changes. For pages, you will probably just want to track 'settings' pages which are not routinely amended by users - typically this will be done by specifying the template(s), e.g. <code>template=MotifLayout.</code> All fields, templates and pages related to the module itself will be excluded automatically. <strong>If you do not enter a selector then no changes will be tracked</strong>.</p>
+<p><em>Change tracking: </em>From version 1.0.0, the module incorporates automated change tracking, which eliminates the hardest part of the previous versions - namely the specification of the migration scope. From version 2.0.0, the scope of this tracking is included in each migration page, rather than globally. You just set selectors defining the scope of tracking and any changes within that scope will be tracked. For fields and templates, you might wish to use <code>id&gt;0</code> to track all changes. For pages, you will probably just want to track 'settings' pages which are not routinely amended by users - typically this will be done by specifying the template(s), e.g. <code>template=MotifLayout.</code> I<strong>f you use the PageAutosave module then make sure it is turned off</strong>, at least for the pages that you want to change, as otherwise changes will be saved without hooks operating and DbMigrate will not know about them. All fields, templates and pages related to the module itself will be excluded automatically. <strong>If you do not enter a selector then no changes will be tracked</strong>.</p>
 
 <p>Based on the change tracking scope you have defined, on your migration page, the module will have entered the names of new/changed/removed fields and templates, and the paths of pages (as /path/to/pagename/) as you modified the database through the back-end UI - you may need to reload the page to see this.</p>
 
@@ -352,6 +353,8 @@ if($config-&gt;paths-&gt;root === '/var/www/html/') {
 	<li>___previewDiffs($migrationPage, $comparisonType) – previews migration changes where $comparisonType is one of: export, install, uninstall, review</li>
 </ul>
 
+<p>In addition, DbMigrationPage::array_compare is hookable. This means that the comparison can be altered (with an 'after') hook to affect whether or not the installation is considered to be complete.</p>
+
 <h4><a href="#" name="placement">Placement</a></h4>
 
 <p>You can place your hooks in site/ready.php. In this case you will need to check the name of the migration page before running – e.g.</p>
@@ -409,6 +412,48 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 <p>**Note that it is perfectly possible for there to be a scope change even if there are no differences in the migration definition. For example, if a page selector is used and changes to the source database mean that there is a change in the pages found by the selector.</p>
 
 <p>Use the Tracy console - <em>d($page-&gt;meta('installedStatus'));</em> - to inspect the installed status for any migration page. Call the method exportData() - <em>$page-&gt;exportData('compare');</em> - first to update the meta if required.</p>
+
+<p>There are also a number if other 'meta' items set which may be of assistance in hooks:</p>
+
+<ul>
+	<li>idMap: A map of id's in the source database to those in the target - i.e. an array of [oldId =&gt; newId, ...] where oldId is from the sourceand newId is in the target.</li>
+	<li>dataArray: A php array corresponding to the 'new/data' json</li>
+	<li>migrationArray: A php array corresponding to the 'new/migration' json</li>
+	<li>installFields: A php array of fields to be installed.</li>
+	<li>installPages: A php array of pages to be installed.</li>
+	<li>installTemplates: A php array of templates to be installed.</li>
+	<li>ignoreDiffs: A php array. Intended to hold arrays [path, field name] so that it can be set in a hook and then referenced in a further hook (on array_compare) to ignore differences in page fields with the given path and field name. However, it is not set by the DbMigrate code at all (except to reset it at the start of a migration) so it could actually be set to contain anything for any purpose in hooks. An example of the intended use is:
+	<blockquote>
+	<pre>
+$this-&gt;addHookAfter(('DbMigrationPage::array_compare'), function($event) {
+    $R = $event-&gt;return;
+    if($this-&gt;meta('ignoreDiffs') &amp;&amp; is_array($this-&gt;meta('ignoreDiffs'))) {
+       foreach($this-&gt;meta('ignoreDiffs') as $diff) {
+          $R = removeNode($R, $diff[1], $diff[0]);
+       }
+       $event-&gt;return = $R;
+    }
+});
+
+function removeNode($R, $f, $p, $keys = '') {
+    foreach ($R as $key =&gt; &amp;$value) {
+       if (is_array($value)) {
+          if (count($value) == 2 &amp;&amp; $key == $f &amp;&amp; strpos($keys, $p) !== false) {
+             unset($R[$f]);
+          } else {
+             $value = removeNode($value, $f, $p,  $keys . $key);
+          }
+       } else {
+          if ($key == $f &amp;&amp; strpos($keys, $p) !== false) {
+             unset($R[$f]);
+          }
+       }
+    }
+    return $R;
+}</pre>
+	</blockquote>
+	</li>
+</ul>
 
 <h2><a href="#" name="troubleshooting-technical-notes">Troubleshooting / Technical notes</a></h2>
 
@@ -497,7 +542,7 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 	When using 'log changes' all required repeater templates and dependencies should be handled automatically. Note however, that if you delete a repeater field, PW <strong>does not delete the corresponding template.</strong> So if, for example, you have 'log changes' on, create a new repeater field then delete it, the migration page will still show the new repeater template (but not the field) - which is exactly right, but might not be what you intended.</p>
 	</li>
 	<li>
-	<p>FieldtypePageTable. This has a PageArray so requires special processing .</p>
+	<p>FieldtypePageTable. This has a PageArray so requires special processing somewhat similar to repeaters.</p>
 	</li>
 	<li>
 	<p>FieldtypeStreetAddress. This is an object and requires special processing analagous to PageTable.</p>
@@ -508,6 +553,8 @@ $this-&gt;addHookAfter('ProcessDbMigrate::installMigration', function ($event) {
 </ol>
 
 <p>ProFields other than RepeaterMatrix have not been tested, so may or may not work.</p>
+
+<p>Note that, when the migration installation saves pages, any hooks related to the page save are suppressed. This is to prevent spurious errors (e.g. if ConnectPageFields module is installed). It is possible that it might cause some incomplete actions for some field types, in which case it should be resolvable by saving all the affected pages (possibly in a migration ready.php file). Installed pages can be found in the meta('installedPages') array - see the section on hooks above. Since version 2.0.14 all migration saves are with noHooks.</p>
 
 <h3><a href="#" name="subsequent-installations">Subsequent installations</a></h3>
 

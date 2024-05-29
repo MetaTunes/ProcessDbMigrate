@@ -5,7 +5,7 @@
  * Echoes contents of site/templates/DbMigrate/migrations/{migration name}/ready.php which may contain hooks etc
  * The ready.php file is 'included' in DbMigrationPage::ready() if it exists.
  */
-$page->ready();
+// $page->ready();  // NB Removed - should have already been called by ProcessDbMigrate before this file is included
 $config->js('dbMigrateRuntimeReady', [
 	'description' => sprintf(__('Contents of %1$s%2$s/ready.php'), $page->migrationsPath, $page->name),
 ]);

@@ -32,6 +32,7 @@
  * @property string $exclude_attributes Object attributes to always exclude from migrations
  * @property boolean $auto_install Disable auto-install of bootstrap on upgrade. Default is checked.
  * @property boolean $prevent_overlap Prevent page changes where the page is within the scope of an unlocked installable migration. Default is checked.
+ * @property integer $install_repeats Number of times to repeat the installation process (if necessary). Default is 3.
  *
  * OTHER SETTING PROPERTIES
  * ================================
@@ -137,7 +138,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 * Field types to always ignore in migrations
 	 *
 	 */
-	const EXCLUDE_TYPES = array('RuntimeMarkup', 'RuntimeOnly', 'DbMigrateRuntime');
+	const EXCLUDE_TYPES = array('RuntimeMarkup', 'RuntimeOnly', 'DbMigrateRuntime', 'MotifRuntime');
 	/*
 	 * Field and template attributes to always ignore in migrations
 	 *
@@ -154,6 +155,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 		$this->set('auto_install', 1);
 		$this->set('prevent_overlap', 1);
 		$this->set('enable_dbMigrate', 1);
+		$this->set('install_repeats', 3);
 	}
 
 	public static function dbMigrateFields() {
@@ -527,7 +529,11 @@ If it has been used in another environment and is no longer wanted then you will
 			$type = $inputfield->className;
 			$name = $inputfield->attr('name');
 			if($type == 'InputfieldRepeaterMatrix' || $type == 'InputfieldRepeater') {
-				foreach($p->$name as $repeaterItem) {
+				$repeater = $p->$name;
+				if(!wireInstanceOf($repeater, 'PageArray')) {   // In case repeater is a FieldsetPage, so not an array
+					$repeater = [$repeater];
+				}
+				foreach($repeater as $repeaterItem) {
 					$repeaterItem->of(false);
 					$this->getInputfieldAssets($repeaterItem);
 				}
@@ -681,9 +687,10 @@ If it has been used in another environment and is no longer wanted then you will
 				$currentFilesHash = $bootstrap->filesHash();
 				$newFilesHash = $bootstrap->filesHash($this->modulePath);
 				$sameBootstrap = ($currentFilesHash == $newFilesHash);
+				bd([$currentFilesHash, $newFilesHash], 'current & new hashes');
 			}
 		}
-//		bd($sameBootstrap, 'samebootstrap');
+		bd($sameBootstrap, 'samebootstrap');
 		if($sameBootstrap) return;
 
 		/*
@@ -722,6 +729,7 @@ If it has been used in another environment and is no longer wanted then you will
 		 * NB we cannot assign a template to dummy-bootstrap as we need to run it to create the template!!
 		 */
 		$dummyBootstrap->name = 'dummy-bootstrap';
+		/* @var $dummyBootstrap DbMigrationPage */
 		$dummyBootstrap->installMigration('new');
 //bd('installed new bootstrap');
 
@@ -1060,7 +1068,7 @@ If it has been used in another environment and is no longer wanted then you will
 						//bd($newMigration, 'newMigration');
 						$newMigration->created = filectime($file);
 						$newMigration->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
-						$newMigration->setAndSaveRepeaters($repeaters, 'new');
+						$newMigration->setAndSaveRepeaters($repeaters, 'new', null, ['noHooks' => true]);
 					}
 				}
 			}
@@ -1341,7 +1349,7 @@ If it has been used in another environment and is no longer wanted then you will
 		/* @var $migrationPage DbMigrationPage */
 		$count = 0;
 		$result = 'uninstalled';
-		while($result != 'installed' and $count < 3) {
+		while($result != 'installed' and $count < $this->install_repeats) {
 			$result = $migrationPage->installMigration('new');
 			$count++;
 		}
@@ -1581,7 +1589,7 @@ If it has been used in another environment and is no longer wanted then you will
 			}
 		}
 		if($draft) {
-			$draft->setAndSaveRepeaters($draft->repeaters, 'new', $draft);
+			$draft->setAndSaveRepeaters($draft->repeaters, 'new', $draft, ['noHooks' => true]);
 			$draft->repeaters = [];
 		}
 
@@ -1987,6 +1995,21 @@ If it has been used in another environment and is no longer wanted then you will
 		$f->checked = ($f->value == 1) ? 'checked' : '';
 		$tab1->add($f);
 
+		/* @var InputfieldInteger $f */
+		$f = $modules->InputfieldInteger;
+		$f_name = 'install_repeats';
+		$f->name = $f_name;
+		$f->label = $this->_('Number of installation attempts to make (min 1, default 3, max 5)');
+		$f->description = $this->_('Enter the number of repeated installation attempts to make before giving up.');
+		$f->notes = $this->_("Multiple installation attempts may be needed if there are circular references between migration items. \n
+		If it can be installed in fewer attempts then it will be. \n
+		If it cannot be installed in the number of attempts specified then an error message will be shown and the installation will be incomplete.");
+		$f->columnWidth = 100;
+		$f->value = $this->$f_name;
+		$f->min = 1;
+		$f->max = 5;
+		$tab1->add($f);
+
 		// Tab 2
 		/** @var InputfieldWrapper $tab2 */
 		$tab2 = $this->wire(new InputfieldWrapper());
@@ -2280,6 +2303,8 @@ If it has been used in another environment and is no longer wanted then you will
 //			$pId = wire()->input->get('id');
 //			$page = wire('pages')->get($pId);
 //		}
+//		if(!$event->object) return;
+//		bd($event->object, 'event object in beforePageEditExecute');
 		$id = $this->wire('input')->get->id;
 		if(!$id) return;
 		$id = $this->wire('sanitizer')->int($id);
