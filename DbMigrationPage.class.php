@@ -9,7 +9,7 @@ namespace ProcessWire;
 
 use Exception;
 
-if(class_exists('DefaultPage')) {
+if(wireClassExists('DefaultPage')) {
 	class DummyMigrationPage extends DefaultPage {
 	}
 } else {
@@ -962,14 +962,14 @@ class DbMigrationPage extends DummyMigrationPage {
 			case 'FieldtypeImage' :
 			case 'FieldtypeFile' :
 				$contents = [];
-				$contents['url'] = $page->$field->url;
-				$contents['path'] = $page->$field->path;
+				$contents['url'] = ($page->$field && $page->$field->url) ? $page->$field->url : '';
+				$contents['path'] = ($page->$field && $page->$field->path) ? $page->$field->path : '';
 				$contents['items'] = [];
 				$contents['custom_fields'] = [];
-				if(get_class($page->$field) == "ProcessWire\Pageimage" or get_class($page->$field) == "ProcessWire\Pagefile") {
+				if($page->$field && (get_class($page->$field) == "ProcessWire\Pageimage" || get_class($page->$field) == "ProcessWire\Pagefile")) {
 					$items = [$page->$field];  // need it to be an array if only singular image or file
 				} else {
-					$items = $page->$field->getArray();
+					$items = ($page->$field) ? $page->$field->getArray() : [];
 				}
 				$files[$page->id] = [];
 				foreach($items as $item) {
@@ -1641,44 +1641,51 @@ class DbMigrationPage extends DummyMigrationPage {
 		//bd(['html' => $html, 'idMap' => $idMapArray, 'newOld' => $newOld, 'checkFileEquality' => $checkFileEquality], 'In replaceLink');
 		if(strpos($html, '<img') === false and strpos($html, '<a') === false) return $html; //return early if no images or links are embedded in html
 		//bd($html, 'old html');
-		if(!$checkFileEquality) l('HTML: ' . $html, 'debug');
+		if(!$checkFileEquality) l('HTML: ' . $html, 'debug'); //Tracy log
 		// In case one of the source and target sites have a segment root
-		// NB doesn't handle the case where they both have segments, but are different!
+		// NB This has been substantially modified from 2.0.18 Old code is commented out while the new code is on probation
+		// NB But best to compare with saved version 2.0.18 if reversion needed
 		$targetSiteUrl = $this->wire()->config->urls->site;
+//		bd($targetSiteUrl, 'target site url');
 		$sourceSiteUrl = ($this->sourceSiteUrl) ?: '/site/';
-		if(strlen($this->wire()->config->urls->site) > strlen($sourceSiteUrl)) {
-			$segDiff = 1;
-			$siteSegment = str_replace($sourceSiteUrl, '', $targetSiteUrl);
-		} else if(strlen($this->wire()->config->urls->site) < strlen($sourceSiteUrl)) {
-			$segDiff = -1;
-			$siteSegment = str_replace($this->wire()->config->urls->site, '', $sourceSiteUrl);
-		} else {
-			$segDiff = 0;
-			$siteSegment = null;
-		}
-		if($newOld != 'old' && $siteSegment && $segDiff == 1) {
-			$siteSegment = trim($siteSegment, '/');
+//		bd($sourceSiteUrl, 'source site url');
+//		if(strlen($this->wire()->config->urls->site) > strlen($sourceSiteUrl)) {
+//			$segDiff = 1;
+//			$siteSegment = str_replace($sourceSiteUrl, '', $targetSiteUrl);
+//		} else if(strlen($this->wire()->config->urls->site) < strlen($sourceSiteUrl)) {
+//			$segDiff = -1;
+//			$siteSegment = str_replace($this->wire()->config->urls->site, '', $sourceSiteUrl);
+//		} else {
+//			$segDiff = 0;
+//			$siteSegment = null;
+//		}
+		if($newOld != 'old') {   // cut  && $siteSegment && $segDiff == 1
+//			$siteSegment = trim($siteSegment, '/');
 
 			/*
 			 * The regex is intended to match:
 			 * 	(a) relative references
 			 *  (b) references with the httpHost name
 			 * and add the segment prefix for the target site at the start (a) or after the httpHost name (b)
-			 * NB This only works if the source site has no segment prefix or has one identical to the target
+			 * NB This now matches all references to the source site, not just those with the segment root
+			 * NB The site segment is updated in the link first before than replacing in the html
 			 */
-			$re = '/(=\"|' . preg_quote($this->wire()->config->httpHost, '/') . ')\/(?!' . preg_quote($siteSegment, '/') . '\/)(.*)(?=\")/mU';
+//			$re = '/(=\"|' . preg_quote($this->wire()->config->httpHost, '/') . ')\/(?!' . preg_quote($siteSegment, '/') . '\/)(.*)(?=\")/mU';
+			$re = '/(=\"|' . preg_quote($this->wire()->config->httpHost, '/') . ')\/(.*)(?=\")/mU'; //new
 			//bd($re, 'regex');
 			preg_match_all($re, $html, $matches, PREG_SET_ORDER, 0);
 			if($matches) {
 				foreach($matches as $match) {
-					if(!$checkFileEquality) l('MATCH[2]: ' . $match[2], 'debug');
-					//bd($match[2], 'match 2');
-					$html = str_replace($match[2], $siteSegment . '/' . $match[2], $html);
+					if(!$checkFileEquality) l('MATCH[2]: ' . $match[2], 'debug'); // Tracy log
+//					bd($match[2], 'match 2');
+					$newSiteMatch = str_replace(trim($sourceSiteUrl, '/'), trim($targetSiteUrl, '/'), $match[2]); //new
+//					bd($newSiteMatch, 'new site match');
+					$html = str_replace($match[2], $newSiteMatch, $html); // new
 				}
 			}
 		}
-		//bd($html, 'new html');
-		if(!$checkFileEquality) l('New HTML: ' . $html, 'debug');
+		bd($html, 'new html');
+		if(!$checkFileEquality) l('New HTML: ' . $html, 'debug'); // Tracy log
 
 		if(!$idMapArray) return $html;
 		foreach($idMapArray as $origId => $destId) {
@@ -2335,6 +2342,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			// recursively replace all source admin paths with the target path
 			$items = $this->replaceAdminPath($items, $sourceAdmin, $this->config()->urls->admin);
 		}
+		$this->sourceSiteUrl = ($migrationArray['sourceSiteUrl']) ??  '';
 		//bd($items, 'items after replaceAdminPath');
 
 		$pagesInstalled = [];
@@ -2591,6 +2599,7 @@ class DbMigrationPage extends DummyMigrationPage {
 						continue;
 					}
 					unset($fields[$fieldName]);
+					$page->of(false);
 					$page->save($fieldName, ['noHooks' => true]);
 					// NB using 'noHooks' => true to prevent spurious errors from hooks, particularly in the case of FieldtypePage when ConnectPageFields is installed
 					// see https://processwire.com/talk/topic/14689-connect-page-fields/?do=findComment&comment=240586
@@ -2618,7 +2627,7 @@ class DbMigrationPage extends DummyMigrationPage {
 			$f = $this->wire()->fields->get($fieldName);
 			if($f and ($f->type == 'FieldtypeImage' or $f->type == 'FieldtypeFile')) {
 				$migrationFilesPath = $this->migrationsPath . $this->name . '/' . $newOld . '/files/';
-				$existingItems = $page->$f->getArray();
+				$existingItems = ($page->$f) ? $page->$f->getArray() : [];
 				//bd($existingItems, '$existingItems');
 				//bd($fieldValue, 'proposed value');
 				$existingItemBasenames = array_filter($existingItems, function($v) {
@@ -2814,6 +2823,7 @@ class DbMigrationPage extends DummyMigrationPage {
 						if($subPage->sort != $j) {
 							$subPage->sort = $j;
 							//bd($subPage, 'SAVE subpage');
+							$subPage->of(false);
 							$subPage->save(null, $options);
 						}
 						break; // don't want to match more than one page
