@@ -2052,7 +2052,10 @@ If it has been used in another environment and is no longer wanted then you will
 		$p = $event->arguments(0);
 		// Ignore dbMigrate pages
 		$t = $this->wire()->templates->get($p->template);
-		if(!$p || !$p->id || !$t || $t->hasTag('dbMigrate')) return;
+		if(!$p || !$p->id || !$t || $t->hasTag('dbMigrate')) {
+			if($t && $t->name == 'repeater_dbMigrateItem') $p->of(false); // enable saving of dbMigrateItem repeater items
+			return;
+		}
 		//
 		//bd($event, 'event in beforeSave');
 		if($this->trackingMigration) {

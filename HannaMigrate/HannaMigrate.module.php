@@ -4,7 +4,7 @@ class HannaMigrate extends \ProcessWire\WireData implements \ProcessWire\Module 
 		return array(
 			'title' => 'Hanna Migrate',
 			'summary' => 'Migrate Hanna codes between sites',
-			'version' => '0.0.1',
+			'version' => '0.0.3',
 			'author' => 'Mark Evens',
 			'icon' => 'medium',
 			'requires' => ['ProcessWire>=3.0.200'],
@@ -37,8 +37,9 @@ class HannaMigrate extends \ProcessWire\WireData implements \ProcessWire\Module 
 		file_put_contents($directory . 'data.json', $exportJson);
 	}
 
-	public function importAll($migrationName = null) {
+	public function importAll($migrationName = null, $overwrite = false, $delete = false) {
 		$modules = $this->wire('modules');
+		$session = $this->wire('session');
 		$hm = $modules->get('ProcessHannaCode');
 
 		// Get the migration .json file for this migration
@@ -46,36 +47,51 @@ class HannaMigrate extends \ProcessWire\WireData implements \ProcessWire\Module 
 		$dataFile = (file_exists($directory . 'data.json'))
 			? file_get_contents($directory . 'data.json') : null;
 
-		$dataArray = json_decode($dataFile);
+		$dataArray = json_decode($dataFile, true);
 		if(!$dataArray) {
 			throw new WireException("Failed to json decode import file");
 		}
 
-		foreach($dataArray as $data) {
+		// Delete existing hanna codes which are not in the import, if delete is set to true
+		if($delete) {
+			$ha = $hm->hannaCodes()->getAll();
+			foreach($ha as $h) {
+				if(!array_key_exists($h->name, $dataArray)) {
+					$hm->hannaCodes()->delete($h);
+					$session->message($this->_("Deleted Hanna Code:") . " $h->name");
+				}
+			}
+		}
+
+		foreach($dataArray as $nameKey => $data) {
+			bd([$nameKey, $data], 'nameKey, data');
 			if(!preg_match('{!HannaCode:([^:]+):(.*?)/!HannaCode}s', $data, $matches)) {
-				throw new WireException("Unrecognized Hanna Code format");
+				$session->error("Unrecognized Hanna Code format for $nameKey");
 			}
 			$name = $matches[1];
 			$data = $matches[2];
 			$data = base64_decode($data);
 			if($data === false) {
-				throw new WireException("Failed to base64 decode import data item");
+				$session->error("Failed to base64 decode import data item $nameKey");
 			}
 
 			$data = json_decode($data, true);
 			if($data === false) {
-				throw new WireException("Failed to json decode import data item");
+				$session->error("Failed to json decode import data item $nameKey");
 			}
 
 			if(empty($data['name']) || empty($data['code'])) {
-				throw new WireException("Import data does not contain all required fields");
+				$session->error("Import data for $nameKey does not contain all required fields");
 			}
 
 			$h = $hm->hannaCodes()->get($name);
 			if($h->id) {
-				$this->error($this->_('Hanna Code with that name already exists'));
-				$session->redirect('../');
-				return '';
+				if($overwrite) {
+					$hm->hannaCodes()->delete($h);
+					$session->message($this->_("Replaced Hanna Code with  name $nameKey"));
+				} else {
+					$session->error($this->_("Hanna Code with  name $nameKey already exists"));
+				}
 			}
 
 			$data['type'] = (int)$data['type'];
@@ -92,9 +108,8 @@ class HannaMigrate extends \ProcessWire\WireData implements \ProcessWire\Module 
 
 			if($hm->hannaCodes()->save($h)) {
 				$this->message($this->_('Imported Hanna Code:') . " $name");
-				$session->redirect("../edit/?id=$h->id");
 			} else {
-				throw new WireException("Error importing Hanna code");
+				$session->error("Error importing Hanna code for $nameKey");
 			}
 		}
 		return '';

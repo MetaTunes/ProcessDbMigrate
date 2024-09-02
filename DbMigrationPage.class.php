@@ -1678,7 +1678,7 @@ class DbMigrationPage extends DummyMigrationPage {
 				foreach($matches as $match) {
 					if(!$checkFileEquality) l('MATCH[2]: ' . $match[2], 'debug'); // Tracy log
 //					bd($match[2], 'match 2');
-					$newSiteMatch = str_replace(trim($sourceSiteUrl, '/'), trim($targetSiteUrl, '/'), $match[2]); //new
+					$newSiteMatch = str_replace(ltrim($sourceSiteUrl, '/'), ltrim($targetSiteUrl, '/'), $match[2]); //new (& now using ltrim, not trim)
 //					bd($newSiteMatch, 'new site match');
 					$html = str_replace($match[2], $newSiteMatch, $html); // new
 				}
@@ -1821,6 +1821,7 @@ class DbMigrationPage extends DummyMigrationPage {
 				//bd($itemLine, 'itemline');
 				foreach($itemLine as $itemAction => $items) {
 					//bd($items, 'items');
+					//$this->wire()->log->save('debug', 'Install items');
 					if($itemAction != 'removed') {
 						$this->wire()->session->set('dbMigrate_install', true);  // for use by host app. also used in beforeSave hook in ProcessDbMigrate.module
 						switch($itemType) {
@@ -1917,6 +1918,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 */
 	protected function installFields($items, $itemType, $quiet = false) {
 		//$this->wire()->log->save('debug', 'install fields');
+		//$this->wire()->log->save('debug', json_encode($items));
 		$items = $this->pruneKeys($items, $itemType);
 		// repeater fields should be processed last as they may depend on earlier fields
 		$repeaters = [];
@@ -2250,6 +2252,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 *
 	 */
 	protected function installTemplates($items, $itemType) {
+		//$this->wire()->log->save('debug', json_encode($items));
 		$items = $this->pruneKeys($items, $itemType);
 		foreach($items as $name => $data) {
 			// Don't want items which are selectors (these may be present if the selector yielded no items)
@@ -2333,6 +2336,7 @@ class DbMigrationPage extends DummyMigrationPage {
 	 *
 	 */
 	protected function installPages($items, $itemType, $newOld, $migrationArray) {
+		//$this->wire()->log->save('debug', json_encode($items));
 		$items = $this->pruneKeys($items, $itemType);
 		//bd($items, 'items in install pages');
 		//bd($migrationArray, 'migrationArray in install pages');
@@ -2634,11 +2638,15 @@ class DbMigrationPage extends DummyMigrationPage {
 					return basename($v->url);
 				});
 				//bd($existingItemBasenames, '$existingItemBasenames');
+				//$this->wire()->log->save('debug', 'Existing base names');
+				//$this->wire()->log->save('debug', json_encode($existingItemBasenames));
 				$proposedItemBasenames = $fieldValue['items'];
 				array_walk($proposedItemBasenames, function(&$v) {
 					$v = $v['basename'];
 				});
 				//bd($proposedItemBasenames, '$proposedItemBasenames');
+				//$this->wire()->log->save('debug', 'Proposed base names');
+				//$this->wire()->log->save('debug', json_encode($proposedItemBasenames));
 				$notInProposed = array_diff($existingItemBasenames, $proposedItemBasenames);
 				$notInExisting = array_diff($proposedItemBasenames, $existingItemBasenames);
 				$inBoth = array_intersect($existingItemBasenames, $proposedItemBasenames);
