@@ -67,7 +67,9 @@
                     "type": "FieldtypeText",
                     "maxlength": 2048,
                     "tags": "dbMigrate",
-                    "textformatters": "",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
                     "inputfieldClass": "",
                     "collapsed": 0,
                     "showIf": "",
@@ -101,7 +103,9 @@
                     "type": "FieldtypeText",
                     "maxlength": 2048,
                     "tags": "dbMigrate",
-                    "textformatters": "",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
                     "inputfieldClass": "",
                     "collapsed": 0,
                     "showIf": "",

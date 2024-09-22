@@ -3,7 +3,7 @@
 /**
  * ProcessWire DbMigrate
  * by Mark Evens
- * with tips and snippets from Adrian Jones, Bernhard Baumrock and Robin Sallis
+ * with contributions from Jonathan Lahijani and tips and snippets from Adrian Jones, Bernhard Baumrock and Robin Sallis
  *
  * Class ProcessDbMigrate
  *
@@ -85,9 +85,11 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	public static function moduleInfo() {
 		require('ProcessDbMigrate.info.php');
 		/* @var $info array */ //$info is defined in ProcessDbMigrate.info.php
-		//bd($info, 'module info');
+		//$this->bd($info, 'module info');
 		return $info;
 	}
+
+	const debug = false;
 
 	/*
 	 * Name of template for migration pages
@@ -188,9 +190,10 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 */
 	public function init() {
 		parent::init();
+		$this->bd('init from ProcessDbMigrate.php');
 		require_once('DbMigrationPage.class.php');
 		require_once('DbComparisonPage.class.php');
-		$this->wire()->modules->get('JqueryWireTabs');
+		
 		// Set properties
 		$this->set('adminPath', wire('pages')->get(2)->path());
 		$this->set('adminUrl', wire('pages')->get(2)->url());
@@ -200,7 +203,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 		$this->set('parentUrl', $this->adminUrl . self::moduleInfo()['page']['parent'] . '/');
 		$this->set('parentHttpUrl', $this->adminHttpUrl . self::moduleInfo()['page']['parent'] . '/');
 		$this->set('title', self::moduleInfo()['page']['title']);
-		$this->set('adminProcess', str_replace(__NAMESPACE__ . '\\', '', get_class()));
+		$this->set('adminProcess', str_replace(__NAMESPACE__ . '\\', '', get_class($this)));
 		$this->set('migrations', wire('pages')->get($this->adminPath . self::MIGRATION_PARENT));
 		$this->set('comparisons', wire('pages')->get($this->adminPath . self::COMPARISON_PARENT));
 		$this->set('migrationTemplate', wire('templates')->get(self::MIGRATION_TEMPLATE));
@@ -234,9 +237,9 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 				/* @var $p DbMigrationPage */
 				$p->meta('updated', false);
 				$this->wire('process', $this); // Sets the process to ProcessDbMigrate, rather than ProcessPageEdit, which can cause problems in the refresh
-				//bd($this->wire()->process, 'process module refresh');
+				$this->bd($this->wire()->process, 'process module refresh');
 				$updated = $p->refresh();
-				//bd($updated, 'meta updated');
+				$this->bd($updated, 'meta updated');
 				$p->meta('updated', $updated);
 			}
 		});
@@ -259,7 +262,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 		if(!$t) return;
 		$moduleName = basename(__DIR__);
 		$t->filename = $this->config->paths->$moduleName . 'DbMigrateHelp.php';
-		//bd('ProcessDbMigrate INIT DONE');
+		$this->bd('ProcessDbMigrate INIT DONE');
 	}
 
 	/**
@@ -274,10 +277,11 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	public function ready() {
+		$this->bd('ready from ProcessDbMigrate.php');
 		$currentUser = wire()->users->getCurrentUser();
 		if(!$currentUser->hasRole(self::moduleInfo()['permission']) && !$currentUser->isSuperuser()) return;
 
-		//bd("READY");
+		$this->bd("READY");
 		Debug::startTimer('from ready');
 		$val = Debug::timer('ready');
 		$this->addHookAfter('ProcessPageEdit::buildFormContent', $this, 'afterBuildFormContent');
@@ -287,12 +291,12 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			$this->wire()->session->set('processed', []); // clear the session var that stores processed item ids
 			$this->wire()->session->set('processed_repeater', []); // clear the session var that stores processed repeater item ids
 			$this->wire()->session->set('processed_fieldgroup', []);
-//bd($this->wire()->session->get('processed'), 'processed in ready' );
+$this->bd($this->wire()->session->get('processed'), 'processed in ready' );
 
 
 			$this->wire()->setTrackChanges(Wire::trackChangesValues);
 			$val = Debug::timer('ready');
-//bd($val, 'ready timer 4');
+$this->bd($val, 'ready timer 4');
 			//
 			$this->addHookBefore("Pages::save", $this, 'beforeSave');
 			$this->addHookAfter("Pages::save", $this, 'afterSave');
@@ -308,7 +312,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			// clear any old 'current' meta values
 			if($this->trackingMigration && $this->trackingMigration->id) {
 				foreach($this->trackingMigration->meta()->getArray() as $metaKey => $metaValue) {
-//bd($metaKey, 'remove meta key?');
+$this->bd($metaKey, 'remove meta key?');
 					if(strpos($metaKey, 'current') === 0) {
 						$this->trackingMigration->meta()->remove($metaKey);
 					}
@@ -326,15 +330,15 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 					$object = $event->object;
 					$migration = $this->trackingMigration;
 					$fg = $event->arguments(0);
-//					bd($fg, 'new fg');
+					$this->bd($fg, 'new fg');
 					$fg1 = $this->wire('fieldgroups')->getFreshSaveableItem($fg);
-//					bd($fg1, 'fg1 orig saveable');
+					$this->bd($fg1, 'fg1 orig saveable');
 					$tps = $fg->getTemplates();
 					foreach($tps as $tp) {
-//						bd($tp, 'tp new saveable');
+						$this->bd($tp, 'tp new saveable');
 						$tp1 = $this->wire('templates')->getFreshSaveableItem($tp);
 						$tp1->setFieldgroup($fg1);
-//						bd($tp1, 'tp1 orig saveable');
+						$this->bd($tp1, 'tp1 orig saveable');
 						if($tp1) {
 							$this->getObjectData($event, $tp1);
 						} else {
@@ -361,11 +365,11 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			}
 		}
 		$val = Debug::timer('ready');
-//bd($val, 'ready timer 5');
+		$this->bd($val, 'ready timer 5');
 
 		// This hook needs to run regardless
 		$this->addHookBefore('ProcessPageEdit::execute', $this, 'beforePageEditExecute');
-//bd('ProcessDbMigrate: ALL HOOKS RUN');
+		$this->bd('ProcessDbMigrate: ALL HOOKS RUN');
 
 
 		// Trigger ready() in the Page Class (actually trigger all page classes)
@@ -377,7 +381,7 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 		}
 		if(isset($p) and $p and $p->id and method_exists($p, 'ready')) $p->ready();
 		$val = Debug::timer('ready');
-//bd($val, 'ready timer 6');
+		$this->bd($val, 'ready timer 6');
 
 		// Show the database name if selected in config, but only for admins with permission (and superuser)
 		if($this->dbName() and $this->show_name and wire('user')->hasPermission('admin-dbMigrate')) {
@@ -392,16 +396,17 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 If it has been used in another environment and is no longer wanted then you will need to remove any orphan json files there manually.')
 		]);
 		$val = Debug::timer('ready');
-//bd($val, 'ready timer 7');
+		$this->bd($val, 'ready timer 7');
 		/*
 		* Install the bootstrap if it exists, is installable and is not installed
 		* NB this cannot be done as part of install() as not all the required API is present until ready() is called
 		*/
 		if($this->auto_install) {
+			$this->bd("auto_install running! it runs anytime we view the database migrations page!!!");
 			$temp = $this->migrationTemplate;
 			$bootstrap = $this->wire()->pages->get("template=$temp, name=bootstrap");
 			/* @var $bootstrap DbMigrationPage */
-//bd($bootstrap, 'bootstrap');
+			$this->bd($bootstrap, 'bootstrap');
 			if($bootstrap && $bootstrap->id && $bootstrap->meta('installable') &&
 				(!isset($bootstrap->meta('installedStatus')['installed']) || !$bootstrap->meta('installedStatus')['installed'])) {
 //				if($this->session->get('upgraded')) {
@@ -415,12 +420,13 @@ If it has been used in another environment and is no longer wanted then you will
 //				} else {
 				try {
 					$this->wire()->session->warning($this->_('Bootstrap not fully installed - Attempting re-install.'));
+					$bootstrap->of(false);
 					$bootstrap->meta()->remove('filesHash');
-//bd($bootstrap,'removed hash');
+					$this->bd($bootstrap,'removed hash');
 					$bootstrap->refresh();
-//bd($bootstrap, 'refreshed');
+					$this->bd($bootstrap, 'refreshed');
 					$bootstrap->installMigration('new');
-//bd($bootstrap, 'installed');
+					$this->bd($bootstrap, 'installed');
 				} catch(WirePermissionException $e) {
 					$this->wire()->session->warning($this->_('You do not have permission'));
 				} catch(WireException $e) {
@@ -442,7 +448,7 @@ If it has been used in another environment and is no longer wanted then you will
 							$this->wire('fields')->delete($object);
 						} catch(WireException $e) {
 							$this->wire()->session->error('Object: ' . $object . ': ' . $e->getMessage());
-							//bd($n, 'ERROR IN DELETION - ' . $e->getMessage());
+							$this->bd($n, 'ERROR IN DELETION - ' . $e->getMessage());
 						}
 					}
 				}
@@ -450,7 +456,7 @@ If it has been used in another environment and is no longer wanted then you will
 			}
 		}
 		$val = Debug::timer('ready');
-//bd($val, 'ready timer 8');
+		$this->bd($val, 'ready timer 8');
 //		/*
 //		 * Make sure all the assets are there for a page with repeaters
 //		 * MOVED to beforePageEditExecute to stop it executing on saves and causing corruption issues
@@ -465,7 +471,7 @@ If it has been used in another environment and is no longer wanted then you will
 //				$this->getInputfieldAssets($p);
 //			}
 //		}
-//bd('ProcessDbMigrate: READY DONE');
+		$this->bd('ProcessDbMigrate: READY DONE');
 	}
 
 
@@ -481,29 +487,29 @@ If it has been used in another environment and is no longer wanted then you will
 		// NB The code below only deals with template and field objects. Pages are handled separately in beforeSave.
 		$migration = $this->trackingMigration;
 		$val = Debug::timer('ready');
-//bd($val, 'ready timer 1');
+		$this->bd($val, 'ready timer 1');
 		$type = $typeName = $tracking = null;
 		$this->objectType($event, $obj, $type, $typeName, $tracking);
-		//bd(['obj' => $obj, 'type' => $type, 'typeName' => $typeName, 'tracking' => $tracking], 'objectType returned');
+		$this->bd(['obj' => $obj, 'type' => $type, 'typeName' => $typeName, 'tracking' => $tracking], 'objectType returned');
 		if(!$type) return;
 		$object = ($typeName == 'fields') ? 'field' : (($typeName == 'templates') ? 'template' : null);
 		if(!$object) return;
 		$scopedObjects = $this->wire()->$typeName->find($migration->$tracking);
 		$val = Debug::timer('ready');
-//bd($val, 'ready timer 2');
+		$this->bd($val, 'ready timer 2');
 		if($migration && $migration->id && $scopedObjects->has($obj)) {
 			// Ignore templates and fields which belong to DbMigrate itself
 			if(wireInstanceOf($obj, 'Template') && self::dbMigrateTemplates()->has($obj)) return;
 			if(wireInstanceOf($obj, 'Field') && self::dbMigrateFields()->has($obj)) return;
 			$objectData = $this->getExportDataMod($obj);
-			//bd($objectData, 'objectData set to meta current');
+			$this->bd($objectData, 'objectData set to meta current');
 			if(!$migration->meta()->get("current_{$object}_{$obj->id}")) $migration->meta()->set("current_{$object}_{$obj->id}", $objectData);
 			$migMeta = $migration->meta()->getArray();
 			$val = Debug::timer('ready');
-			//bd(['object' => $obj->name, 'migration meta' => $migMeta, 'timer' => $val], 'ready timer 3');
+			$this->bd(['object' => $obj->name, 'migration meta' => $migMeta, 'timer' => $val], 'ready timer 3');
 			//$this->wire()->log->save('debug', "timer 3 for {$obj->name} is $val");
 		}
-//bd($migration->meta()->getArray(), 'meta for ' . $migration->name);
+		$this->bd($migration->meta()->getArray(), 'meta for ' . $migration->name);
 	}
 
 	/**
@@ -540,7 +546,7 @@ If it has been used in another environment and is no longer wanted then you will
 			} else {
 				$p->of(false);
 				$inputfield->renderReady();
-				//bd(['page' => $p, 'inputfield' => $inputfield], 'inputfield');
+				$this->bd(['page' => $p, 'inputfield' => $inputfield], 'inputfield');
 			}
 		}
 	}
@@ -553,7 +559,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 * @throws WireException
 	 */
 	protected function afterMoveable($event) {
-//bd($event, 'IN MOVEABLE HOOK');
+		$this->bd($event, 'IN MOVEABLE HOOK');
 		/** @var Page $page */
 		$page = $event->object;
 		$moveable = $event->return;
@@ -561,9 +567,9 @@ If it has been used in another environment and is no longer wanted then you will
 			/* @var $migration DbMigrationPage */
 			if($migration->conflictFree()) continue;
 			$migrationNames = $migration->itemNames('page');
-			//bd($migrationNames, 'migration names');
+			$this->bd($migrationNames, 'migration names');
 			if(in_array($page->path, $migrationNames)) {
-//bd($page, 'NOT MOVEABLE');
+				$this->bd($page, 'NOT MOVEABLE');
 				$moveable = false;
 			}
 		}
@@ -598,7 +604,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 *
 	 */
 	public function ___install($upgrade = false) {
-		//bd('ProcessDbMigrate install');
+		$this->bd('ProcessDbMigrate install');
 		$enable = $this->enable_dbMigrate;
 		$suppress = $this->suppress_hooks;
 		if(!$enable) $this->set('enable_dbMigrate', 1);
@@ -642,7 +648,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 *
 	 */
 	public function ___upgrade($fromVersion, $toVersion) {
-//bd([$fromVersion, $toVersion], 'upgrade - from, to');
+		$this->bd([$fromVersion, $toVersion], 'upgrade - from, to');
 		$this->session->set('upgraded', true);
 		// Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly
 		if(version_compare($toVersion, '0.1.0', '>=')
@@ -676,21 +682,21 @@ If it has been used in another environment and is no longer wanted then you will
 		 * If they have, we will re-install the bootstrap using the new files, just like a new install
 		 * If they haven't we don't need to do anything - our bootstrap is still good
 		 */
-		//bd($upgrade, 'bootstrap (upgrade?)');
+		$this->bd($upgrade, 'bootstrap (upgrade?)');
 		$sameBootstrap = false;
 		$temp = $this->migrationTemplate;
 		$bootstrap = $this->wire()->pages->get("template=$temp, name=bootstrap");
-		//bd($bootstrap, 'bootstrap');
+		$this->bd($bootstrap, 'bootstrap');
 		/* @var $bootstrap DbMigrationPage */
 		if($upgrade) {
 			if($bootstrap && $bootstrap->id) {
 				$currentFilesHash = $bootstrap->filesHash();
 				$newFilesHash = $bootstrap->filesHash($this->modulePath);
 				$sameBootstrap = ($currentFilesHash == $newFilesHash);
-				bd([$currentFilesHash, $newFilesHash], 'current & new hashes');
+				$this->bd([$currentFilesHash, $newFilesHash], 'current & new hashes');
 			}
 		}
-		bd($sameBootstrap, 'samebootstrap');
+		$this->bd($sameBootstrap, 'samebootstrap');
 		if($sameBootstrap) return;
 
 		/*
@@ -700,7 +706,7 @@ If it has been used in another environment and is no longer wanted then you will
 		if(!is_dir($this->migrationsPath . 'bootstrap/')) if(!wireMkdir($this->migrationsPath . 'bootstrap/', true)) {
 			throw new WireException($this->_('Unable to create migration directory') . ": {$this->migrationsPath}bootstrap/");
 		}
-//bd(['bootstrapPath' => $this->bootstrapPath, 'migrationsPath' => $this->migrationsPath . 'bootstrap/'], 'copy files');
+		$this->bd(['bootstrapPath' => $this->bootstrapPath, 'migrationsPath' => $this->migrationsPath . 'bootstrap/'], 'copy files');
 		$this->wire()->files->copy($this->bootstrapPath, $this->migrationsPath . 'bootstrap/');
 
 		// Before we are able to use the copied .json files, we need to check and amend the admin root in use as it may differ in the target system
@@ -719,7 +725,7 @@ If it has been used in another environment and is no longer wanted then you will
 		if($bootstrap && $bootstrap->id) {
 			if($bootstrap->isLocked()) $bootstrap->removeStatus(Page::statusLocked);
 			$bootstrap->delete(true);
-//bd('deleted bootstrap');
+			$this->bd('deleted bootstrap');
 		}
 
 		// Install a dummy bootstrap using the copied/amended files
@@ -731,7 +737,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$dummyBootstrap->name = 'dummy-bootstrap';
 		/* @var $dummyBootstrap DbMigrationPage */
 		$dummyBootstrap->installMigration('new');
-//bd('installed new bootstrap');
+		$this->bd('installed new bootstrap');
 
 		/* NB For normal upgrades, bootstrap installation is run by ready() if bootstrap is not installed
 		It cannot be run here as not all the API is present
@@ -748,7 +754,7 @@ If it has been used in another environment and is no longer wanted then you will
 	public function customUninstall($event) {
 		$class = $event->arguments(0);
 		if(__NAMESPACE__ . '\\' . $class != __CLASS__) return;
-		//bd('IN CUSTOM UNINSTALL - uninstalling....');
+		$this->bd('IN CUSTOM UNINSTALL - uninstalling....');
 		$abort = false;
 
 		// Make sure there is a bootstrap page
@@ -760,23 +766,37 @@ If it has been used in another environment and is no longer wanted then you will
 				$abort = true;
 			}
 		} else {
-			//bd('NO SETUP PAGE');
+			$this->bd('NO SETUP PAGE');
 			return;
 		}
 		//Check all templates with dbMigrate tags to ensure there are no migration pages
 		$taggedTemplates = wire()->templates->find("tags=dbMigrate");
 		$templateList = $taggedTemplates->implode('|', 'name');
-		$pagesUsingTemplates = wire()->pages->find("template=$templateList, include=all");
+		$pagesUsingTemplates = wire()->pages->find("template=$templateList, include=all"); // gets trashed pages as well
 		if($pagesUsingTemplates and $pagesUsingTemplates->count() > 0) {
+			$links = "";
+
 			foreach($pagesUsingTemplates as $pageUsingTemplate) {
-				if(($pageUsingTemplate->template == self::MIGRATION_TEMPLATE or $pageUsingTemplate->template == self::COMPARISON_TEMPLATE)
-					and $pageUsingTemplate->name != 'bootstrap') {
-					$this->error($this->_('Uninstall aborted as there are migration and/or comparison pages. Delete all comparison pages and all migration pages except for bootstrap before uninstalling.'));
-					$event->replace = true; // prevents original uninstall
-					$this->session->redirect("./edit?name=$class"); // prevent "module uninstalled" message
-					break;
+				if(
+					($pageUsingTemplate->template == self::MIGRATION_TEMPLATE or $pageUsingTemplate->template == self::COMPARISON_TEMPLATE)
+					and
+					$pageUsingTemplate->name != 'bootstrap'
+				) {
+					$links .= "<li><a target='_blank' href='{$pageUsingTemplate->editUrl}'>{$pageUsingTemplate->get('title|name')}</a></li>";
 				}
 			}
+		}
+
+		if($links) {
+			$this->error(
+				// Delete all comparison pages and all migration pages except for bootstrap before uninstalling.
+				$this->_('Uninstall aborted as there are existing migration and/or comparison pages.') .
+					"<p class='uk-text-small uk-margin-small-top uk-margin-remove-bottom'>The following pages need to be trashed and completely deleted first:</p>" .
+					"<ul class='uk-list-disc uk-text-small uk-margin-remove-top'>".$links."</ul>",
+				Notice::allowMarkup
+			);
+			$event->replace = true; // prevents original uninstall
+			$this->session->redirect("./edit?name=$class"); // prevent "module uninstalled" message
 		}
 
 		// unset system flags on templates and fields
@@ -808,19 +828,21 @@ If it has been used in another environment and is no longer wanted then you will
 			$this->wire('fieldgroups')->delete($fieldgroup);
 			// Uninstall all the bootstrap items
 			try {
-				//bd('uninstalling bootstrap');
+				$this->bd('uninstalling bootstrap');
 				$this->bootstrap->installMigration('old');
 			} catch(WireException $e) {
-				//bd($e, 'WireException');
+				$this->bd($e, 'WireException');
 				$msg = $e->getMessage();
 				$this->error($this->_('Uninstall of bootstrap failed or incomplete.') . "\n $msg \n" .
 					$this->_('Re-install the module and fix the cause of the problem before uninstalling again.'));
 				$abort = false; //allow uninstall to complete as re-installation of bootstrap may be required to enable proper uninstallation
 			}
+			$this->message(sprintf($this->_('Removed %s'), $setupPage->path));
+			$this->wire()->pages->delete($setupPage, true);
 		}
 		// uninstall?
 		if($abort) {
-			//bd('ABORTING UNINSTALL');
+			$this->bd('ABORTING UNINSTALL');
 			// there were some non-critical errors
 			// close without uninstalling module -
 			$event->replace = true; // prevents original uninstall
@@ -844,25 +866,19 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 		if($this->suppress_hooks) $this->wire()->error("Hook suppression is on - migrations will not work correctly - unset in the module settings.");
 		$pageEdit = $this->wire('urls')->admin . 'page/edit/?id=';
-		$form = $this->modules->get("InputfieldForm");
+
+		$this->modules->get('JqueryWireTabs');
+
 		/* @var $form InputfieldForm */
-		$prepend = self::helpPopout('Help') . '<ul class="WireTabs uk-tab" uk-switcher>' .
-			'<li id="migrations-tab"><a href="#migrations">Migrations</a></li>' .
-			'<li id="database-comparisons-tab"><a href="#database-comparisons">Database comparisons</a></li>' .
-			'</ul>';
-		// uk-switcher uk-margin classes need to be added to <ul> parent of fieldset - in the js
-		$form->set('prependMarkup', $prepend);
+		$form = $this->modules->get("InputfieldForm");
+		$form->attr('id', 'ProcessDbMigrate');
 
-		// create a fieldset for migrations
-//        $fieldset = $this->modules->get("InputfieldFieldset");
-//        $fieldset->label = "Migrations";
-//        $fieldset->attr('id+name', 'migrations');
+		// tab 1 - Migrations
+		$tab = new InputfieldWrapper();
+		$tab->attr('id', 'migrations');
+		$tab->attr('title', 'Migrations');
+		$tab->attr('class', 'WireTab');
 		$field = $this->modules->get("InputfieldMarkup");
-		/* @var $field InputfieldMarkup */
-
-		$field->attr('id+name', 'migrations');
-		$field->set('themeBorder', 'line');
-
 		$table = $this->wire('modules')->get("MarkupAdminDataTable");
 		$table->headerRow(['Name', 'Type', 'Status', 'Title', 'Summary', 'Items', 'Created']);
 		$table->setSortable(true);
@@ -881,14 +897,15 @@ If it has been used in another environment and is no longer wanted then you will
 						$statusColour = ($status == 'exported') ? 'lightgreen' : 'salmon';
 					}
 				} else {
-//                $status = 'Locked';
+					// $status = 'Locked';
 					$statusColour = 'LightGrey';
 				}
-				//bd($migrationPage, $status);
-				//bd($installedStatus);
+				$this->bd($migrationPage, $status);
+				$this->bd($installedStatus);
 				$lockIcon = ($migrationPage->meta('locked')) ? '<i class="fa fa-lock"></i>' : '<i class="fa fa-unlock"></i>';
 				$itemList = [];
-				foreach($migrationPage->getFormatted('dbMigrateItem') as $migrateItem) {
+				//foreach($migrationPage->getFormatted('dbMigrateItem') as $migrateItem) {
+				foreach($migrationPage->dbMigrateItem->find("status=1") as $migrateItem) {
 					/* @var $migrateItem RepeaterPage */
 					$oldName = ($migrateItem->dbMigrateOldName) ? '|' . $migrateItem->dbMigrateOldName : '';
 					$itemList[] = '<em>' . $migrateItem->dbMigrateAction->title . ' ' . $migrateItem->dbMigrateType->title . '</em>: ' . $migrateItem->dbMigrateName . $oldName;
@@ -907,7 +924,6 @@ If it has been used in another environment and is no longer wanted then you will
 				);
 				$table->row($data);
 			}
-
 		}
 		$this->wire('modules')->get('JqueryUI')->use('modal');
 		$out = '<div><h3>' . $this->_('Existing migrations are listed below. Go to the specific migration page for any actions.') . '</h3><p>' .
@@ -928,10 +944,15 @@ If it has been used in another environment and is no longer wanted then you will
 		$btn->attr('value', "Refresh migrations");
 		$btn->showInHeader();
 		$out .= $btn->render();
-
 		$field->value = $out;
-		$form->append($field);
+		$tab->add($field);
+		$form->append($tab);
 
+		// tab 2 - Comparisons
+		$tab = new InputfieldWrapper();
+		$tab->attr('id', 'database-comparisons');
+		$tab->attr('title', 'Database Comparisons');
+		$tab->attr('class', 'WireTab');
 		$field = $this->modules->get("InputfieldMarkup");
 		/* @var $field InputfieldMarkup */
 		$field->attr('id+name', 'database-comparisons');
@@ -960,7 +981,6 @@ If it has been used in another environment and is no longer wanted then you will
 				);
 				$table->row($data);
 			}
-
 		}
 		$this->wire('modules')->get('JqueryUI')->use('modal');
 		$out = '<div><h3>' . $this->_('Existing database comparison pages are listed below. Go to the specific page to compare.') . '</h3></div>';
@@ -968,15 +988,15 @@ If it has been used in another environment and is no longer wanted then you will
 		$btnAddNew = $this->createNewButton($this->comparisonTemplate, $this->comparisons); //createNewButton also allows title and values to be set, but not used here
 		$out .= $btnAddNew->render();
 		$btn = $this->wire('modules')->get("InputfieldButton");
-		//bd($this->name, 'this name');
+		$this->bd($this->name, 'this name');
 		$btn->attr('href', $this->parentHttpUrl . $this->name . "/get-comparisons/");
 		$btn->attr('id', "get_comparisons");
 		$btn->attr('value', "Refresh comparisons");
 		$btn->showInHeader();
 		$out .= $btn->render();
 		$field->value = $out;
-
-		$form->append($field);
+		$tab->add($field);
+		$form->append($tab);
 
 		return $form->render();
 	}
@@ -990,14 +1010,14 @@ If it has been used in another environment and is no longer wanted then you will
 	 *
 	 */
 	public function moduleRefresh($type = 'migrations') {
-		//bd('in module refresh');
+		$this->bd('in module refresh');
 		$migrationPath = ($type == 'comparisons') ? $this->comparisonsPath : $this->migrationsPath;
 		$migrationFiles = $this->wire('files')->find($migrationPath);
 		$migrationFiles = array_filter($migrationFiles, function($e) {
 			return (basename($e, '.json') == 'migration' and basename(pathinfo($e)['dirname']) == 'new');
 		});
 		$migrationPages = $this->wire(new PageArray());
-		//bd($migrationFiles, 'migration files');
+		$this->bd($migrationFiles, 'migration files');
 		if($type == 'migrations') {
 			if(!$this->migrations or !$this->migrations->id or !$this->wire()->templates->get('DbMigrations')
 				or !$this->wire()->templates->get('DbMigration')) {
@@ -1026,12 +1046,12 @@ If it has been used in another environment and is no longer wanted then you will
 			}
 		}
 		$wantedFiles = array_diff($migrationFiles, array_values($alreadyFound));
-		//bd($alreadyFound, '$alreadyFound');
-		//bd($wantedFiles, 'wanted files');
+		$this->bd($alreadyFound, '$alreadyFound');
+		$this->bd($wantedFiles, 'wanted files');
 		foreach($wantedFiles as $file) {
 			//Retrieve the data from our text file.
 			$fileContents = wireDecodeJSON(file_get_contents($file));
-			//bd($fileContents, 'wanted file contents');
+			$this->bd($fileContents, 'wanted file contents');
 			$sourceDb = null;
 			if(isset($fileContents['sourceDb'])) {
 				$sourceDb = $fileContents['sourceDb'];
@@ -1041,7 +1061,7 @@ If it has been used in another environment and is no longer wanted then you will
 			}
 			foreach($fileContents as $content) {
 				// There should only be one item in this context
-				//bd($content, 'content');
+				$this->bd($content, 'content');
 				if(!is_array($content)) continue;
 				foreach($content as $line) {
 					foreach($line as $pathName => $values) {
@@ -1054,7 +1074,7 @@ If it has been used in another environment and is no longer wanted then you will
 						$newMigration->parent = ($type == 'comparisons') ? $this->comparisons : $this->migrations;
 						$newMigration->template = ($type == 'comparisons') ? 'DbComparison' : 'DbMigration';
 						$newMigration->status = 1;
-						//bd($values, 'in module refresh with $values');
+						$this->bd($values, 'in module refresh with $values');
 						$newMigration->save(['noHooks' => true]);
 						unset($values['id']);
 						unset($values['parent']);
@@ -1064,8 +1084,8 @@ If it has been used in another environment and is no longer wanted then you will
 						$r = $newMigration->getRepeaters($values);
 						$repeaters = $r['repeaters'];
 						$values = $r['values'];  // values has repeaters removed
-						//bd($values, 'wanted values');
-						//bd($newMigration, 'newMigration');
+						$this->bd($values, 'wanted values');
+						$this->bd($newMigration, 'newMigration');
 						$newMigration->created = filectime($file);
 						$newMigration->setAndSave($values, ['noHooks' => true, 'quiet' => true]);
 						$newMigration->setAndSaveRepeaters($repeaters, 'new', null, ['noHooks' => true]);
@@ -1150,10 +1170,10 @@ If it has been used in another environment and is no longer wanted then you will
 		$className = $template . 'Page';
 		$url = './';
 		if(!$title) {
-			//bd($template, 'template');
+			$this->bd($template, 'template');
 			$url = wire('config')->urls->admin . "page/add/?parent_id=" . $parent . "&template_id=" . $template->id;
 		} else {
-			//bd($className, 'class name');
+			$this->bd($className, 'class name');
 			$newPage = $this->wire(new $className());
 			$newPage->of(false);
 			$newPage->title = $title;
@@ -1403,7 +1423,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$migrationPage = $this->wire()->pages->get($pageId);
 		$migrationFolder = $this->migrationsPath . $migrationPage->name . '/';
 		if($action == 'lock') {
-			//bd($migrationPage->meta('locked'), 'Meta locked');
+			$this->bd($migrationPage->meta('locked'), 'Meta locked');
 			if(is_dir($migrationFolder)) {
 				//NB restriction on locking removed from installable migrations
 //				if(!$migrationPage->meta('installable')) {
@@ -1500,17 +1520,17 @@ If it has been used in another environment and is no longer wanted then you will
 			// remove any existing draft before creating a new one
 			$nameRoot = self::XCPREFIX . $migrationPage->name;
 			$drafts = $this->wire()->pages->find("parent=$this->migrations, name^=$nameRoot, include=all");
-			//bd($this->migrations->path . $nameRoot, 'check existing');
+			$this->bd($this->migrations->path . $nameRoot, 'check existing');
 			/*
 			 * Delete any existing draft, but ONLY if it is still a draft (given by meta)
 			 * Note that the 'draft' meta is removed once there is a data.json file in the migration directory (removal is by RuntimeFields/dbMigrateRuntimeAction.php)
 			 */
 			$this->wire()->session->set('trash-drafts', true);
 			foreach($drafts as $draft) {
-				//bd([$draft,$draft->meta('draft')], 'draft meta in loop');
+				$this->bd([$draft,$draft->meta('draft')], 'draft meta in loop');
 				if($draft and $draft->id and $draft->meta('draft')) {
 					$draft->ready(); // to ensure that hooks in DbMigrationPage class are operative
-					//bd($draft, 'trashing');
+					$this->bd($draft, 'trashing');
 					$draft->trash();  // hook will delete associated migration files
 					$draft->delete(true);
 				}
@@ -1526,7 +1546,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$draft->meta('sourceDb', $migrationPage->meta('sourceDb'));
 			$draft->meta('draft', true);
 			$draft->meta('installable', true);
-			//bd($draft->meta('draft'), 'initial draft meta');
+			$this->bd($draft->meta('draft'), 'initial draft meta');
 		} else {
 			$draft = null;
 		}
@@ -1546,9 +1566,9 @@ If it has been used in another environment and is no longer wanted then you will
 				break;
 		}
 		$compare = $migrationPage->exportData('compare');
-		//bd($compare, 'result');
+		$this->bd($compare, 'result');
 		$arrayComparison = $compare[$diffs];
-		//bd($arrayComparison, 'array comparison');
+		$this->bd($arrayComparison, 'array comparison');
 		$col1 = ($target == 'review') ? 'pre-installation' : 'current';
 		$col2 = ($target == 'review') ? 'post-installation' : $comparisonType;
 		if($pageType == 'comparison') $col2 = 'source';
@@ -1584,7 +1604,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$out .= ($value) ? $this->formatCompare($migrationPage, $pageType, $value, $key, $newOld, $draft, $keyArray) : '';
 			$out .= '</tr>';
 			if(!$value and $draft) {
-				//bd(['key' => $keyArray, 'draft' => $draft], 'adding from main __preview');
+				$this->bd(['key' => $keyArray, 'draft' => $draft], 'adding from main __preview');
 				$this->addDbMigrateItem($draft, $keyArray, 'new');
 			}
 		}
@@ -1593,7 +1613,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$draft->repeaters = [];
 		}
 
-		//bd($draft, 'draft in top');
+		$this->bd($draft, 'draft in top');
 		if($compare['installedMigrationDiffs']) {
 			$out .= '<tr><td>Differences in migration definition that do not affect data.json files (but do affect migration.json):</td><td></td></tr>';
 			foreach($compare['installedMigrationDiffs'] as $key => $value) {
@@ -1637,7 +1657,7 @@ If it has been used in another environment and is no longer wanted then you will
 		} else {
 			/* @var $migrationPage DbMigrationPage */
 		}
-		//bd($value, 'value in formatCompare');
+		$this->bd($value, 'value in formatCompare');
 		if($this->array_depth($value) == 1) {
 			// at the bottom, there should be an unassociated array of length exactly = 2
 			if(count($value) != 2) return '<td style="word-wrap: break-word">' . wireEncodeJSON($value) . '</td><td>' .
@@ -1654,7 +1674,7 @@ If it has been used in another environment and is no longer wanted then you will
 				$value[1] . '</td>';
 		}
 
-		//bd($value, 'depth >= 2 value');
+		$this->bd($value, 'depth >= 2 value');
 		if(count($value) == 2) {
 			// check that one item is not a string, so we don't iterate further in  that case
 			$a0 = array_slice($value, 0, 1, true);
@@ -1662,7 +1682,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$v[0] = reset($a0);
 			$v[1] = reset($a1);
 			if(is_string($v[0]) or is_string($v[1])) {
-				//bd($value, 'depth 2 count 2 value where one element is a string');
+				$this->bd($value, 'depth 2 count 2 value where one element is a string');
 				foreach($newOld as $col => $type) {
 					$v[$col] = (is_array($v[$col])) ? wireEncodeJSON($v[$col], true, true) : $v[$col];
 					if(strpos($key, 'pages') === 0 and is_string($v[$col]) and $v[$col] != strip_tags($v[$col])) {
@@ -1688,7 +1708,7 @@ If it has been used in another environment and is no longer wanted then you will
 			if(is_array($v)) {
 				$out .= $this->formatCompare($migrationPage, $pageType, $v, $key, $newOld, $draft, $keyArray, $deep);
 			}
-			//bd($out, 'out for ' . $k);
+			$this->bd($out, 'out for ' . $k);
 		}
 		return $out;
 	}
@@ -1770,7 +1790,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$newRepeaters[] = $repeater;
 		}
 		$draft->repeaters = ['dbMigrateItem' => $newRepeaters];
-		//bd($draft, 'draft after addDbMigrateItem');
+		$this->bd($draft, 'draft after addDbMigrateItem');
 //		$draft->setAndSaveRepeaters($repeaters, 'new', $draft, $this->first);  // remove other repeaters on first setting...
 //		$this->first = false;  // ...but not thereafter
 		return $draft;
@@ -1785,7 +1805,6 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 	public function getModuleConfigInputfields(InputfieldWrapper $inputfields) {
 		$modules = $this->wire()->modules;
-		// JqueryWireTabs is loaded in init()
 
 		// Load custom CSS and JS
 		$config = $this->wire()->config;
@@ -1798,22 +1817,6 @@ If it has been used in another environment and is no longer wanted then you will
 
 		$help = self::helpPopout('Popout indexed help', true);
 
-		// Wrapper to hold the tabs
-		/** @var InputfieldWrapper $tabs_container */
-		$tabs_container = $this->wire(new InputfieldWrapper());
-		// All newly-created objects that are derived from Wire SHOULD have their dependencies injected. In order to do this, pass the new object through the wire() method.
-
-		$tabs_container->id = 'mct-tabs-container';
-		$inputfields->add($tabs_container);
-
-		// Tab 1
-		/** @var InputfieldWrapper $tab1 */
-		$tab1 = $this->wire(new InputfieldWrapper());
-		$tab1->attr('title', 'Settings');
-		$tab1->attr('class', 'WireTab');
-		$tab1->columnWidth = 100;
-		$tabs_container->add($tab1);
-
 		/* @var InputfieldCheckbox $f */
 		$f = $modules->InputfieldCheckbox;
 		$f_name = 'enable_dbMigrate';
@@ -1824,7 +1827,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$f->columnWidth = 50;
 		$f->value = $this->$f_name;
 		$f->checked = ($f->value == 1) ? 'checked' : '';
-		$tab1->add($f);
+		$inputfields->add($f);
 
 		/* @var InputfieldCheckbox $f */
 		$f = $modules->InputfieldCheckbox;
@@ -1837,14 +1840,14 @@ If it has been used in another environment and is no longer wanted then you will
 		$f->columnWidth = 50;
 		$f->value = $this->$f_name;
 		$f->checked = ($f->value == 1) ? 'checked' : '';
-		$tab1->add($f);
+		$inputfields->add($f);
 
 		// Database naming fieldset
 		/** @var InputfieldFieldset $dbName */
 		$dbName = $this->wire(new InputfieldFieldset());
 		$dbName->label = $this->_('Database naming');
 		$dbName->columnWidth = 100;
-		$tab1->add($dbName);
+		$inputfields->add($dbName);
 
 		/* @var InputfieldText $f */
 		$f = $modules->InputfieldText;
@@ -1894,7 +1897,7 @@ If it has been used in another environment and is no longer wanted then you will
 //		$tracking->description = $this->_('Use selectors to define scope of object changes to be tracked');
 //		$tracking->notes = $this->_('If you do not enter a selector then no changes will be tracked. Enter id>0 to (potentially) track everything.');
 //		$tracking->columnWidth = 100;
-//		$tab1->add($tracking);
+//		$inputfields->add($tracking);
 //
 //		/* @var InputfieldTextarea $f */
 //		$f = $modules->InputfieldText;
@@ -1936,7 +1939,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$exclusions->label = $this->_('Global exclusions');
 		$exclusions->notes = $this->_('Exclusions specified here will apply to all migrations');
 		$exclusions->columnWidth = 100;
-		$tab1->add($exclusions);
+		$inputfields->add($exclusions);
 
 		/* @var InputfieldTextarea $f */
 		$f = $modules->InputfieldTextarea;
@@ -1981,7 +1984,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$f->columnWidth = 50;
 		$f->value = $this->$f_name;
 		$f->checked = ($f->value == 1) ? 'checked' : '';
-		$tab1->add($f);
+		$inputfields->add($f);
 
 		/* @var InputfieldCheckbox $f */
 		$f = $modules->InputfieldCheckbox;
@@ -1993,7 +1996,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$f->columnWidth = 50;
 		$f->value = $this->$f_name;
 		$f->checked = ($f->value == 1) ? 'checked' : '';
-		$tab1->add($f);
+		$inputfields->add($f);
 
 		/* @var InputfieldInteger $f */
 		$f = $modules->InputfieldInteger;
@@ -2008,14 +2011,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$f->value = $this->$f_name;
 		$f->min = 1;
 		$f->max = 5;
-		$tab1->add($f);
-
-		// Tab 2
-		/** @var InputfieldWrapper $tab2 */
-		$tab2 = $this->wire(new InputfieldWrapper());
-		$tab2->attr('title', 'Help');
-		$tab2->attr('class', 'WireTab');
-		$tabs_container->add($tab2);
+		$inputfields->add($f);
 
 		/* @var InputfieldMarkup $f */
 		$f = $modules->InputfieldMarkup;
@@ -2026,8 +2022,8 @@ If it has been used in another environment and is no longer wanted then you will
 		$f->notes = $this->_('');
 		$f->columnWidth = 100;
 		$f->value = $help;
-//        $f->collapsed = Inputfield::collapsedYes;
-		$tab2->add($f);
+		$f->collapsed = Inputfield::collapsedYes;
+		$inputfields->add($f);
 
 	}
 
@@ -2057,12 +2053,12 @@ If it has been used in another environment and is no longer wanted then you will
 			return;
 		}
 		//
-		//bd($event, 'event in beforeSave');
+		$this->bd($event, 'event in beforeSave');
 		if($this->trackingMigration) {
 //			$oldPage = $this->pages()->getFresh($p->id); // No longer needed - done as part of data gathering
 			if($p instanceof RepeaterMatrixPage || $p instanceof RepeaterPage) {
 				if($p->parentPrevious && $p->parentPrevious->path() != $p->parent()->path()) {
-					//bd(['prevName' => $p->namePrevious, 'name' => $p->name, 'prevParent' => $p->parentPrevious->path(), 'parent' => $p->parent()->path()], 'compare paths');
+					$this->bd(['prevName' => $p->namePrevious, 'name' => $p->name, 'prevParent' => $p->parentPrevious->path(), 'parent' => $p->parent()->path()], 'compare paths');
 					$this->error(sprintf($this->_('Changes to id %s not saved. ProcessDbMigrate cannot track changes to repeater page paths. Amend repeaters from their host page, not directly, when "log changes" is enabled'), $p->id));
 					$event->replace = true;
 					$event->return = false;
@@ -2078,9 +2074,9 @@ If it has been used in another environment and is no longer wanted then you will
 				!$this->wire()->session->get('dbMigrate_bypassSaveHook')) { // allow saves as part of the migration installation process!
 				$action = $event->method; // 'save' or 'moved'
 				$action = ($action == 'save') ? 'save' : 'move';
-				//bd($p, $action);
+				$this->bd($p, $action);
 				$conflict = $this->preventConflict($p, $action, 'page');
-				//bd($conflict, 'conflict');
+				$this->bd($conflict, 'conflict');
 				if($conflict) {
 					$this->error($conflict);
 					$event->replace = true;
@@ -2122,7 +2118,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$matches = ($page->matches($migration->dbMigratePageTracking));
 		if($page instanceof RepeaterMatrixPage || $page instanceof RepeaterPage) {
 			$rootParent = $page->getForPageRoot();
-//bd([$rootParent, $rootParent->motif_layout_components], 'root parent, components -  in setPageMeta');
+$this->bd([$rootParent, $rootParent->motif_layout_components], 'root parent, components -  in setPageMeta');
 			if($rootParent->matches($migration->dbMigratePageTracking)) {
 				$matches = true;
 				// If repeater was edited directly then we might not have the 'current' data for the parent
@@ -2139,12 +2135,12 @@ If it has been used in another environment and is no longer wanted then you will
 			if(!$migration->meta('installable') && !$migration->meta('locked') && $migration->dbMigrateLogChanges == 1) { // 1 is 'Log changes'
 				if($page->id) {
 					$objectData = $this->getPageExportData($migration, $page, true);  // $fresh = true means that fresh data from DB will be used throughout (including for repeater fields)
-//					bd($objectData, "object data for page {$page->id}");
+					$this->bd($objectData, "object data for page {$page->id}");
 					$migration->meta()->set("current_page_{$page->id}", $objectData);
 				}
 			}
 		}
-//bd($migration->meta()->getArray(), 'meta at end of setpagemeta');
+		$this->bd($migration->meta()->getArray(), 'meta at end of setpagemeta');
 	}
 
 	/**
@@ -2158,17 +2154,17 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function afterSave(HookEvent $event) {
 		$p = $event->arguments(0);
 		if($p->template == 'DbMigrateHelp') {
-			//bd($p, 'after save hook');
+			$this->bd($p, 'after save hook');
 			$origText = $p->dbMigrateAdditionalDetails;
 			$p->export = true;  // set temp field so that render processing is correct for exported version of page (used in the template file DbMigrateHelp.php)
 			$html = $p->render();
-			//bd($html, 'html');
+			$this->bd($html, 'html');
 			file_put_contents($this->modulePath . 'help.html', $html);
 			$text = $p->dbMigrateAdditionalDetails;
 			file_put_contents($this->modulePath . 'helpText.html', $text);
-			//bd($origText, 'origtext');
+			$this->bd($origText, 'origtext');
 			$p->dbMigrateAdditionalDetails = $origText;
-			//bd($p->dbMigrateAdditionalDetails, '$p->dbMigrateAdditionalDetails');
+			$this->bd($p->dbMigrateAdditionalDetails, '$p->dbMigrateAdditionalDetails');
 			$p->export = false;
 		}
 	}
@@ -2189,11 +2185,11 @@ If it has been used in another environment and is no longer wanted then you will
 		$t = $event->arguments(0);
 		// Ignore dbMigrate templates
 		if($t->hasTag('dbMigrate')) return;
-//bd('in beforeSaveTemplate hook');
+		$this->bd('in beforeSaveTemplate hook');
 
 		if($this->prevent_overlap) { //config setting
 			if(!$this->wire()->session->get('dbMigrate_install') and !$this->wire()->session->get('dbMigrate_removeItems')) {
-				//bd($t, 't');
+				$this->bd($t, 't');
 				$conflict = $this->preventConflict($t, 'save', 'template');
 				if($conflict) {
 					$this->error($conflict);
@@ -2218,7 +2214,7 @@ If it has been used in another environment and is no longer wanted then you will
 		/*
 		 * This hook only operates on pages saved outside the installFields method
 		 */
-		//bd('in beforeSaveField hook');
+		$this->bd('in beforeSaveField hook');
 		if($this->prevent_overlap) { // moduleconfig setting
 			if(!$this->wire()->session->get('dbMigrate_install') and !$this->wire()->session->get('dbMigrate_removeItems')) {
 				$f = $event->arguments(0);
@@ -2272,16 +2268,16 @@ If it has been used in another environment and is no longer wanted then you will
 			$inputfield = $form->getChildByName('dbMigrateLogChanges');
 			if($inputfield) {
 				$inputfield->collapsed = Inputfield::collapsedHidden;
-//bd($inputfield, 'inputfield logchanges Y');
+				$this->bd($inputfield, 'inputfield logchanges Y');
 			}
 			$inputfield2 = $form->getChildByName('dbMigrateRuntimeAction');
 			if($inputfield2) {
 				$inputfield2->columnWidth = 100;
-//bd($inputfield2, 'inputfield action Y');
+				$this->bd($inputfield2, 'inputfield action Y');
 			}
 			$inputfield3 = $form->getChildByName('dbMigrateItem');
 			if($inputfield3) {
-//bd($inputfield3, 'repeater if');
+				$this->bd($inputfield3, 'repeater if');
 				$inputfield3->notes = 'These items are automatically created and cannot be added to, deleted or sorted. Any changes must be in the source database.';
 				// Do not allow addition or deletion of items
 				$fixedNumber = $inputfield3->value->count();
@@ -2307,7 +2303,7 @@ If it has been used in another environment and is no longer wanted then you will
 //			$page = wire('pages')->get($pId);
 //		}
 //		if(!$event->object) return;
-//		bd($event->object, 'event object in beforePageEditExecute');
+		$this->bd($event->object, 'event object in beforePageEditExecute');
 		$id = $this->wire('input')->get->id;
 		if(!$id) return;
 		$id = $this->wire('sanitizer')->int($id);
@@ -2360,7 +2356,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$fId = wire()->input->get('id');
 			$field = wire('fields')->get($fId);
 			$type = 'field';
-			//bd($field, 'PREVENT FIELD CONFLICT');
+			$this->bd($field, 'PREVENT FIELD CONFLICT');
 			$conflict = $this->preventConflict($field, 'edit', $type);
 			if($conflict) {
 				$this->warning($conflict);
@@ -2385,22 +2381,22 @@ If it has been used in another environment and is no longer wanted then you will
 		if($action == 'save' && $type == 'page' && isset($object->parentPrevious) && $object->parentPrevious != $object->parent) {
 			$action = 'move';
 			$name = $object->parentPrevious->path . $object->name . '/';  // need the path before it was moved
-			//bd($name, 'revised name');
+			$this->bd($name, 'revised name');
 		}
 		foreach($this->migrations->find("template={$this->migrationTemplate}, include=all") as $migration) {
 			/* @var $migration DbMigrationPage */
-			//bd($migration->meta(), 'meta');
+			$this->bd($migration->meta(), 'meta');
 			if($migration->conflictFree()) continue;
 			$migrationNames = $migration->itemNames($type);
 
-			//bd(['name' => $name, 'mignames' => $migrationNames], 'names');
+			$this->bd(['name' => $name, 'mignames' => $migrationNames], 'names');
 			if(in_array($name, $migrationNames)) {
-//bd([debug_backtrace(), DEBUG::backtrace()], 'backtrace');
+				$this->bd([debug_backtrace(), DEBUG::backtrace()], 'backtrace');
 				if($action == 'edit') {
 					$conflict = sprintf($this->_('This %1$s %2$s is the target of an active migration: %3$s. Do not edit it here - edit in the source database instead.'), $type, $name, $migration->name);
 				} else {  // $action == 'save' or 'move'
 					$conflict = sprintf($this->_('Unable to %5$s %1$s %2$s as it is the target of an active migration: %3$s. See %4$s module settings.'), $type, $name, $migration->name, self::moduleInfo()['title'], $action);
-					//bd(DEBUG::backtrace(), 'PW backtrace');
+					$this->bd(DEBUG::backtrace(), 'PW backtrace');
 					if($action == 'move') {
 						// Because this hook operates after the move, we need to reverse the move if it conflicts with an open migration
 						// NB However, it is not necessary in this context because the calling hook sets $event->replace = true so the save is not executed.
@@ -2412,7 +2408,7 @@ If it has been used in another environment and is no longer wanted then you will
 //				break;
 			}
 		}
-		//bd(['object' => $object, 'session' => $this->wire()->session], 'PREVENT ' . $type . ' CONFLICT');
+		$this->bd(['object' => $object, 'session' => $this->wire()->session], 'PREVENT ' . $type . ' CONFLICT');
 		return $conflict;
 	}
 
@@ -2436,7 +2432,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 
 	public function afterExportConfigData(HookEvent $event) {
-//	bd('RUNNING afterExportConfigData hook');
+		$this->bd('RUNNING afterExportConfigData hook');
 		$data = $event->arguments(0)->data;
 		$value = $event->return;
 		$newData = array_merge($value, $data);
@@ -2464,7 +2460,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 * @return void
 	 */
 	protected function objectType($event, $object, &$type, &$typeName, &$tracking) {
-//bd($event, 'event in objectType');
+		$this->bd($event, 'event in objectType');
 		if(!$object) return;
 		//$this->wire()->log->save('debug', 'Object type: ' . $object->type . ' - Progress A');
 		switch(true) {
@@ -2481,7 +2477,7 @@ If it has been used in another environment and is no longer wanted then you will
 			case (wireInstanceOf($object, 'Fieldgroups') || wireInstanceOf($object, 'Fieldgroup')):
 				$tpls = $event->arguments(0)->getTemplates();
 				foreach($tpls as $tpl) {
-//bd($event->method, 'event->method');
+					$this->bd($event->method, 'event->method');
 					switch($event->method) {
 						case 'saved':
 							$this->wire()->templates->saved($tpl); // to ensure related template hook is triggered
@@ -2572,8 +2568,8 @@ If it has been used in another environment and is no longer wanted then you will
 			$meta = $migration->meta()->get("current_{$object}_{$item->id}");
 			if($meta !== null) return; // already got it
 		}
-//bd([$event, $type, $item], 'event, type, item in setmeta');
-//bd($method, 'method in setmeta');
+		$this->bd([$event, $type, $item], 'event, type, item in setmeta');
+		$this->bd($method, 'method in setmeta');
 		if($type == 'fieldgroups') {
 			// Not sure this session var is necessary - it was an attempt to fix a problem that has been fixed differently
 			$processedFieldgroup = $this->wire()->session->get("processed_fieldgroup");
@@ -2581,7 +2577,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$processedFieldgroup[] = $item->id;
 			$this->wire()->session->set("processed_fieldgroup", $processedFieldgroup);
 			$oldFieldgroup = $this->wire($type)->getFreshSaveableItem($item);
-			//bd($oldFieldgroup, 'oldFieldgroup 1');
+			$this->bd($oldFieldgroup, 'oldFieldgroup 1');
 			$tpls = $item->getTemplates();
 			foreach($tpls as $tpl) {
 				if(!in_array($tpl->id, $this->wire()->session->get('processed'))) {
@@ -2593,11 +2589,11 @@ If it has been used in another environment and is no longer wanted then you will
 			if($item->id > 0) {
 				$oldItem = $this->wire($type)->getFreshSaveableItem($item);
 //				if($type == 'templates' && $oldFieldgroup) {
-//					bd($oldFieldgroup, 'oldFieldgroup 2');
+//					$this->bd($oldFieldgroup, 'oldFieldgroup 2');
 //					$oldItem->setFieldgroup($oldFieldgroup);
 //				}
 				$same = ($item == $oldItem);
-//bd(['item' => $item, 'oldItem' => $oldItem, 'same' => $same], "item, oldItem in after saveReady $type");
+				$this->bd(['item' => $item, 'oldItem' => $oldItem, 'same' => $same], "item, oldItem in after saveReady $type");
 				if($oldItem) {
 					$this->getObjectData($event, $oldItem);
 				} else {
@@ -2632,19 +2628,19 @@ If it has been used in another environment and is no longer wanted then you will
 	 * @return void
 	 */
 	protected function handlePageTable($event) {
-		//bd('In handlePageTable');
+		$this->bd('In handlePageTable');
 		$object = $event->object;
 		if(wireInstanceOf($object, 'InputfieldPageTableAjax')) {
 			$id = (int)$object->input->get('id');
 			if($id) {
 //				$hostPage = $this->pages()->get($id);
-//				bd($hostPage, 'hostPage in handlePageTable');
+//				$this->bd($hostPage, 'hostPage in handlePageTable');
 				// If there is a tracking migration then save the host page with nohooks and quiet
-				//bd($this->trackingMigration, 'trackingMigration in handlePageTable');
+				$this->bd($this->trackingMigration, 'trackingMigration in handlePageTable');
 				if($this->trackingMigration && $object->input->get('InputfieldPageTableAdd')) {
 					// set a session var with the host page id
 					$this->session->set('pageTableHostId', $id);
-					//bd($this->session->get('pageTableHostId'), 'set session var pageTableHostId');
+					$this->bd($this->session->get('pageTableHostId'), 'set session var pageTableHostId');
 //					$hostPage->of(false);
 //					$this->setPageMeta($hostPage, true);
 //					$this->addTrackedMigrationItem($hostPage, 3, 2, '', [], true);
@@ -2654,13 +2650,13 @@ If it has been used in another environment and is no longer wanted then you will
 				// If the object is an InputfieldPageTable, get the session var and add a migration item for the host page
 				if(wireInstanceOf($object, 'InputfieldPageTable')) {
 					$hostId = $this->session->get('pageTableHostId');
-					//bd($hostId, 'hostId in handlePageTable');
+					$this->bd($hostId, 'hostId in handlePageTable');
 					if($this->trackingMigration && $hostId) {
 						$hostPage = $this->pages()->get($hostId);
 						$pathSelector = $hostPage->path;
-						//bd($pathSelector, 'pathSelector');
+						$this->bd($pathSelector, 'pathSelector');
 						$inMigration = $this->trackingMigration->dbMigrateItem->find("dbMigrateName=$pathSelector");
-						//bd($inMigration, 'inMigration');
+						$this->bd($inMigration, 'inMigration');
 						if(!$inMigration || $inMigration->count() == 0) {
 							$this->setPageMeta($hostPage, true);
 							$this->addTrackedMigrationItem($hostPage, 3, 2, '', [], true);
@@ -2678,14 +2674,14 @@ If it has been used in another environment and is no longer wanted then you will
 //			if(is_int($sessionArray)) $sessionArray = [$sessionArray];
 //			$sessionArray[] = $editId;
 //		} else if (wireInstanceOf($object, 'InputfieldPageTableAjax')) {
-//			bd('in checkAjax hook');
+//			$this->bd('in checkAjax hook');
 //			$this->log->save('debug', 'In checkAjax hook');
 //			$sessionArray = $this->session->get('pageTableHostId');
 //			if($sessionArray && count($sessionArray) > 0) $sessionArray = []; // array_pop($sessionArray);
 //		}
 //		$this->session->set('pageTableHostId', $sessionArray);
-//		bd([$object, $this->session->get('pageTableHostId')], 'set pageTableHostId: object, session var');
-//		bd(Debug::backtrace(), 'backtrace in handlePageTable');
+//		$this->bd([$object, $this->session->get('pageTableHostId')], 'set pageTableHostId: object, session var');
+//		$this->bd(Debug::backtrace(), 'backtrace in handlePageTable');
 	}
 
 	/**
@@ -2698,12 +2694,12 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function handleSaveableHook($event) {
 		Debug::saveTimer('from ready', 'to handleSaveableHook' . $event->object->name);
 		$value = Debug::getSavedTimer('from ready');
-		//bd($value, 'from ready timer');
+		$this->bd($value, 'from ready timer');
 		Debug::saveTimer('from hook', 'to handleSaveableHook for ' . $event->object->name);
 		$value2 = Debug::getSavedTimer('from hook');
-		//bd($value2, 'from hook timer');
+		$this->bd($value2, 'from hook timer');
 		Debug::startTimer('from hook');
-//bd([$event->method, $event], 'handleSaveableHook event');
+		$this->bd([$event->method, $event], 'handleSaveableHook event');
 		$migration = $this->trackingMigration;
 		if(!$migration || !$migration->id) return;
 		$type = $typeName = $tracking = null;
@@ -2711,21 +2707,21 @@ If it has been used in another environment and is no longer wanted then you will
 		$this->objectType($event, $object, $type, $typeName, $tracking);
 		if(!$type) return;
 		$item = $event->arguments(0);
-//bd($item, 'item in handlesaveablehook');
-		//bd(DEBUG::backtrace(), 'backtrace');
+		$this->bd($item, 'item in handlesaveablehook');
+		$this->bd(DEBUG::backtrace(), 'backtrace');
 		// Ignore fields and templates which were created by DbMigrate and also any DbMigrate pages
 		if($type == 1 && self::dbMigrateFields()->has($item)) return;
 		if($type == 2 && self::dbMigrateTemplates()->has($item)) {
-			//bd($item, 'dBMigrateTemplate');
+			$this->bd($item, 'dBMigrateTemplate');
 			return;
 		}
 		$templateSelector = self::dbMigrateTemplateSelector();
-		//bd($templateSelector, ' templateSelector');
+		$this->bd($templateSelector, ' templateSelector');
 		if($type == 3 && $item->matches($templateSelector)) return;
-		//bd([$event->method, $event], 'wanted handleSaveableHook event');
+		$this->bd([$event->method, $event], 'wanted handleSaveableHook event');
 		// Don't process items a second time
 		$processed = $this->wire()->session->get('processed');
-//bd($processed, 'processed');
+		$this->bd($processed, 'processed');
 		if(in_array($item->id, $processed)) {
 			return;
 			// NB remove the commented lines below when all working ok - session var setting has moved to addTrackedMigrationItem
@@ -2748,13 +2744,13 @@ If it has been used in another environment and is no longer wanted then you will
 					$page = $event->arguments(0);
 					$prevParentPath = ($page->parentPrevious) ? $page->parentPrevious->path() : $page->parent()->path();
 					$prevName = ($page->namePrevious) ? $page->namePrevious : $page->name;
-					//bd([$prevParentPath, $prevName], 'previous');
+					$this->bd([$prevParentPath, $prevName], 'previous');
 					if($prevParentPath == '') {   //page was site home page
 						$oldName = '/';
 					} else {
 						$oldName = $prevParentPath . $prevName . '/';
 					}
-//					bd($oldName, 'oldName');
+					$this->bd($oldName, 'oldName');
 				}
 				$oldName = ($oldName != $itemName) ? $oldName : '';
 				break;
@@ -2774,14 +2770,15 @@ If it has been used in another environment and is no longer wanted then you will
 		$scopedObjects = $this->wire()->$typeName->find($migration->$tracking); //NB May not include a new page
 		$matches = false;
 		$inMigration = new PageArray();
-//bd([$type, $action, $item, $migration->$tracking], 'type action item tracking');
+		$this->bd([$type, $action, $item, $migration->$tracking], 'type action item tracking');
 		if($type == 3) {
 			//$this->wire()->log->save('debug', $item->name . 'Progress 1');
 			// If the page is just a repeater parent for repeater field that has been added/changed then omit it as installation in target will recreate it
 			if($this->trackingField && $item->name == FieldtypeRepeater::fieldPageNamePrefix . $this->trackingField->id) return; // FieldtypeRepeater::fieldPageNamePrefix is 'for_field_'
 			// Also, if we are deleting a repeater parent for a field that is in the migration (and will be deleted after this page is deleted) then omit it for the same reason
 			$fieldId = str_replace(FieldtypeRepeater::fieldPageNamePrefix, '', $item->name);
-			$dbMigrateItem = $migration->getFormatted('dbMigrateItem');
+			//$dbMigrateItem = $migration->getFormatted('dbMigrateItem');
+			$dbMigrateItem = $migration->dbMigrateItem->find("status=1");
 			$newFields = $dbMigrateItem->find("dbMigrateType=1");
 			foreach($newFields as $newField) {
 				$sourceField = $this->pages()->get("name={$newField->dbMigrateName}");
@@ -2794,7 +2791,7 @@ If it has been used in another environment and is no longer wanted then you will
 			// If a repeater page is changed directly, rather than via its 'getFor' parent, then the (root) parent will be treated as being changed (if it is inside the scope)
 			if($item instanceof RepeaterMatrixPage || $item instanceof RepeaterPage) {
 				$rootParent = $item->getForPageRoot();
-//bd($rootParent, 'root parent');
+				$this->bd($rootParent, 'root parent');
 				if($rootParent->matches($migration->$tracking)) {
 					// save the root so that it gets registered as the changed item, rather than the repeater page
 					// this will also get the root's 'current' meta data and fetch any image sources and rte links for it
@@ -2804,7 +2801,7 @@ If it has been used in another environment and is no longer wanted then you will
 			}
 //			$this->wire()->log->save('debug', $item->name . 'Progress 2a');
 
-			//if($matches) bd($item, 'page matches tracking selector');
+			//if($matches) $this->bd($item, 'page matches tracking selector');
 
 			// Include any pages that are already in the migration, although technically outside scope of logging
 			$pagePath = $item->path();
@@ -2819,7 +2816,7 @@ If it has been used in another environment and is no longer wanted then you will
 			if($type == 3) {
 				//Process any pages which hold files used in RTE fields on the current page BEFORE processing this page
 				$imageSources = $this->findRteImageSources($item);
-				//bd($imageSources, 'save image sources');
+				$this->bd($imageSources, 'save image sources');
 				foreach($imageSources as $imageSource) {
 					$this->setPageMeta($imageSource, true);
 					$this->addTrackedMigrationItem($imageSource, 3, 2, '', [], true);
@@ -2831,10 +2828,10 @@ If it has been used in another environment and is no longer wanted then you will
 					return $item;
 				})); // without the function, explode() returns null for each page
 				//If the page is in a page table, include its parent/host page in the migration
-				//bd($item, 'item in handleSaveableHook - check for page table');
+				$this->bd($item, 'item in handleSaveableHook - check for page table');
 //				$pageTableHost = $this->pageTableHosts($item);
 //				if($pageTableHost) {
-//					bd($pageTableHost, 'host in handleSaveableHook');
+//					$this->bd($pageTableHost, 'host in handleSaveableHook');
 //					$this->setPageMeta($pageTableHost, true);
 //					$this->addTrackedMigrationItem($pageTableHost, 3, 2, '', [], true);
 
@@ -2855,12 +2852,12 @@ If it has been used in another environment and is no longer wanted then you will
 	 * @throws WireException
 	 */
 	protected function afterFieldRemoved(HookEvent $event) {
-//		bd($event, 'event in fieldgroups hook');
+		$this->bd($event, 'event in fieldgroups hook');
 		$fieldgroup = $event->arguments(0);
 		$field = $event->arguments(1);
 		foreach($this->wire()->templates as $template) {
 			if($template->fieldgroup->id !== $fieldgroup->id) continue;
-			//bd([$template, $fieldgroup], 'template & fieldgroup');
+			$this->bd([$template, $fieldgroup], 'template & fieldgroup');
 			$this->wire()->templates->saved($template); // To trigger saved hook
 		}
 	}
@@ -2876,7 +2873,7 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function beforeFieldsSaveFieldgroupContext(HookEvent $event) {
 		$field = $event->arguments(0);
 		$fieldgroup = $event->arguments(1);
-		//bd([$field, $fieldgroup], 'beforeFieldsSaveFieldgroupContext');
+		$this->bd([$field, $fieldgroup], 'beforeFieldsSaveFieldgroupContext');
 		$tpls = $fieldgroup->getTemplates();
 		foreach($tpls as $tpl) {
 			$this->wire()->templates->saveReady($tpl); // to ensure related template hook is triggered
@@ -2894,7 +2891,7 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function afterFieldsSaveFieldgroupContext(HookEvent $event) {
 		$field = $event->arguments(0);
 		$fieldgroup = $event->arguments(1);
-//		bd([$field, $fieldgroup], 'afterFieldsSaveFieldgroupContext');
+		$this->bd([$field, $fieldgroup], 'afterFieldsSaveFieldgroupContext');
 		$tpls = $fieldgroup->getTemplates();
 		foreach($tpls as $tpl) {
 			$this->wire()->templates->saved($tpl); // to ensure related template hook is triggered
@@ -2911,7 +2908,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 	protected function afterFieldgroupsSave(HookEvent $event) {
 		$fieldgroup = $event->arguments(0);
-		//bd($fieldgroup, 'afterFieldgroupsSave');
+		$this->bd($fieldgroup, 'afterFieldgroupsSave');
 		$tpls = $fieldgroup->getTemplates();
 		foreach($tpls as $tpl) {
 			$this->wire()->templates->saved($tpl); // to ensure related template hook is triggered
@@ -2941,8 +2938,8 @@ If it has been used in another environment and is no longer wanted then you will
 			return;
 		}
 		$itemName = ($type < 3) ? $item->name : $item->path;
-//bd(['item' => $item, 'type' => $type, 'action' => $action, 'oldName' => $oldName, 'rteLinks' => $rteLinks], 'In addMigrationItem');
-		//bd([DEBUG::backtrace(), debug_backtrace()], 'backtrace addMigration');
+		$this->bd(['item' => $item, 'type' => $type, 'action' => $action, 'oldName' => $oldName, 'rteLinks' => $rteLinks], 'In addMigrationItem');
+		$this->bd([DEBUG::backtrace(), debug_backtrace()], 'backtrace addMigration');
 		// get the non-installable migration page with 'log changes' enabled (there should only be one as any others are trapped on saving)
 		$migration = $this->trackingMigration;
 		if(!$migration || !$migration->id) return;
@@ -2954,7 +2951,7 @@ If it has been used in another environment and is no longer wanted then you will
 			$objectData = $this->setObjectData($migration, $item, $type);
 			$currentData = ($migration->meta("current_{$object}_{$item->id}")) ?: []; // The data for the object before it was changed
 			$baseData = ($migration->meta("base_{$object}_{$item->id}")) ?: []; // The data for the object before the first recorded change
-//bd(['meta' => $migration->meta()->getArray(), 'new' => $objectData, 'current' => $currentData], 'meta, new and current data');
+			$this->bd(['meta' => $migration->meta()->getArray(), 'new' => $objectData, 'current' => $currentData], 'meta, new and current data');
 
 			// but first exclude any objects that didn't really change (i.e. nothing changed that is relevant to dbMigrate)
 			if(is_array($objectData) && is_array($currentData)) {
@@ -2963,10 +2960,10 @@ If it has been used in another environment and is no longer wanted then you will
 				$diff = ($objectData == $currentData);
 			}
 			if(!$diff && !$forceAction && $action != 3) { // Exclude 'removed' action because it operates on deleteReady, so the object data will not have changed
-//bd($currentData, 'NO CHANGES');
+				$this->bd($currentData, 'NO CHANGES');
 				return;
 			}
-//			bd($diff, 'there is a diff so proceed');
+			$this->bd($diff, 'there is a diff so proceed');
 
 			// setting processed after we have ascertained there is a difference to process
 			$processed[] = $item->id;
@@ -2977,7 +2974,7 @@ If it has been used in another environment and is no longer wanted then you will
 			//Catch any missed renames
 			if($type < 3 && isset($objectData['name']) && isset($currentData['name']) && $objectData['name'] != $currentData['name']) {
 				$oldName = $currentData['name'];
-//bd($oldName, 'old name');
+				$this->bd($oldName, 'old name');
 			}
 
 			$sourceData = array();
@@ -3045,7 +3042,7 @@ If it has been used in another environment and is no longer wanted then you will
 					break;
 			}
 //			$this->wire()->log->save('debug', 'Progress 7');
-//bd(['currentData' => $currentData, 'sourceData' => $sourceData], 'object data');
+			$this->bd(['currentData' => $currentData, 'sourceData' => $sourceData], 'object data');
 			if(!$currentData && $action == 2 && !$forceAction) {
 				// action says it is changed, but it didn't exist before, so we want to keep it as a new item ($forceAction will override this)
 				$action = 1;
@@ -3053,20 +3050,21 @@ If it has been used in another environment and is no longer wanted then you will
 
 			// Case 1: Item exists with same fields - just update the source data
 			if($migration->dbMigrateItem->has("dbMigrateName={$itemName}, dbMigrateOldName={$oldName}, dbMigrateType={$type}, dbMigrateAction={$action}")) {
-//bd($migration->dbMigrateItem->get("dbMigrateName={$itemName}, dbMigrateOldName={$oldName}, dbMigrateType={$type}, dbMigrateAction={$action}"), 'CASE 1');
+				$this->bd($migration->dbMigrateItem->get("dbMigrateName={$itemName}, dbMigrateOldName={$oldName}, dbMigrateType={$type}, dbMigrateAction={$action}"), 'CASE 1');
 				// If the item is now the same as its base state, remove it
-				//bd(debug_backtrace(), 'backtrace at case 1');
-				//bd([$objectData, $baseData], 'object & base data');
+				$this->bd(debug_backtrace(), 'backtrace at case 1');
+				$this->bd([$objectData, $baseData], 'object & base data');
 				$diff = $migration->array_compare($objectData, $baseData);
-				//bd($diff, 'diff');
+				$this->bd($diff, 'diff');
 				$migrationItem = $migration->dbMigrateItem->get("dbMigrateName={$itemName}");
+				$migrationItem->of(false);
 				if(!$diff) {
 					$this->removeMigrationItem($migration, $migrationItem, $object, $item);
 				} else {
 					$migrationItem->meta()->set('sourceData', $sourceData);
 					$sourceData['dependencies'] = $migration->getDependencies($migrationItem, $item);
 					$migrationItem->meta()->set('sourceData', $sourceData);
-					//bd($sourceData, 'setting sourceData 1');
+					$this->bd($sourceData, 'setting sourceData 1');
 					$migration->dependencySort()->save(); // Need to save to ensure that sort occurs
 				}
 				return;
@@ -3084,7 +3082,8 @@ If it has been used in another environment and is no longer wanted then you will
 				//// Case 2a: Name is the same
 				if($migration->dbMigrateItem->has("dbMigrateName={$itemName}, dbMigrateType={$type}")) {
 					$migrationItem = $migration->dbMigrateItem->get("dbMigrateName={$itemName}, dbMigrateType={$type}");
-					//bd($migrationItem, 'CASE 2a');
+					$migrationItem->of(false);
+					$this->bd($migrationItem, 'CASE 2a');
 					//// Special case - deleting a new object, so just remove the item
 					if($migrationItem->dbMigrateAction->id == 1 && $action == 3) {
 						$this->removeMigrationItem($migration, $migrationItem, $object, $item);
@@ -3094,6 +3093,7 @@ If it has been used in another environment and is no longer wanted then you will
 				//// Case 2b: Name has changed
 				if($migration->dbMigrateItem->has("dbMigrateName={$oldName}, dbMigrateType={$type}")) {
 					$migrationItem = $migration->dbMigrateItem->get("dbMigrateName={$oldName}, dbMigrateType={$type}");
+					$migrationItem->of(false);
 					$migrationItem->dbMigrateName = $itemName;
 					// For page types, check if there are any children in the migration and change their (path) names to match
 					// NB this only works for children that were added by change tracking, not manually added children
@@ -3104,15 +3104,15 @@ If it has been used in another environment and is no longer wanted then you will
 								$migrationItemChild = $migration->dbMigrateItem->get("id=$itemChildMatches");
 								if($migrationItemChild) {
 									$migrationItemChild->setAndSave('dbMigrateName', $itemChild->path()); // should be the new path
-									//bd($migrationItemChild->dbMigrateName, 'new child name');
+									$this->bd($migrationItemChild->dbMigrateName, 'new child name');
 									$migration->dependencySort()->save();
 								}
 							}
 						}
 					}
-					//bd($migrationItem, 'CASE 2b');
+					$this->bd($migrationItem, 'CASE 2b');
 
-
+					
 					$migrationItem->dbMigrateAction = ($migrationItem->dbMigrateAction->id == 1 && $action != 3) ? $migrationItem->dbMigrateAction->id : $action;
 					if($migrationItem->dbMigrateAction->id == 2 && !$migrationItem->dbMigrateOldName) {
 						$migrationItem->dbMigrateOldName = $oldName;
@@ -3124,15 +3124,16 @@ If it has been used in another environment and is no longer wanted then you will
 					if($action == 3 && $migrationItem->dbMigrateOldName) {
 						$migrationItem->dbMigrateName = $migrationItem->dbMigrateOldName;
 						$migrationItem->dbMigrateOldName = '';
-//bd($migrationItem, 'deleting existing object - use old name');
+						$this->bd($migrationItem, 'deleting existing object - use old name');
 					}
-					//bd($migrationItem, 'AAAA');
+					$this->bd($migrationItem, 'AAAA');
 				}
 
 				//// Case 2c A migration item for this item id exists but neither the name nor old name match
 				/// (We could have changed the name in the API, for example)
 				if($itemMatches) {
 					$migrationItem = $migration->dbMigrateItem->get("id=$itemMatches");
+					$migrationItem->of(false);
 					if($migrationItem && $migrationItem->dbMigrateName != $itemName && $migrationItem->dbMigrateName != $oldName) {
 						$migrationItem->dbMigrateName = $itemName;
 						// oldname should be unchanged (assuming it exists)
@@ -3141,24 +3142,25 @@ If it has been used in another environment and is no longer wanted then you will
 
 				if($migrationItem && $migrationItem->id && $migrationItem->dbMigrateName == $migrationItem->dbMigrateOldName) $migrationItem->dbMigrateOldName = '';
 
-				//bd($migrationItem, 'BBBB');
+				$this->bd($migrationItem, 'BBBB');
 
 				// If the item is now the same as its base state, remove it
-//bd([$objectData, $baseData], 'object & base data');
+				$this->bd([$objectData, $baseData], 'object & base data');
 				if(is_array($objectData) && is_array($baseData)) {
 					$diff = $migration->array_compare($objectData, $baseData);
 				} else {
 					$diff = ($objectData == $baseData);
 				}
-				//bd($diff, 'diff');
+				$this->bd($diff, 'diff');
 				if(!$diff) {
 					$this->removeMigrationItem($migration, $migrationItem, $object, $item);
 				} else {
-					//bd($migrationItem, 'saving changed item');
+					$this->bd($migrationItem, 'saving changed item');
 					$migrationItem->meta()->set('sourceData', $sourceData);
 					$sourceData['dependencies'] = $migration->getDependencies($migrationItem, $item);
 					$migrationItem->meta()->set('sourceData', $sourceData);
-					//bd($sourceData, 'setting sourceData 2');
+					$this->bd($sourceData, 'setting sourceData 2');
+					$migrationItem->of(false);
 					$migrationItem->save();
 					$migration->dependencySort()->save();
 				}
@@ -3166,7 +3168,7 @@ If it has been used in another environment and is no longer wanted then you will
 				$migration->meta()->set("current_{$object}_{$item->id}", $this->setObjectData($migration, $item, $type));
 				// (Normally currentData meta will be reset on ready(), but if PW calls saved twice before the next ready() it won't get reset, hence the need for the above)
 
-				//bd('CASE 2 complete');
+				$this->bd('CASE 2 complete');
 				return;
 			}
 			// Case 3: Item does not exist - create it
@@ -3176,18 +3178,20 @@ If it has been used in another environment and is no longer wanted then you will
 			// (* A new repeater field generates a new template which is saved first and also saves the field**, all before the original field save happens)
 			// (** In the case of a RepeaterMatrix, this field object has the RepeaterMatrixField class whereas the original (deferred save) object just has the Field class)
 			if($item->type == 'FieldtypeRepeater' || $item->type == 'FieldtypeRepeaterMatrix') {
-				//bd(['migration' => $migration, 'item' => $item, 'objectData' => $objectData, 'currentData' => $currentData, 'baseData' => $baseData], 'Repeater field');
+				$this->bd(['migration' => $migration, 'item' => $item, 'objectData' => $objectData, 'currentData' => $currentData, 'baseData' => $baseData], 'Repeater field');
 				// if($baseData !== null) return;
 			}
 
 			//
 			// Now continue with real changes
-//bd($migration, 'Case 3 - adding new item');
-//bd(['item' => $item, 'type' => $type, 'action' => $action, 'oldName' => $oldName], 'In case 3');
+			$this->bd($migration, 'Case 3 - adding new item');
+			$this->bd(['item' => $item, 'type' => $type, 'action' => $action, 'oldName' => $oldName], 'In case 3');
 //			$this->wire()->log->save('debug', 'Progress 8');
 			$migrationItem = $migration->dbMigrateItem->getNew();
+			// nope; neither does removing all of this!!!
+			$migrationItem->of(false);
 			$migrationItem->dbMigrateType = $type;
-			//bd($migrationItem->dbMigrateType->title, 'type title');
+			$this->bd($migrationItem->dbMigrateType->title, 'type title');
 			$migrationItem->dbMigrateAction = $action;
 			$migrationItem->dbMigrateName = $itemName;
 			$migrationItem->dbMigrateOldName = ($itemName == $oldName) ? '' : $oldName;
@@ -3195,15 +3199,19 @@ If it has been used in another environment and is no longer wanted then you will
 			$migrationItem->meta()->set('sourceData', $sourceData); // Needs to be after initial save as otherwise no page id exists
 			$sourceData['dependencies'] = $migration->getDependencies($migrationItem, $item);
 			$migrationItem->meta()->set('sourceData', $sourceData);
-			//bd($sourceData, 'setting sourceData 3');
-			//bd($migration->dbMigrateItem, 'dbMigrateItem before addition');
+			$this->bd($sourceData, 'setting sourceData 3');
+			$this->bd($migration->dbMigrateItem, 'dbMigrateItem before addition');
+			// nope
+			//$migration->of(false);
 			if(!$migration->dbMigrateItem->has("dbMigrateName=$itemName")) {  // just in case it is already there - don't duplicate it
 				$migration->dbMigrateItem->add($migrationItem);
-				//bd($migrationItem, 'added migration item');
+				$this->bd($migrationItem, 'added migration item');
 			}
 			$migration->meta()->set("base_{$object}_{$item->id}", $currentData);
+			// nope
+			//$migration->of(false);
 			$migration->dependencySort()->save();
-//bd(['migration' => $migration, 'currentData' => $currentData], 'Done CASE 3');
+			$this->bd(['migration' => $migration, 'currentData' => $currentData], 'Done CASE 3');
 		}
 //		$this->wire()->log->save('debug', 'Progress 9');
 	}
@@ -3219,7 +3227,7 @@ If it has been used in another environment and is no longer wanted then you will
 	 * @throws WireException
 	 */
 	protected function removeMigrationItem($migration, $migrationItem, $object, $item) {
-		//bd(['migration' => $migration, 'migItem' => $migrationItem, 'obj' => $object, 'item' => $item], 'removemigrationitem');
+		$this->bd(['migration' => $migration, 'migItem' => $migrationItem, 'obj' => $object, 'item' => $item], 'removemigrationitem');
 		if(!$migration || !$migration->id) return;
 		$migration->dbMigrateItem->remove($migrationItem);
 		$migration->meta()->remove("base_{$object}_{$item->id}");
@@ -3227,7 +3235,7 @@ If it has been used in another environment and is no longer wanted then you will
 		if($object == 'page') {
 			//Update migration for any pages which hold files used in RTE fields on the current page
 			$imageSources = $this->findRteImageSources($item);
-			//bd($imageSources, 'save image sources');
+			$this->bd($imageSources, 'save image sources');
 			foreach($imageSources as $imageSource) {
 				$imgSrcPath = $imageSource->path();
 				if($migration->dbMigrateItem->has("dbMigrateName={$imgSrcPath}")) {
@@ -3266,19 +3274,20 @@ If it has been used in another environment and is no longer wanted then you will
 	public function itemMatches($migration, $item) {
 		/* @var DbMigrationPage $migration */
 		$existingItemIds = [];
-		foreach($migration->getFormatted('dbMigrateItem') as $migrationItem) {
+		//foreach($migration->getFormatted('dbMigrateItem') as $migrationItem) {
+		foreach($migration->dbMigrateItem->find("status=1") as $migrationItem) {
 			if($migrationItem && $migrationItem->id && isset($migrationItem->meta('sourceData')['id']) && $migrationItem->meta('sourceData')['id']) {
 				$existingItemIds[$migrationItem->meta('sourceData')['id']] = $migrationItem->id;
 			}
 		}
-		//bd($existingItemIds, 'existing item ids');
+		$this->bd($existingItemIds, 'existing item ids');
 		if(array_key_exists($item->id, $existingItemIds)) {
 			$itemMatches = $existingItemIds[$item->id];
-			//bd($item->name, 'Already in migration as ' . $migration->dbMigrateItem->get("id=$itemMatches")->dbMigrateName);
+			$this->bd($item->name, 'Already in migration as ' . $migration->dbMigrateItem->get("id=$itemMatches")->dbMigrateName);
 		} else {
 			$itemMatches = null;
 		}
-		//bd($itemMatches, 'Migration item id for ' . $item->name);
+		$this->bd($itemMatches, 'Migration item id for ' . $item->name);
 		return $itemMatches;
 	}
 
@@ -3312,7 +3321,7 @@ If it has been used in another environment and is no longer wanted then you will
 		if(($obj instanceof Field) && !($obj instanceof RepeaterMatrixField) && $obj->type == 'FieldtypeRepeaterMatrix') {
 			$processed = $this->wire()->session->get('processed_repeater');
 			$caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-			//bd($processed, 'processed repeater in getExportDataMod');
+			$this->bd($processed, 'processed repeater in getExportDataMod');
 			if(in_array($obj->id, $processed) && $caller != 'getExportStructureData') {   // Skip the export if this is a duplicate, but don't skip the export when installing a migration
 				return;
 			}
@@ -3327,30 +3336,30 @@ If it has been used in another environment and is no longer wanted then you will
 			} else {
 				wire()->session->error($this->_("Attempting to install a RepeaterMatrix field but FieldtypeRepeaterMatrix module is not installed"));
 			}
-			//bd([$obj, $newObj], 'obj, cast object');
-			//bd([DEBUG::backtrace(), debug_backtrace()], 'backtrace');
+			$this->bd([$obj, $newObj], 'obj, cast object');
+			$this->bd([DEBUG::backtrace(), debug_backtrace()], 'backtrace');
 		} else {
 			$newObj = $obj;
 		}
-//	bd($newObj, 'newObj');
+		$this->bd($newObj, 'newObj');
 		try {
 			$this->wire()->session->set('dbMigrate_exportDataMod', true);
 			$objectData = $newObj->getExportData();
 			$this->wire()->session->remove('dbMigrate_exportDataMod');
 			// getExportData is inconsistent in returning template_id - sometimes it is the template name
 			if(isset($objectData['template_id']) && $objectData['template_id'] && !is_numeric($objectData['template_id'])) {
-				//bd($objectData['template_id'], 'fixing template_id');
+				$this->bd($objectData['template_id'], 'fixing template_id');
 				$name = $objectData['template_id'];
 				if(is_string($name) && $this->wire()->templates->get("name={$name}")) {
-					//bd($this->wire->templates->get("name={$name}"), 'template in getexportdatamod');
+					$this->bd($this->wire->templates->get("name={$name}"), 'template in getexportdatamod');
 					$objectData['template_id'] = (string)$this->wire()->templates->get("name={$name}")->id;
 				}
 			}
 			//
-			// bd([$objectData['name'], $objectData], 'objectData in getExportDataMod');
+			$this->bd([$objectData['name'], $objectData], 'objectData in getExportDataMod');
 		} catch(\Exception $ex) {
 			$objectData = [$ex];
-//bd($objectData, 'objectData exception in getExportDataMod');
+			$this->bd($objectData, 'objectData exception in getExportDataMod');
 		}
 
 		$this->wire()->removeHook($configHook);
@@ -3369,11 +3378,11 @@ If it has been used in another environment and is no longer wanted then you will
 	public function getPageExportData($migration, $exportPage, $fresh = false) {
 		/* @var $migration DbMigrationPage */
 		// $fields = "field=" . implode('|', array_values($exportPage->getFields()->explode('name')));
-		// bd($fields, 'fields for getExport');
+		$this->bd($fields, 'fields for getExport');
 		// $exportPage = $this->pages()->find("id={$page->id}", $fields)->first();
 
 
-//	bd([$exportPage->name, $exportPage], 'page in getExportPage');
+		$this->bd([$exportPage->name, $exportPage], 'page in getExportPage');
 		$attrib = [];
 		$files = [];
 		if($fresh) {
@@ -3398,12 +3407,12 @@ If it has been used in another environment and is no longer wanted then you will
 		foreach($excludeFields as $excludeField) {
 			unset($attrib[$excludeField]);
 		}
-		//bd([$exportPage->name, $attrib], 'attrib returned for export page');
+		$this->bd([$exportPage->name, $attrib], 'attrib returned for export page');
 		// $exportPage = $this->pages()->getFresh("{$exportPage->id}");
-		// bd($exportPage, 'plain page');
-		// bd($this->pages()->findRaw("id={$exportPage->id}")[$exportPage->id], 'findraw');
+		$this->bd($exportPage, 'plain page');
+		$this->bd($this->pages()->findRaw("id={$exportPage->id}")[$exportPage->id], 'findraw');
 		// $fields = $exportPage->getFields()->explode('name');
-		// bd($this->pages()->findJoin("id={$exportPage->id}", $fields)->first(), 'findjoin');
+		$this->bd($this->pages()->findJoin("id={$exportPage->id}", $fields)->first(), 'findjoin');
 		return $attrib;
 	}
 
@@ -3416,8 +3425,8 @@ If it has been used in another environment and is no longer wanted then you will
 	 */
 	protected function beforeGetConfigInputfields(HookEvent $event) {
 		$event->replace = true;
-		//bd($event->object, 'in beforeGetConfigInputfields');
-		//bd($event->arguments(0), 'field in beforeGetConfigInputfields');
+		$this->bd($event->object, 'in beforeGetConfigInputfields');
+		$this->bd($event->arguments(0), 'field in beforeGetConfigInputfields');
 		$plainRepeater = $this->cast($event->object, 'ProcessWire\FieldtypeRepeater'); // to get the parent method ($event->object is FieldtypeRepeaterMatrix, parent is FieldtypeRepeater)
 		$event->return = $plainRepeater->getConfigInputfields($event->arguments(0)); // arguments(0) is $field
 	}
@@ -3436,10 +3445,10 @@ If it has been used in another environment and is no longer wanted then you will
 	public function findRteImageSources($page, $imageSources = null) {
 		$imageSources = ($imageSources) ?: new PageArray();
 		foreach($page->getFields() as $field) {
-			//bd([$page, $field], 'RTE? field');
+			$this->bd([$page, $field], 'RTE? field');
 			if($field) {
 				if($field->type == 'FieldtypeTextarea') {
-					//bd([$page, $field], 'RTE field Y');
+					$this->bd([$page, $field], 'RTE field Y');
 					$html = $page->$field;
 					$imageSources->add($this->findHtmlImageSources($html));
 				}
@@ -3483,19 +3492,19 @@ If it has been used in another environment and is no longer wanted then you will
 	protected function findRteLinks($page, $links = null) {
 		$links = ($links) ?: new PageArray();
 		foreach($page->getFields() as $field) {
-//bd([$page, $field], 'RTE? field (for findRteLinks)');
+			$this->bd([$page, $field], 'RTE? field (for findRteLinks)');
 			if($field) {
 				if($field->type == 'FieldtypeTextarea') {
-//bd([$page, $field], 'RTE field Y');
+					$this->bd([$page, $field], 'RTE field Y');
 					$html = $page->$field;
 					$re = '/href=\"(.*)\"/m';
 					preg_match_all($re, $html, $matches, PREG_SET_ORDER, 0);
-					//bd($matches, 'matches');
+					$this->bd($matches, 'matches');
 					foreach($matches as $match) {
 						$path = $match[1];
 						if($this->sanitizer->path($path)) {
 							$link = $this->pages()->get($path);
-							//bd($link, 'rtelink');
+							$this->bd($link, 'rtelink');
 							if($link) $links->add($link);
 						}
 					}
@@ -3508,7 +3517,7 @@ If it has been used in another environment and is no longer wanted then you will
 				}
 			}
 		}
-//bd($links->unique(), "returning unique links for {$page->name}");
+		$this->bd($links->unique(), "returning unique links for {$page->name}");
 		return $links->unique();
 	}
 
@@ -3520,14 +3529,14 @@ If it has been used in another environment and is no longer wanted then you will
 	 * @throws WireException
 	 */
 	public function getFreshSaveableItem($event) {
-//		bd($event, 'event in getFreshSaveableItem');
+		$this->bd($event, 'event in getFreshSaveableItem');
 		$saveables = $event->object;
 		/* @var $saveables WireSaveableItems */
 		$item = $event->arguments(0);
-//		bd([$item, $saveables, $item->id], 'item, saveables, item id');
+		$this->bd([$item, $saveables, $item->id], 'item, saveables, item id');
 		$database = $this->wire()->database;
 		$selector = "id=" . $item->id;
-//		bd($selector, 'selector');
+		$this->bd($selector, 'selector');
 		$sql = $saveables->getLoadQuery($selector);
 
 		/* NB When using a selector, getLoadQuery appears to return the bindKey, not the bindValue, in the WHERE statement
@@ -3544,12 +3553,12 @@ If it has been used in another environment and is no longer wanted then you will
 			$sql = str_replace($k, $v, $sql);
 		}
 		//
-//		bd($sql, 'revised SQL string');
+		$this->bd($sql, 'revised SQL string');
 		$query = $database->prepare($sql);
-//		bd($query, 'query');
+		$this->bd($query, 'query');
 		$query->execute();
 		$rows = $query->fetchAll(\PDO::FETCH_ASSOC);
-//		bd($rows, 'rows');
+		$this->bd($rows, 'rows');
 		$freshItem = null;
 		if($item) {
 			$items = new WireArray();
@@ -3560,10 +3569,10 @@ If it has been used in another environment and is no longer wanted then you will
 				if(wireInstanceOf($saveables, 'Fieldgroups') && $row['data']) {
 					$freshItem->setFieldContextArray($row['fields_id'], json_decode($row['data'], true));
 				}
-				//bd($freshItem, 'freshItem interim');
+				$this->bd($freshItem, 'freshItem interim');
 			}
 		}
-//		bd($freshItem, 'freshItem');
+		$this->bd($freshItem, 'freshItem');
 		$event->return = $freshItem;
 	}
 
@@ -3612,28 +3621,28 @@ If it has been used in another environment and is no longer wanted then you will
 //		$hosts = new PageArray();
 //		foreach($pageTableFields as $pageTableField) {
 //			$parentId = $this->inPageTableScope($page, $pageTableField);
-//			bd($parentId, 'parent id in pageTableHosts');
+//			$this->bd($parentId, 'parent id in pageTableHosts');
 //			$this->log->save('debug', "Parent id for {$page->name} in {$pageTableField->name} is $parentId");
 //			if($parentId !== false) {
 //				if($parentId == 0) {
-//					bd('adding to hosts');
+//					$this->bd('adding to hosts');
 //					$hosts->add($parent);
 //				} else {
 //					//find all pages that have a $pageTableField field
 //					$fieldgroups = $this->wire()->fieldgroups;
-//					bd($fieldgroups, 'fieldgroups');
+//					$this->bd($fieldgroups, 'fieldgroups');
 //					$this->wire()->log->save('debug', 'Got fieldgroups');
 //					foreach($fieldgroups as $fieldgroup) {
 //						/* @var $fieldgroup Fieldgroup */
-//						bd($fieldgroup, 'fieldgroup');
+//						$this->bd($fieldgroup, 'fieldgroup');
 //						$this->log->save('debug', "Checking fieldgroup {$fieldgroup->name}");
 //						if($fieldgroup->hasField($pageTableField)) {
 //							$templates = $fieldgroup->getTemplates();
-//							bd($templates, 'templates');
+//							$this->bd($templates, 'templates');
 //							$templateSelector = implode('|', $templates->explode('id'));
 //							$this->log->save('debug', "Checking templates $templateSelector");
 //							$pages = $this->wire()->pages->find("template=$templateSelector, include=all");
-//							bd($pages, 'pages');
+//							$this->bd($pages, 'pages');
 //							$hosts->add($pages);
 //						}
 //					}
@@ -3642,8 +3651,8 @@ If it has been used in another environment and is no longer wanted then you will
 //		}
 //		$this->log->save('debug', "Hosts for {$page->name} are " . $hosts->implode(', ', 'name'));
 //		$sessionIds = $this->session->get('pageTableHostId');
-//		bd($sessionIds, 'pageTableHost ids before host selection');
-//		bd($hosts, 'hosts in pageTableHosts');
+//		$this->bd($sessionIds, 'pageTableHost ids before host selection');
+//		$this->bd($hosts, 'hosts in pageTableHosts');
 //		$host = null;
 //		if($hosts->count() > 1 && $sessionIds) {
 //			while(count($sessionIds) > 0) {
@@ -3666,8 +3675,8 @@ If it has been used in another environment and is no longer wanted then you will
 //		} else {
 //			$host = $hosts->first();
 //		}
-//		bd($sessionIds, 'pageTableHost ids after host selection');
-//		bd(Debug::backtrace(), 'backtrace in pageTableHosts');
+//		$this->bd($sessionIds, 'pageTableHost ids after host selection');
+//		$this->bd(Debug::backtrace(), 'backtrace in pageTableHosts');
 //		return $host;
 //	}
 //
@@ -3682,15 +3691,15 @@ If it has been used in another environment and is no longer wanted then you will
 //	public function inPageTableScope($page, $pageTableField) {
 //		$parent = $page->parent();
 //		$data = $this->accessProtected($pageTableField, 'data');
-//		bd($data, 'data in inPageTableScope');
+//		$this->bd($data, 'data in inPageTableScope');
 //		$templateId = $data['template_id'];
 //		$parentId = $data['parent_id'];
-//		bd($templateId, 'template id in inPageTableScope');
+//		$this->bd($templateId, 'template id in inPageTableScope');
 //		$selector = implode('|', $templateId);
 ////		$requiredParentId = ($parentId == 0) ? $parent->id : $parentId;
 //		$templates = $this->templates()->find("id=$selector");
 //		/* @var $templates TemplatesArray */
-//		bd([$page, $parent, $templates], 'page, parent, templates');
+//		$this->bd([$page, $parent, $templates], 'page, parent, templates');
 //		if($templates->has($page->template) && ($parentId == 0 || $parent->id == $parentId)) {
 //			return $parentId;
 //		} else {
@@ -3775,7 +3784,7 @@ If it has been used in another environment and is no longer wanted then you will
 		$p = $this->pages->get("parent=$parent, name=$page_name");
 		$pid = $p->id;
 		if(!$p or !$pid) {
-			//bd($parent, 'parent for new page');
+			$this->bd($parent, 'parent for new page');
 			$p = new Page();
 			$p->template = $template_name;
 			$p->parent = $parent;
@@ -3813,5 +3822,20 @@ If it has been used in another environment and is no longer wanted then you will
 		return $help;
 	}
 
+/*
+ * Debugging
+ * Only call bd if self::debug is true
+ */
+	public static function bd($a, $b = null) {
+		if(self::debug && function_exists('bd')) ($b === null ? bd($a) : bd($a, $b));
+	}
+
+	/*
+	 * Debugging
+	 * Always call bd regardless of self::debug
+	 */
+	public static function bdAlways($a, $b = null) {
+		if(function_exists('bd')) ($b === null ? bd($a) : bd($a, $b));
+	}
 
 }

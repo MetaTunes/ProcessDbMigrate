@@ -30,15 +30,13 @@ $(document).ready(function () {
 
     $('.AdminDataTable  .abbreviate').each(shortNotes);
 
-    //To facilitate tabs in module config page. Condition prevents running where WireTabs not available (to prevent js errors).
-    if($('#mct-tabs-container').length) {
-        $('#mct-tabs-container').WireTabs({
+    if($('#ProcessDbMigrate').length) {
+        $('#ProcessDbMigrate').WireTabs({
             items: $('.WireTab')
         });
     }
 
-    $('#migrations').parent().addClass('uk-switcher');
-    var arr=window.location.href.split('/');
+    var arr = window.location.href.split('/');
     var seg = arr[arr.length-1];
     if (seg.startsWith("#")) $(seg).click();
 

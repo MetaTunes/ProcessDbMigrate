@@ -6,8 +6,8 @@ $info = array(
 	'title' => 'ProcessDbMigrate',
 	'summary' => 'Manage migrations via the PW GUI',
 	'comments' => 'Document (manually or by automated change tracking) and manage migrations. Allow roll-back and database comparisons.',
-	'author' => 'Mark Evens',
-	'version' => "2.0.20",
+	'author' => 'Mark Evens with contributions from Jonathan Lahijani',
+	'version' => "2.0.21",
 	// Versions >= 0.1.0 use FieldtypeDbMigrateRuntime not RuntimeOnly. Versions >= 1.0.0 have change tracking (scope at individual migration level for v2.0.0+).
 	'autoload' => true,
 	'singular' => true,

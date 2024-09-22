@@ -43,7 +43,7 @@ class DbComparisonPage extends DbMigrationPage {
 
 
 	public function init() {
-		//bd('INIT COMPARISON');
+		$this->dbMigrate->bd('INIT COMPARISON');
 	}
 
 	/**

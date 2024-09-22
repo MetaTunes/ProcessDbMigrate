@@ -17,9 +17,9 @@ if($page->template == ProcessDbMigrate::MIGRATION_TEMPLATE) {
 	]);
 
 	$locked = ($page->meta('locked'));
-	//bd($installedStatus, '$installedStatus in migration control');
 	$display = wire('modules')->get("InputfieldMarkup");
 	$installedStatus = $page->meta('installedStatus') ? : ['status' => 'None'];
+	ProcessDbMigrate::bd($installedStatus, '$installedStatus in migration control');
 	if($locked) {
 		$text = __('This page is locked and cannot be changed or actioned unless you unlock it.');
 		if($page->meta('installable')) {
