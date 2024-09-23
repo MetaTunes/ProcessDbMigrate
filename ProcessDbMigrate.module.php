@@ -730,13 +730,19 @@ If it has been used in another environment and is no longer wanted then you will
 
 		// Install a dummy bootstrap using the copied/amended files
 		$className = 'ProcessWire\\' . self::MIGRATION_TEMPLATE . 'Page';
-		$dummyBootstrap = $this->wire(new $className());  // dummy migration
+		// We need a template to create the dummy bootstrap but the DbMigration template might not be installed yet
+		$tpl = ($this->wire()->templates->get(self::MIGRATION_TEMPLATE)) ?: $this->wire('templates')->add('DbMigrateDummyBootstrapTemplate');
+		$dummyBootstrap = $this->wire(new $className($tpl));  // dummy migration
 		/*
 		 * NB we cannot assign a template to dummy-bootstrap as we need to run it to create the template!!
 		 */
 		$dummyBootstrap->name = 'dummy-bootstrap';
 		/* @var $dummyBootstrap DbMigrationPage */
 		$dummyBootstrap->installMigration('new');
+		// remove the dummy bootstrap template if necessary
+		if($this->templates()->get('DbMigrateDummyBootstrapTemplate')) {
+			$this->templates()->delete($this->templates()->get('DbMigrateDummyBootstrapTemplate'));
+		}
 		$this->bd('installed new bootstrap');
 
 		/* NB For normal upgrades, bootstrap installation is run by ready() if bootstrap is not installed

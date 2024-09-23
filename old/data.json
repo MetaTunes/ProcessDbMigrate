@@ -1,0 +1,184 @@
+[
+    {
+        "pages": {
+            "removed": {
+                "template=DbMigrations, include=all": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "DbMigrations": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "DbMigration": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "DbComparison": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateRuntimeReady": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateRuntimeAction": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateRuntimeControl": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateSnippets": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "repeater_dbMigrateSnippets": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateRestrictFields": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateAdditionalDetails": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateSummary": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateLogChanges": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateTrackingScope": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateFieldTracking": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateTemplateTracking": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigratePageTracking": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateTrackingScope_END": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateItem": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateComparisonItem": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "repeater_dbMigrateItem": []
+            }
+        }
+    },
+    {
+        "templates": {
+            "removed": {
+                "repeater_dbMigrateComparisonItem": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateOldName": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateName": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateAction": []
+            }
+        }
+    },
+    {
+        "fields": {
+            "removed": {
+                "dbMigrateType": []
+            }
+        }
+    }
+]

@@ -1,0 +1,1139 @@
+[
+    {
+        "fields": {
+            "new": {
+                "dbMigrateType": {
+                    "name": "dbMigrateType",
+                    "label": "Object type",
+                    "flags": 8,
+                    "type": "FieldtypeOptions",
+                    "inputfieldClass": "InputfieldSelect",
+                    "export_options": {
+                        "default": "1=fields|Field\n2=templates|Template\n3=pages|Page"
+                    },
+                    "tags": "dbMigrate",
+                    "initValue": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
+                    "defaultValue": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateAction": {
+                    "name": "dbMigrateAction",
+                    "label": "Action",
+                    "flags": 8,
+                    "type": "FieldtypeOptions",
+                    "inputfieldClass": "InputfieldSelect",
+                    "export_options": {
+                        "default": "1=new|New\n2=changed|Changed\n3=removed|Removed"
+                    },
+                    "tags": "dbMigrate",
+                    "initValue": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
+                    "defaultValue": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateName": {
+                    "name": "dbMigrateName",
+                    "label": "Name (path for pages) or selector",
+                    "flags": 8,
+                    "type": "FieldtypeText",
+                    "maxlength": 2048,
+                    "tags": "dbMigrate",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "inputfieldClass": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "showCount": 0,
+                    "size": 0,
+                    "stripTags": "",
+                    "placeholder": "",
+                    "pattern": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateOldName": {
+                    "name": "dbMigrateOldName",
+                    "label": "Old name if different (n/a for selectors)",
+                    "flags": 8,
+                    "type": "FieldtypeText",
+                    "maxlength": 2048,
+                    "tags": "dbMigrate",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "inputfieldClass": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "showCount": 0,
+                    "size": 0,
+                    "stripTags": "",
+                    "placeholder": "",
+                    "pattern": ""
+                }
+            }
+        }
+    },
+    {
+        "templates": {
+            "new": {
+                "repeater_dbMigrateItem": {
+                    "name": "repeater_dbMigrateItem",
+                    "fieldgroups_id": "repeater_dbMigrateItem",
+                    "flags": 8,
+                    "cache_time": 0,
+                    "useRoles": 0,
+                    "noInherit": 0,
+                    "childrenTemplatesID": 0,
+                    "sortfield": "",
+                    "noChildren": 1,
+                    "noParents": 1,
+                    "childTemplates": [],
+                    "parentTemplates": [],
+                    "allowPageNum": 0,
+                    "allowChangeUser": 0,
+                    "redirectLogin": 0,
+                    "urlSegments": 0,
+                    "https": 0,
+                    "slashUrls": 1,
+                    "slashPageNum": 0,
+                    "slashUrlSegments": 0,
+                    "altFilename": "",
+                    "guestSearchable": 0,
+                    "pageClass": "RepeaterPage",
+                    "childNameFormat": "",
+                    "pageLabelField": "",
+                    "noGlobal": 1,
+                    "noMove": 0,
+                    "noTrash": 0,
+                    "noSettings": 0,
+                    "noChangeTemplate": 0,
+                    "noShortcut": 0,
+                    "noUnpublish": 0,
+                    "noLang": 0,
+                    "compile": 3,
+                    "nameContentTab": 0,
+                    "noCacheGetVars": "",
+                    "noCachePostVars": "",
+                    "useCacheForUsers": 0,
+                    "cacheExpire": 0,
+                    "cacheExpirePages": [],
+                    "cacheExpireSelector": "",
+                    "label": "",
+                    "tags": "dbMigrate",
+                    "titleNames": 0,
+                    "noPrependTemplateFile": 0,
+                    "noAppendTemplateFile": 0,
+                    "prependFile": "",
+                    "appendFile": "",
+                    "pagefileSecure": 0,
+                    "tabContent": "",
+                    "tabChildren": "",
+                    "nameLabel": "",
+                    "contentType": "",
+                    "errorAction": 0,
+                    "connectedFieldID": null,
+                    "ns": "",
+                    "fieldgroupFields": [
+                        "dbMigrateType",
+                        "dbMigrateAction",
+                        "dbMigrateName",
+                        "dbMigrateOldName"
+                    ],
+                    "fieldgroupContexts": {
+                        "dbMigrateType": {
+                            "columnWidth": 10
+                        },
+                        "dbMigrateAction": {
+                            "columnWidth": 10
+                        },
+                        "dbMigrateName": {
+                            "columnWidth": 55
+                        },
+                        "dbMigrateOldName": {
+                            "columnWidth": 25
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateItem": {
+                    "name": "dbMigrateItem",
+                    "label": "Migration item",
+                    "flags": 8,
+                    "type": "FieldtypeRepeater",
+                    "repeaterLoading": 1,
+                    "repeaterTitle": "#n: {dbMigrateAction} {dbMigrateType}: {dbMigrateName}",
+                    "tags": "dbMigrate",
+                    "notes": "Migration items are colour-coded by object type (green fields, brown templates and blue pages).\n'Magic wand' icons indicate 'magic' items that have been added automatically by 'log changes'.\n'Down-arrow' icons indicate magic items that are dependent on other items (where known).\nNote that (with automatic sorting) dependent items will appear later if a 'new' item or earlier if  'removed'.\nNon-magic 'removed' items will need to be sorted manually as the system has no data for them.",
+                    "familyFriendly": 0,
+                    "repeaterCollapse": 0,
+                    "rememberOpen": 0,
+                    "accordionMode": 0,
+                    "loudControls": 0,
+                    "repeaterDepth": "",
+                    "repeaterAddLabel": "",
+                    "repeaterMaxItems": "",
+                    "repeaterMinItems": "",
+                    "lazyParents": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
+                    "template_name": "repeater_dbMigrateItem"
+                }
+            }
+        }
+    },
+    {
+        "templates": {
+            "new": {
+                "repeater_dbMigrateComparisonItem": {
+                    "name": "repeater_dbMigrateComparisonItem",
+                    "fieldgroups_id": "repeater_dbMigrateComparisonItem",
+                    "flags": 8,
+                    "cache_time": 0,
+                    "useRoles": 0,
+                    "noInherit": 0,
+                    "childrenTemplatesID": 0,
+                    "sortfield": "",
+                    "noChildren": 1,
+                    "noParents": 1,
+                    "childTemplates": [],
+                    "parentTemplates": [],
+                    "allowPageNum": 0,
+                    "allowChangeUser": 0,
+                    "redirectLogin": 0,
+                    "urlSegments": 0,
+                    "https": 0,
+                    "slashUrls": 1,
+                    "slashPageNum": 0,
+                    "slashUrlSegments": 0,
+                    "altFilename": "",
+                    "guestSearchable": 0,
+                    "pageClass": "RepeaterPage",
+                    "childNameFormat": "",
+                    "pageLabelField": "",
+                    "noGlobal": 1,
+                    "noMove": 0,
+                    "noTrash": 0,
+                    "noSettings": 0,
+                    "noChangeTemplate": 0,
+                    "noShortcut": 0,
+                    "noUnpublish": 0,
+                    "noLang": 0,
+                    "compile": 3,
+                    "nameContentTab": 0,
+                    "noCacheGetVars": "",
+                    "noCachePostVars": "",
+                    "useCacheForUsers": 0,
+                    "cacheExpire": 0,
+                    "cacheExpirePages": [],
+                    "cacheExpireSelector": "",
+                    "label": "",
+                    "tags": "dbMigrate",
+                    "titleNames": 0,
+                    "noPrependTemplateFile": 0,
+                    "noAppendTemplateFile": 0,
+                    "prependFile": "",
+                    "appendFile": "",
+                    "pagefileSecure": 0,
+                    "tabContent": "",
+                    "tabChildren": "",
+                    "nameLabel": "",
+                    "contentType": "",
+                    "errorAction": 0,
+                    "connectedFieldID": null,
+                    "ns": "",
+                    "fieldgroupFields": [
+                        "dbMigrateType",
+                        "dbMigrateName"
+                    ],
+                    "fieldgroupContexts": {
+                        "dbMigrateType": [],
+                        "dbMigrateName": []
+                    }
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateComparisonItem": {
+                    "name": "dbMigrateComparisonItem",
+                    "label": "Comparison item",
+                    "flags": 8,
+                    "type": "FieldtypeRepeater",
+                    "repeaterLoading": 1,
+                    "repeaterTitle": "#1: {dbMigrateType} - {dbMigrateName}",
+                    "tags": "dbMigrate",
+                    "repeaterDepth": "",
+                    "familyFriendly": 0,
+                    "repeaterAddLabel": "",
+                    "repeaterCollapse": 0,
+                    "rememberOpen": 0,
+                    "accordionMode": 0,
+                    "loudControls": 0,
+                    "repeaterMaxItems": "",
+                    "repeaterMinItems": "",
+                    "lazyParents": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
+                    "template_name": "repeater_dbMigrateComparisonItem"
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateSummary": {
+                    "name": "dbMigrateSummary",
+                    "label": "Summary",
+                    "flags": 8,
+                    "type": "FieldtypeTextarea",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "inputfieldClass": "InputfieldTextarea",
+                    "rows": 5,
+                    "tags": "dbMigrate",
+                    "contentType": 0,
+                    "htmlOptions": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "maxlength": 0,
+                    "showCount": 0,
+                    "stripTags": "",
+                    "placeholder": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateAdditionalDetails": {
+                    "name": "dbMigrateAdditionalDetails",
+                    "label": "Additional details",
+                    "flags": 8,
+                    "type": "FieldtypeTextarea",
+                    "inputfieldClass": "InputfieldCKEditor",
+                    "contentType": 1,
+                    "rows": 8,
+                    "toolbar": "Format, Styles, -, Bold, Italic, -, RemoveFormat\nNumberedList, BulletedList, -, Blockquote\nPWLink, Unlink, Anchor\nPWImage, Table, HorizontalRule, SpecialChar\nPasteText, PasteFromWord\nTextColor, BGColor\nScayt, -, Sourcedialog",
+                    "useACF": 1,
+                    "usePurifier": 1,
+                    "toggles": [
+                        2,
+                        4,
+                        8
+                    ],
+                    "formatTags": "p;h1;h2;h3;h4;h5;h6;pre;address",
+                    "extraPlugins": [
+                        "colorbutton",
+                        "pwimage",
+                        "pwlink",
+                        "sourcedialog"
+                    ],
+                    "removePlugins": "image,magicline",
+                    "extraAllowedContent": "br\ntd(box-top,box-middle,box-bottom,box-total)\ntable(uk-table)\ndiv(uk-overflow-auto)\nth(uk-table-shrink)\ntd(uk-table-shrink)\nblockquote(clearfix)\nimg[alt,!src,width,height]",
+                    "tags": "dbMigrate",
+                    "textformatters": "",
+                    "htmlOptions": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "maxlength": 0,
+                    "showCount": 0,
+                    "inheritField": "",
+                    "inlineMode": 0,
+                    "imageFields": "",
+                    "contentsCss": "",
+                    "contentsInlineCss": "",
+                    "stylesSet": "",
+                    "customOptions": "",
+                    "plugin_sourcedialog": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateRestrictFields": {
+                    "name": "dbMigrateRestrictFields",
+                    "label": "Restrict fields",
+                    "flags": 8,
+                    "type": "FieldtypeTextarea",
+                    "description": "Enter list of field names (comma-separated) that will be migrated for selected pages (leave blank to migrate all except globally excluded fields)",
+                    "notes": "This only affects this migration. To exclude specific fields  or field types from all page migrations, use the module config settings.",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "inputfieldClass": "InputfieldTextarea",
+                    "rows": 5,
+                    "tags": "dbMigrate",
+                    "contentType": 0,
+                    "htmlOptions": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "minlength": 0,
+                    "maxlength": 0,
+                    "showCount": 0,
+                    "stripTags": "",
+                    "placeholder": ""
+                }
+            }
+        }
+    },
+    {
+        "templates": {
+            "new": {
+                "repeater_dbMigrateSnippets": {
+                    "name": "repeater_dbMigrateSnippets",
+                    "fieldgroups_id": "repeater_dbMigrateSnippets",
+                    "flags": 8,
+                    "cache_time": 0,
+                    "useRoles": 0,
+                    "noInherit": 0,
+                    "childrenTemplatesID": 0,
+                    "sortfield": "",
+                    "noChildren": 1,
+                    "noParents": 1,
+                    "childTemplates": [],
+                    "parentTemplates": [],
+                    "allowPageNum": 0,
+                    "allowChangeUser": 0,
+                    "redirectLogin": 0,
+                    "urlSegments": 0,
+                    "https": 0,
+                    "slashUrls": 1,
+                    "slashPageNum": 0,
+                    "slashUrlSegments": 0,
+                    "altFilename": "",
+                    "guestSearchable": 0,
+                    "pageClass": "RepeaterPage",
+                    "childNameFormat": "",
+                    "pageLabelField": "",
+                    "noGlobal": 1,
+                    "noMove": 0,
+                    "noTrash": 0,
+                    "noSettings": 0,
+                    "noChangeTemplate": 0,
+                    "noShortcut": 0,
+                    "noUnpublish": 0,
+                    "noLang": 0,
+                    "compile": 3,
+                    "nameContentTab": 0,
+                    "noCacheGetVars": "",
+                    "noCachePostVars": "",
+                    "useCacheForUsers": 0,
+                    "cacheExpire": 0,
+                    "cacheExpirePages": [],
+                    "cacheExpireSelector": "",
+                    "label": "",
+                    "tags": "dbMigrate",
+                    "titleNames": 0,
+                    "noPrependTemplateFile": 0,
+                    "noAppendTemplateFile": 0,
+                    "prependFile": "",
+                    "appendFile": "",
+                    "pagefileSecure": 0,
+                    "tabContent": "",
+                    "tabChildren": "",
+                    "nameLabel": "",
+                    "contentType": "",
+                    "errorAction": 0,
+                    "connectedFieldID": null,
+                    "ns": "",
+                    "fieldgroupFields": [
+                        "title",
+                        "dbMigrateSummary"
+                    ],
+                    "fieldgroupContexts": {
+                        "title": {
+                            "label": "Description"
+                        },
+                        "dbMigrateSummary": {
+                            "label": "Snippet"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateSnippets": {
+                    "name": "dbMigrateSnippets",
+                    "label": "Snippets",
+                    "flags": 8,
+                    "type": "FieldtypeRepeater",
+                    "repeaterLoading": 1,
+                    "repeaterTitle": "#n: {title}",
+                    "tags": "dbMigrate",
+                    "repeaterDepth": "",
+                    "familyFriendly": 0,
+                    "repeaterAddLabel": "",
+                    "repeaterCollapse": 0,
+                    "rememberOpen": 0,
+                    "accordionMode": 0,
+                    "loudControls": 0,
+                    "repeaterMaxItems": "",
+                    "repeaterMinItems": "",
+                    "lazyParents": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": "",
+                    "template_name": "repeater_dbMigrateSnippets"
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateRuntimeControl": {
+                    "name": "dbMigrateRuntimeControl",
+                    "label": "Page Status",
+                    "flags": 8,
+                    "type": "FieldtypeDbMigrateRuntime",
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateRuntimeAction": {
+                    "name": "dbMigrateRuntimeAction",
+                    "label": "Migration Actions",
+                    "flags": 8,
+                    "type": "FieldtypeDbMigrateRuntime",
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateRuntimeReady": {
+                    "name": "dbMigrateRuntimeReady",
+                    "label": "ready.php",
+                    "flags": 8,
+                    "type": "FieldtypeDbMigrateRuntime",
+                    "description": "Contents of site/templates/DbMigrate/migrations/{migration name}/ready.php",
+                    "notes": "This migration-specific ready.php file is for hooks after install etc.",
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateLogChanges": {
+                    "name": "dbMigrateLogChanges",
+                    "label": "Log changes",
+                    "flags": 8,
+                    "type": "FieldtypeToggle",
+                    "description": "If *log changes* is selected, any changes to fields, templates or pages which are **within the scope of the selectors set in the module configuration** will be added to the migration items list.",
+                    "formatType": 0,
+                    "labelType": 100,
+                    "inputfieldClass": 0,
+                    "useVertical": 0,
+                    "yesLabel": "Log changes",
+                    "noLabel": "Sort items on save",
+                    "otherLabel": "Manual",
+                    "defaultOption": "other",
+                    "useOther": 1,
+                    "notes": "Alternatively, you can turn change logging off and either have the module sort your items into dependency order or only allow manual changes to the items and sort order.",
+                    "tags": "dbMigrate",
+                    "useReverse": "",
+                    "useDeselect": "",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredIf": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateTrackingScope": {
+                    "name": "dbMigrateTrackingScope",
+                    "label": "Scope of change tracking",
+                    "flags": 8,
+                    "type": "FieldtypeFieldsetOpen",
+                    "description": "Use selectors to define scope of object changes to be tracked",
+                    "notes": "If you do not enter a selector then no changes will be tracked. Enter id>0 to (potentially) track everything.",
+                    "closeFieldID": 142,
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "showIf": "",
+                    "columnWidth": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateFieldTracking": {
+                    "name": "dbMigrateFieldTracking",
+                    "label": "Fields to track",
+                    "flags": 8,
+                    "type": "FieldtypeText",
+                    "description": "Use selector to specify fields to track",
+                    "notes": "Note that any excluded fields and dbMigrate fields will not be tracked",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "minlength": 0,
+                    "maxlength": 2048,
+                    "showCount": 0,
+                    "size": 0,
+                    "placeholder": "e.g. id>0 to select all fields",
+                    "inputfieldClass": "",
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "stripTags": "",
+                    "pattern": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateTemplateTracking": {
+                    "name": "dbMigrateTemplateTracking",
+                    "label": "Templates to track",
+                    "flags": 8,
+                    "type": "FieldtypeText",
+                    "description": "Use selector to specify templates to track",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "minlength": 0,
+                    "maxlength": 2048,
+                    "showCount": 0,
+                    "size": 0,
+                    "placeholder": "e.g. id>0 to select all templates",
+                    "inputfieldClass": "",
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "stripTags": "",
+                    "pattern": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigratePageTracking": {
+                    "name": "dbMigratePageTracking",
+                    "label": "Pages to track",
+                    "flags": 8,
+                    "type": "FieldtypeText",
+                    "description": "Use selector to specify pages to track",
+                    "notes": "Typically these will be pages holding settings etc., not normal user-updated pages",
+                    "textformatters": [
+                        "TextformatterEntities"
+                    ],
+                    "tags": "dbMigrate",
+                    "collapsed": 0,
+                    "minlength": 0,
+                    "maxlength": 4096,
+                    "showCount": 0,
+                    "size": 0,
+                    "inputfieldClass": "",
+                    "showIf": "",
+                    "themeInputSize": "",
+                    "themeInputWidth": "",
+                    "themeOffset": "",
+                    "themeBorder": "",
+                    "themeColor": "",
+                    "themeBlank": "",
+                    "columnWidth": "",
+                    "required": "",
+                    "requiredAttr": "",
+                    "requiredIf": "",
+                    "stripTags": "",
+                    "placeholder": "",
+                    "pattern": ""
+                }
+            }
+        }
+    },
+    {
+        "fields": {
+            "new": {
+                "dbMigrateTrackingScope_END": {
+                    "name": "dbMigrateTrackingScope_END",
+                    "label": "Close an open fieldset",
+                    "flags": 8,
+                    "type": "FieldtypeFieldsetClose",
+                    "description": "This field was added automatically to accompany fieldset 'dbMigrateScope'.  It should be placed in your template/fieldgroup wherever you want the fieldset to end.",
+                    "openFieldID": 141,
+                    "tags": "dbMigrate"
+                }
+            }
+        }
+    },
+    {
+        "templates": {
+            "new": {
+                "DbMigration": {
+                    "name": "DbMigration",
+                    "fieldgroups_id": "DbMigration",
+                    "flags": 8,
+                    "cache_time": 0,
+                    "useRoles": 0,
+                    "noInherit": 0,
+                    "childrenTemplatesID": 0,
+                    "sortfield": "",
+                    "noChildren": "",
+                    "noParents": "",
+                    "childTemplates": [],
+                    "parentTemplates": [],
+                    "allowPageNum": 0,
+                    "allowChangeUser": 0,
+                    "redirectLogin": 0,
+                    "urlSegments": 0,
+                    "https": 0,
+                    "slashUrls": 1,
+                    "slashPageNum": 0,
+                    "slashUrlSegments": 0,
+                    "altFilename": "",
+                    "guestSearchable": 0,
+                    "pageClass": "ProcessWire\\DbMigrationPage",
+                    "childNameFormat": "",
+                    "pageLabelField": "",
+                    "noGlobal": 0,
+                    "noMove": 1,
+                    "noTrash": 0,
+                    "noSettings": 0,
+                    "noChangeTemplate": 1,
+                    "noShortcut": 0,
+                    "noUnpublish": 0,
+                    "noLang": 0,
+                    "compile": 0,
+                    "nameContentTab": 0,
+                    "noCacheGetVars": "",
+                    "noCachePostVars": "",
+                    "useCacheForUsers": 0,
+                    "cacheExpire": 0,
+                    "cacheExpirePages": [],
+                    "cacheExpireSelector": "",
+                    "label": "",
+                    "tags": "dbMigrate",
+                    "titleNames": 0,
+                    "noPrependTemplateFile": 0,
+                    "noAppendTemplateFile": 0,
+                    "prependFile": "",
+                    "appendFile": "",
+                    "pagefileSecure": 0,
+                    "tabContent": "",
+                    "tabChildren": "",
+                    "nameLabel": "",
+                    "contentType": "",
+                    "errorAction": 0,
+                    "connectedFieldID": null,
+                    "ns": "",
+                    "fieldgroupFields": [
+                        "title",
+                        "dbMigrateRuntimeControl",
+                        "dbMigrateRuntimeAction",
+                        "dbMigrateLogChanges",
+                        "dbMigrateTrackingScope",
+                        "dbMigrateFieldTracking",
+                        "dbMigrateTemplateTracking",
+                        "dbMigratePageTracking",
+                        "dbMigrateTrackingScope_END",
+                        "dbMigrateSummary",
+                        "dbMigrateAdditionalDetails",
+                        "dbMigrateItem",
+                        "dbMigrateRestrictFields",
+                        "dbMigrateSnippets",
+                        "dbMigrateRuntimeReady"
+                    ],
+                    "fieldgroupContexts": {
+                        "title": {
+                            "columnWidth": 50
+                        },
+                        "dbMigrateRuntimeControl": {
+                            "columnWidth": 50
+                        },
+                        "dbMigrateRuntimeAction": {
+                            "columnWidth": 50
+                        },
+                        "dbMigrateLogChanges": {
+                            "columnWidth": 50
+                        },
+                        "dbMigrateTrackingScope": {
+                            "showIf": "dbMigrateLogChanges=1"
+                        },
+                        "dbMigrateFieldTracking": {
+                            "columnWidth": 33
+                        },
+                        "dbMigrateTemplateTracking": {
+                            "columnWidth": 33
+                        },
+                        "dbMigratePageTracking": {
+                            "columnWidth": 34
+                        },
+                        "dbMigrateTrackingScope_END": [],
+                        "dbMigrateSummary": {
+                            "columnWidth": 50
+                        },
+                        "dbMigrateAdditionalDetails": {
+                            "columnWidth": 50
+                        },
+                        "dbMigrateItem": [],
+                        "dbMigrateRestrictFields": [],
+                        "dbMigrateSnippets": [],
+                        "dbMigrateRuntimeReady": {
+                            "collapsed": "1"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    {
+        "templates": {
+            "new": {
+                "DbComparison": {
+                    "name": "DbComparison",
+                    "fieldgroups_id": "DbComparison",
+                    "flags": 8,
+                    "cache_time": 0,
+                    "useRoles": 0,
+                    "noInherit": 0,
+                    "childrenTemplatesID": 0,
+                    "sortfield": "",
+                    "noChildren": "",
+                    "noParents": "",
+                    "childTemplates": [],
+                    "parentTemplates": [],
+                    "allowPageNum": 0,
+                    "allowChangeUser": 0,
+                    "redirectLogin": 0,
+                    "urlSegments": 0,
+                    "https": 0,
+                    "slashUrls": 1,
+                    "slashPageNum": 0,
+                    "slashUrlSegments": 0,
+                    "altFilename": "",
+                    "guestSearchable": 0,
+                    "pageClass": "ProcessWire\\DbComparisonPage",
+                    "childNameFormat": "",
+                    "pageLabelField": "",
+                    "noGlobal": 0,
+                    "noMove": 0,
+                    "noTrash": 0,
+                    "noSettings": 0,
+                    "noChangeTemplate": 0,
+                    "noShortcut": 0,
+                    "noUnpublish": 0,
+                    "noLang": 0,
+                    "compile": 3,
+                    "nameContentTab": 0,
+                    "noCacheGetVars": "",
+                    "noCachePostVars": "",
+                    "useCacheForUsers": 0,
+                    "cacheExpire": 0,
+                    "cacheExpirePages": [],
+                    "cacheExpireSelector": "",
+                    "label": "",
+                    "tags": "dbMigrate",
+                    "titleNames": 0,
+                    "noPrependTemplateFile": 0,
+                    "noAppendTemplateFile": 0,
+                    "prependFile": "",
+                    "appendFile": "",
+                    "pagefileSecure": 0,
+                    "tabContent": "",
+                    "tabChildren": "",
+                    "nameLabel": "",
+                    "contentType": "",
+                    "errorAction": 0,
+                    "connectedFieldID": null,
+                    "ns": "",
+                    "fieldgroupFields": [
+                        "title",
+                        "dbMigrateRuntimeAction",
+                        "dbMigrateSummary",
+                        "dbMigrateComparisonItem"
+                    ],
+                    "fieldgroupContexts": {
+                        "title": [],
+                        "dbMigrateRuntimeAction": [],
+                        "dbMigrateSummary": [],
+                        "dbMigrateComparisonItem": []
+                    }
+                }
+            }
+        }
+    },
+    {
+        "templates": {
+            "new": {
+                "DbMigrations": {
+                    "name": "DbMigrations",
+                    "fieldgroups_id": "DbMigrations",
+                    "flags": 8,
+                    "cache_time": 0,
+                    "useRoles": 0,
+                    "noInherit": 0,
+                    "childrenTemplatesID": 0,
+                    "sortfield": "",
+                    "noChildren": "",
+                    "noParents": "",
+                    "childTemplates": [
+                        "DbMigration",
+                        "DbComparison"
+                    ],
+                    "parentTemplates": [],
+                    "allowPageNum": 0,
+                    "allowChangeUser": 0,
+                    "redirectLogin": 0,
+                    "urlSegments": 0,
+                    "https": 0,
+                    "slashUrls": 1,
+                    "slashPageNum": 0,
+                    "slashUrlSegments": 0,
+                    "altFilename": "",
+                    "guestSearchable": 0,
+                    "pageClass": "",
+                    "childNameFormat": "",
+                    "pageLabelField": "",
+                    "noGlobal": 0,
+                    "noMove": 1,
+                    "noTrash": 0,
+                    "noSettings": 0,
+                    "noChangeTemplate": 1,
+                    "noShortcut": 0,
+                    "noUnpublish": 0,
+                    "noLang": 0,
+                    "compile": 3,
+                    "nameContentTab": 0,
+                    "noCacheGetVars": "",
+                    "noCachePostVars": "",
+                    "useCacheForUsers": 0,
+                    "cacheExpire": 0,
+                    "cacheExpirePages": [],
+                    "cacheExpireSelector": "",
+                    "label": "",
+                    "tags": "dbMigrate",
+                    "titleNames": 0,
+                    "noPrependTemplateFile": 0,
+                    "noAppendTemplateFile": 0,
+                    "prependFile": "",
+                    "appendFile": "",
+                    "pagefileSecure": 0,
+                    "tabContent": "",
+                    "tabChildren": "",
+                    "nameLabel": "",
+                    "contentType": "",
+                    "errorAction": 0,
+                    "connectedFieldID": null,
+                    "ns": "",
+                    "fieldgroupFields": [
+                        "title"
+                    ],
+                    "fieldgroupContexts": {
+                        "title": []
+                    }
+                }
+            }
+        }
+    },
+    {
+        "pages": {
+            "new": {
+                "/processwire/dbmigrations/": {
+                    "template": "DbMigrations",
+                    "parent": "/processwire/",
+                    "status": 1025,
+                    "name": "dbmigrations",
+                    "id": 1353,
+                    "title": "DB Migrations"
+                }
+            }
+        }
+    },
+    {
+        "pages": {
+            "new": {
+                "/processwire/dbcomparisons/": {
+                    "template": "DbMigrations",
+                    "parent": "/processwire/",
+                    "status": 1025,
+                    "name": "dbcomparisons",
+                    "id": 1354,
+                    "title": "DB Comparisons"
+                }
+            }
+        }
+    }
+]

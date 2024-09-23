@@ -1,0 +1,265 @@
+{
+    "pages": {
+        "changed": {
+            "/processwire/dbmigrations/bootstrap/": {
+                "template": "DbMigration",
+                "parent": "/processwire/dbmigrations/",
+                "status": 1,
+                "name": "bootstrap",
+                "id": 1357,
+                "title": "bootstrap",
+                "dbMigrateLogChanges": 2,
+                "dbMigrateSummary": "This is the initial migration to install all the required fields, templates and pages for the module to work. It is bootstrapped, on first running the ProcessDbMigrate module, from the json files.",
+                "dbMigrateAdditionalDetails": "<p>If you want to amend this bootstrap, for example to implement changes to the layout of the DbMigration template, then you may need to first make it 'exportable' in the source (development) environment by removing the meta('installable') from this page.</p>",
+                "dbMigrateItem": [
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateType",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateAction",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateName",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateOldName",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 2,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "repeater_dbMigrateItem",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateItem",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 2,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "repeater_dbMigrateComparisonItem",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateComparisonItem",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateSummary",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateAdditionalDetails",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateRestrictFields",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 2,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "repeater_dbMigrateSnippets",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateSnippets",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateRuntimeControl",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateRuntimeAction",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateRuntimeReady",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateLogChanges",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateTrackingScope",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateFieldTracking",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateTemplateTracking",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigratePageTracking",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 1,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "dbMigrateTrackingScope_END",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 2,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "DbMigration",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 2,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "DbComparison",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 2,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "DbMigrations",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 3,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "/processwire/dbmigrations/",
+                            "dbMigrateOldName": ""
+                        }
+                    },
+                    {
+                        "template": "repeater_dbMigrateItem",
+                        "data": {
+                            "dbMigrateType": 3,
+                            "dbMigrateAction": 1,
+                            "dbMigrateName": "/processwire/dbcomparisons/",
+                            "dbMigrateOldName": ""
+                        }
+                    }
+                ],
+                "dbMigrateSnippets": []
+            }
+        }
+    },
+    "sourceDb": "MetaTunes Master",
+    "sourceSiteUrl": "/site/"
+}
