@@ -59,9 +59,9 @@ class DbComparisonPage extends DbMigrationPage {
 		$this->set('comparisonTemplate', wire('templates')->get(ProcessDbMigrate::COMPARISON_TEMPLATE));
 		$this->set('comparisonsPath', wire('config')->paths->templates . ProcessDbMigrate::COMPARISON_PATH);
 		$this->set('configData', wire('modules')->getConfig('ProcessDbMigrate'));
-		$dbMigrate = wire('modules')->get('ProcessDbMigrate');
-		$this->set('dbMigrate', $dbMigrate);
-		$this->set('dbName', $dbMigrate->dbName());
+		$dbM = wire('modules')->get('ProcessDbMigrate');
+		$this->set('dbMigrate', $dbM);
+		$this->set('dbName', $dbM->dbName());
 		if(isset($this->configData['suppress_hooks']) && $this->configData['suppress_hooks']) $this->wire()->error("Hook suppression is on - migrations will not work correctly - unset in the module settings.");
 
 		// Fix for PW versions < 3.0.152, but left in place regardless of version, in case custom page classes are not enabled
