@@ -1,6 +1,6 @@
 <?php namespace ProcessWire;
 $config->styles->add($config->urls->templates . "styles/admin.css");
-ProcessDbMigrate::bd($page, 'RENDERING');
+//bd($page, 'RENDERING');
 ?>
 <!DOCTYPE html>
 <html>

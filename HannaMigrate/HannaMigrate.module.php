@@ -64,7 +64,7 @@ class HannaMigrate extends \ProcessWire\WireData implements \ProcessWire\Module 
 		}
 
 		foreach($dataArray as $nameKey => $data) {
-			bd([$nameKey, $data], 'nameKey, data');
+			//bd([$nameKey, $data], 'nameKey, data');
 			if(!preg_match('{!HannaCode:([^:]+):(.*?)/!HannaCode}s', $data, $matches)) {
 				$session->error("Unrecognized Hanna Code format for $nameKey");
 			}

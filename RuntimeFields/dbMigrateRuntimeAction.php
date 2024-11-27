@@ -34,11 +34,11 @@ if($page->template == ProcessDbMigrate::MIGRATION_TEMPLATE) {
 		// Only show actions if unlocked
 		if(!$page->meta('locked')) {
 			$updated = $page->meta('updated');
-			ProcessDbMigrate::bd($installedStatus, '$installedStatus in migration actions');
+			//bd($installedStatus, '$installedStatus in migration actions');
 			wire('modules')->get('JqueryUI')->use('modal');
-			ProcessDbMigrate::bd($migrationPath, 'mig path');
+			//bd($migrationPath, 'mig path');
 			if($page->meta('installable') and file_exists($migrationPath . 'new/data.json')) {
-				ProcessDbMigrate::bd($page, 'REMOVING DRAFT meta');
+				//bd($page, 'REMOVING DRAFT meta');
 				if($page->meta('draft')) $page->meta()->remove('draft');
 				if(!$installedStatus['installed'] and is_dir($migrationPath . 'new/') and $updated) {
 

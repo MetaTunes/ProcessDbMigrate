@@ -16,12 +16,15 @@ This version incorporates automated tracking of changes - your migration specifi
 to circular dependencies and allows you to resolve them. If you ignore them then the installation will probably still work the system will make up to 3 tries before giving up.
 
 ## Installation
-Place the ProcessDbMigrate folder in your site/modules directory. PW version 3.0.210 or later is recommended. Please let me know if it works with earlier versions.
+Place the ProcessDbMigrate folder in your site/modules directory or install from the PW modules library. PW version 3.0.210 or later is recommended. Please let me know if it works with earlier versions.
 
 Having satisfied the dependencies, install the module.
 
+Note that if your admin path is something other than /processwire/, the module will change it's bootstrap json file to reflect this. 
+If you attempt to migrate to a site with a different admin path then it may appear that the migration does not  fully install, although it might work.
+
 ## Updating
-Just put the new code in the ProcessDbMigrate folder. Then refresh Modules.
+Use the PW modules library to update the module (check for updates in the module information).
 Note that if you have hacked the bootstrap json, then updating will overwrite your hack.
 
 ## Usage
