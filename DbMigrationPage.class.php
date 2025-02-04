@@ -399,13 +399,38 @@ class DbMigrationPage extends DummyMigrationPage {
 					}
 					$cmpMigFile = (file_exists($cachePath . 'migration.json'))
 						? '[' . file_get_contents($cachePath . 'migration.json') . ']' : null;
-					//bd('new migration');
-					$R = $this->array_compare($this->compactArray(wireDecodeJSON($newMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
+					$newMigrationArray = wireDecodeJSON($newMigFile);
+//					bd($newMigrationArray, 'newMigrationArray');
+					$cmpMigrationArray = wireDecodeJSON($cmpMigFile);
+//					bd($cmpMigrationArray, 'cmpMigrationArray');
+
+					// make sure that the sourceadmin name is changed to match the current environment
+					$sourceAdmin = (isset($cmpMigrationArray[0]['sourceAdminUrl'])) ?  $cmpMigrationArray[0]['sourceAdminUrl'] : ProcessDbMigrate::SOURCE_ADMIN;
+//					bd($sourceAdmin, 'sourceAdmin');
+					$oldSourceAdmin = (isset($newMigrationArray[0]['sourceAdminUrl'])) ? $newMigrationArray[0]['sourceAdminUrl'] : ProcessDbMigrate::SOURCE_ADMIN;
+//					bd([$this->name, $sourceAdmin, $oldSourceAdmin], 'migration, sourceAdmin, oldSourceAdmin');
+					if($sourceAdmin != $oldSourceAdmin) {  // NB sourceAdmin and oldSourceAdmin already have leading and trailing slashes
+						$pagesChanged = $newMigrationArray[0]['pages']['changed'];
+						$oldKey = array_key_first($pagesChanged);
+						$newKey = str_replace($oldSourceAdmin, $sourceAdmin, $oldKey);
+						if($newKey != $oldKey) {
+							$pagesChanged[$newKey] = $pagesChanged[$oldKey];
+							unset($pagesChanged[$oldKey]);
+							$pagesChanged[$newKey]['parent'] = str_replace($oldSourceAdmin, $sourceAdmin, $pagesChanged[$newKey]['parent']);
+							$newMigrationArray[0]['pages']['changed'] = $pagesChanged;
+							$newMigrationArray[0]['sourceAdminUrl'] = $sourceAdmin;
+						}
+//						bd($newMigrationArray, 'newMigrationArray after');
+						//bd($sourceAdmin, 'sourceAdmin');
+					}
+					//
+
+					$R = $this->array_compare($this->compactArray($newMigrationArray), $this->compactArray($cmpMigrationArray));
 					$R = $this->pruneImageFields($R, 'new');
 					$installedMigration = (!$R);
 					$installedMigrationDiffs = $R;
 					//bd('old migration');
-					$R2 = $this->array_compare($this->compactArray(wireDecodeJSON($oldMigFile)), $this->compactArray(wireDecodeJSON($cmpMigFile)));
+					$R2 = $this->array_compare($this->compactArray(wireDecodeJSON($oldMigFile)), $this->compactArray($cmpMigrationArray));
 					$R2 = $this->pruneImageFields($R2, 'old');
 					$uninstalledMigration = (!$R2);
 					$uninstalledMigrationDiffs = $R2;

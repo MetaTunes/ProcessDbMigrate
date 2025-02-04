@@ -304,6 +304,9 @@ class ProcessDbMigrate extends Process implements Module, ConfigurableModule {
 			$this->addHookBefore('Templates::save', $this, 'beforeSaveTemplate');
 			$this->addHookBefore('Fields::save', $this, 'beforeSaveField');
 
+			// Need to fix Fieldgroups export data as it does not convert role ids to names
+			$this->addHookAfter('Fieldgroups::getExportData', $this, 'afterFieldgroupsGetExportData');
+
 			// Hooks below are to handle field and template changes where 'log changes' has been enabled
 			// The functions they call are grouped together and documented there
 
@@ -2369,6 +2372,31 @@ If it has been used in another environment and is no longer wanted then you will
 		}
 	}
 
+	protected function afterFieldgroupsGetExportData(HookEvent $event) {
+		$fieldgroup = $event->arguments(0);
+		$exportData = $event->return;
+		$contexts = $exportData['contexts'];
+		$fields = $exportData['fields'];
+
+		$roles = $this->wire()->roles;
+		foreach($contexts as $index => $context) {
+			foreach(array('editRoles', 'viewRoles') as $key) {
+				if(!isset($context[$key])) continue;
+//				bd([$key, $context], 'fieldgroupcontext key');
+				$values = array();
+				foreach($context[$key] as $id) {
+					$role = $id instanceof Role ? $id : $roles->get((int) $id);
+					if($role && $role->id) $values[] =  $role->name;
+				}
+				$context[$key] = $values;
+			}
+			$contexts[$index] = $context;
+		}
+		$data['contexts'] = $contexts;
+		$data['fields'] = $fields;
+		$event->return = $data;
+	}
+
 	/**
 	 * After fieldgroup edit build form,svae page, save field and save template:
 	 * Display warning re saving of templates which are inside the scope of unlocked installable migrations
@@ -3321,7 +3349,7 @@ If it has been used in another environment and is no longer wanted then you will
 	public function getExportDataMod($obj) {
 		// To deal with cross-pollution of repeater configs by repeater matrix configs we suspend those methods temporarily
 		// (see https://processwire.com/talk/topic/27988-config-calls-deprecated-method/#comment-229594)
-		$configHook = $this->addHookBefore("FieldtypeRepeaterMatrix::getConfigInputfields($obj)", $this, 'beforeGetConfigInputfields'); // see below
+		$configHook = $this->addHookBefore("FieldtypeRepeaterMatrix::getConfigInputfields($obj)", $this, 'beforeGetConfigInputfields'); // removed later - see below
 
 		if(($obj instanceof Field) && !($obj instanceof RepeaterMatrixField) && $obj->type == 'FieldtypeRepeaterMatrix') {
 			$processed = $this->wire()->session->get('processed_repeater');
